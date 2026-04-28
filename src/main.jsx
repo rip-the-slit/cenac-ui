@@ -3,13 +3,9 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
+import routes from "./routes";
 
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <div className="text-3xl font-bold underline">Hello World</div>,
-  },
-]);
+const router = createBrowserRouter(routes);
 
 const root = document.getElementById("root");
 
