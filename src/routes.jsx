@@ -1,12 +1,13 @@
-import { redirect } from "react-router";
+import { Outlet, redirect } from "react-router";
 import { getUsers } from "./auth";
-import App from "./routes/root/App";
+import App, { appLoader } from "./routes/root/App";
 import Login, { loginAction } from "./routes/login/Login";
+import DataLoader from "./routes/root/load/DataLoader";
 
 async function AuthLoader({ request }) {
   const data = await getUsers();
   const user = data.activeUser;
-  
+
   const url = new URL(request.url);
   const isTryingToAccessLogin = url.pathname.startsWith("/ingresar");
   const isTryingToAccessApp = !isTryingToAccessLogin;
@@ -16,7 +17,7 @@ async function AuthLoader({ request }) {
   }
 
   if (user && isTryingToAccessLogin) {
-    return redirect("/");
+    return redirect("/periodo/actual");
   }
 
   return data;
@@ -28,14 +29,21 @@ export default [
     loader: AuthLoader,
     children: [
       {
-        path: "/",
-        element: <App/>,
+        path: "periodo/:periodId",
+        element: <App />,
+        loader: appLoader,
+        children: [
+          {
+            path: "cargar",
+            children: [{ index: true, element: <DataLoader /> }],
+          },
+        ],
       },
       {
         path: "ingresar",
-        element: <Login/>,
+        element: <Login />,
         action: loginAction,
-      }
-    ]
+      },
+    ],
   },
-]
+];

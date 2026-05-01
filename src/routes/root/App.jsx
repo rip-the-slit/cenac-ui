@@ -1,4 +1,3 @@
-import React from "react";
 import {
   LayoutDashboard,
   BookOpen,
@@ -13,13 +12,25 @@ import {
   HelpCircle,
   Settings,
   Search,
-  CalendarDays,
   Lightbulb,
   MoreHorizontal,
 } from "lucide-react";
 import UserSelector from "../login/UserSelector";
-import { useAuth } from "../../AuthProvider";
-import { useRouteLoaderData } from "react-router";
+import { Outlet, redirect, useLoaderData, useRouteLoaderData } from "react-router";
+import { getPeriodList, getPeriodStats } from "../../db";
+import { PeriodSelector } from "./PeriodSelector";
+
+export async function appLoader({params, request}) {
+  const periodList = await getPeriodList();
+  const periodId = params.periodId === "actual" ? periodList[0] : params.periodId;
+  const periodData = await getPeriodStats(periodId);
+
+  const url = new URL(request.url);
+  if (periodData.stats === null && !url.pathname.includes("cargar")) 
+    return redirect(`/periodo/${periodId}/cargar`);
+
+  return {list: periodList, data: periodData, periodId: periodId}
+}
 
 const SidebarItem = ({ icon: Icon, label, active }) => (
   <button
@@ -58,9 +69,11 @@ const SidebarSection = ({ title, items }) => (
 );
 
 export default function App() {
-  const data = useRouteLoaderData("auth");
+  const authData = useRouteLoaderData("auth");
+  const period = useLoaderData();
 
-  const users = data.users;
+  const isAllDataLoaded = period.data.stats !== null;
+  const users = authData.users;
 
   const generalItems = [
     { icon: LayoutDashboard, label: "Dashboard", active: true },
@@ -88,11 +101,11 @@ export default function App() {
         {/* User Profile */}
         <UserSelector
           users={users}
-          userId={users.findIndex((u) => u.id === data.activeUser)}
+          userId={users.findIndex((u) => u.id === authData.activeUser)}
           setUserId={() => {}}
         />
         {/* Navigation */}
-        <div className="flex-1 overflow-y-auto py-6 px-3">
+        <div className={"flex-1 overflow-y-auto py-6 px-3" + (!isAllDataLoaded ? " pointer-events-none opacity-50" : "")}>
           <SidebarSection title="General" items={generalItems} />
           <SidebarSection title="Collaboration" items={collaborationItems} />
           <SidebarSection title="Support" items={supportItems} />
@@ -136,10 +149,7 @@ export default function App() {
 
           {/* Right Actions */}
           <div className="flex items-center space-x-4">
-            <button className="flex items-center space-x-2 px-3 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 text-sm text-gray-600">
-              <CalendarDays className="w-4 h-4" />
-              <span>2026</span>
-            </button>
+            <PeriodSelector list={period.list} currentId={period.periodId} />
             <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600">
               <Lightbulb className="w-4 h-4" />
             </button>
@@ -151,11 +161,7 @@ export default function App() {
 
         {/* Dashboard Content Area */}
         <div className="flex-1 overflow-auto p-8">
-          <div className="border-2 border-dashed border-gray-300 rounded-xl h-full flex items-center justify-center bg-gray-50">
-            <p className="text-gray-500 font-medium">
-              Main content area (Excluded per request)
-            </p>
-          </div>
+          <Outlet/>
         </div>
       </main>
     </div>
