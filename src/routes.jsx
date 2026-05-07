@@ -1,8 +1,18 @@
-import { Outlet, redirect } from "react-router";
+import { redirect } from "react-router";
+import { Outlet } from "react-router";
 import { getUsers } from "./auth";
 import App, { appLoader } from "./routes/root/App";
 import Login, { loginAction } from "./routes/login/Login";
-import DataLoader from "./routes/root/load/DataLoader";
+import DataLoader, { dataLoader } from "./routes/root/load/DataLoader";
+import SubjectLoader, {
+  subjectAction,
+  subjectLoader,
+} from "./routes/root/load/SubjectLoader";
+import ClassLoader, {
+  classAction,
+  classLoader,
+} from "./routes/root/load/ClassLoader";
+import { ErrorDialogProvider } from "./context/ErrorDialogContext";
 
 async function AuthLoader({ request }) {
   const data = await getUsers();
@@ -27,7 +37,17 @@ export default [
   {
     id: "auth",
     loader: AuthLoader,
+    element: (
+      <ErrorDialogProvider>
+        <Outlet />
+      </ErrorDialogProvider>
+    ),
     children: [
+      {
+        path: "ingresar",
+        element: <Login />,
+        action: loginAction,
+      },
       {
         path: "periodo/:periodId",
         element: <App />,
@@ -35,14 +55,23 @@ export default [
         children: [
           {
             path: "cargar",
-            children: [{ index: true, element: <DataLoader /> }],
+            children: [
+              { index: true, element: <DataLoader />, loader: dataLoader },
+              {
+                path: "materias",
+                element: <SubjectLoader />,
+                loader: subjectLoader,
+                action: subjectAction,
+              },
+              {
+                path: "secciones",
+                element: <ClassLoader />,
+                loader: classLoader,
+                action: classAction,
+              },
+            ],
           },
         ],
-      },
-      {
-        path: "ingresar",
-        element: <Login />,
-        action: loginAction,
       },
     ],
   },
