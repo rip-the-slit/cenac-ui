@@ -3,7 +3,7 @@ import { Outlet } from "react-router";
 import { getUsers } from "./auth";
 import App, { appLoader } from "./routes/root/App";
 import Login, { loginAction } from "./routes/login/Login";
-import DataLoader, { dataLoader } from "./routes/root/load/DataLoader";
+import DataLoader, { dataAction, dataLoader } from "./routes/root/load/DataLoader";
 import SubjectLoader, {
   subjectAction,
   subjectLoader,
@@ -56,7 +56,12 @@ export default [
           {
             path: "cargar",
             children: [
-              { index: true, element: <DataLoader />, loader: dataLoader },
+              {
+                index: true,
+                element: <DataLoader />,
+                loader: dataLoader,
+                action: dataAction,
+              },
               {
                 path: "materias",
                 element: <SubjectLoader />,

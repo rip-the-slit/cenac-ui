@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
-import { Link, useLoaderData } from "react-router";
-import { getCache } from "../../../db";
+import { Form, Link, redirect, useLoaderData } from "react-router";
+import { clearCache, getCache, getPeriodList, loadPeriodData } from "../../../db";
 
 function hasData(data) {
   if (Array.isArray(data)) {
@@ -22,6 +22,19 @@ export async function dataLoader() {
     classesLoaded,
     canConfirm: subjectsLoaded && classesLoaded,
   };
+}
+
+export async function dataAction({ params }) {
+  const subjects = getCache("subjects");
+  const classStudents = getCache("class_students");
+  const periodList = await getPeriodList();
+  const periodId =
+    params.periodId === "actual" ? periodList[0] : params.periodId;
+
+  await loadPeriodData(periodId, classStudents, subjects);
+  clearCache("subjects");
+  clearCache("class_students");
+  return redirect("..");
 }
 
 export default function DataLoader() {
@@ -63,17 +76,19 @@ export default function DataLoader() {
           </p>
         </Link>
       </div>
-      <button
+      <Form method="post">
+        <button
           className={`mx-auto flex items-center gap-2 font-bold p-3 shadow-sm rounded-lg border text-white ${
             canConfirm
               ? "bg-gradient-to-b from-emerald-500 to-emerald-600 border-emerald-500"
               : "bg-gray-300 border-gray-300 cursor-not-allowed"
           }`}
-          type="button"
+          type="submit"
           disabled={!canConfirm}
         >
           Confirmar <Check className="w-5 h-5" />
         </button>
+      </Form>
     </div>
   );
 }

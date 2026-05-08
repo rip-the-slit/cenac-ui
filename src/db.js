@@ -1,5 +1,5 @@
 const periods = [
-  { id: "2026", stats: null, data_loaded: { subjects: false, classes: false } },
+  { id: "2026", stats: null },
   {
     id: "2025",
     stats: {
@@ -17,12 +17,12 @@ const periods = [
 ];
 
 const years = [
-  { id: 1, name: '1er Año'},
-  { id: 2, name: '2do Año'},
-  { id: 3, name: '3er Año'},
-  { id: 4, name: '4to Año'},
-  { id: 5, name: '5to Año'},
-]
+  { id: 1, name: "1er Año" },
+  { id: 2, name: "2do Año" },
+  { id: 3, name: "3er Año" },
+  { id: 4, name: "4to Año" },
+  { id: 5, name: "5to Año" },
+];
 
 const subjects = [
   { id: 1, name: "Castellano" },
@@ -38,7 +38,10 @@ const subjects = [
   { id: 11, name: "Geografía, Historia y Ciudadanía" },
   { id: 12, name: "Formación para la Soberanía Nacional" },
   { id: 13, name: "Orientación y Convivencia" },
-  { id: 14, name: "Participación en Grupos de Creación, Recreación y Producción" }
+  {
+    id: 14,
+    name: "Participación en Grupos de Creación, Recreación y Producción",
+  },
 ];
 
 const teachers = [
@@ -46,7 +49,7 @@ const teachers = [
   { id: 2, name: "María García" },
   { id: 3, name: "Carlos Rodríguez" },
   { id: 4, name: "Ana Martínez" },
-  { id: 5, name: "Luis Hernández" }
+  { id: 5, name: "Luis Hernández" },
 ];
 
 const studentClass = {
@@ -70,30 +73,36 @@ const studentFieldLabels = {
   birthPlace: "Lugar de Nacimiento",
 };
 
-const sampleStudents = [
-  {
-    id: "12345678",
-    firstName: "Juan",
-    lastName: "Perez",
-    dateOfBirth: "2008-05-10",
-    birthPlace: "Caracas",
-    _class: {
-      id: "A",
-      year: 1,
+const sampleStudents = {
+  "2025" : [
+    {
+      id: "12345678",
+      firstName: "Juan",
+      lastName: "Perez",
+      dateOfBirth: "2008-05-10",
+      birthPlace: "Caracas",
+      _class: {
+        id: "A",
+        year: 1,
+      },
     },
-  },
-  {
-    id: "23456789",
-    firstName: "Maria",
-    lastName: "Gomez",
-    dateOfBirth: "2009-02-15",
-    birthPlace: "Valencia",
-    _class: {
-      id: "A",
-      year: 1,
+    {
+      id: "23456789",
+      firstName: "Maria",
+      lastName: "Gomez",
+      dateOfBirth: "2009-02-15",
+      birthPlace: "Valencia",
+      _class: {
+        id: "A",
+        year: 1,
+      },
     },
-  },
-];
+  ]
+}
+
+const sampleSubjects = {
+
+}
 
 export async function getYears() {
   return years;
@@ -108,23 +117,33 @@ export async function getTeachers() {
 }
 
 export async function getPeriodStats(periodId) {
-    return periods.find((p) => p.id === periodId);
+  return periods.find((p) => p.id === periodId);
 }
 
 export async function getPeriodList() {
-    return periods.map((p) => p.id);
+  return periods.map((p) => p.id);
 }
 
 export async function getClassSuggestions() {
-  const students = sampleStudents;
+  const students = sampleStudents["2025"];
   return { students, studentClass, studentFieldLabels };
 }
+
+export async function loadPeriodData(periodId, students, subjects) {
+  if (sampleStudents[periodId]) return;
+  sampleStudents[periodId] = students;
+  sampleSubjects[periodId] = subjects;
+  periods.find((p) => p.id === periodId).stats = {
+    grades: { total: 0, loaded: 0 },
+    students: { total: students.length, approved: 0 },
+  };
+} 
 
 export function saveCache(key, data) {
   try {
     localStorage.setItem(key, JSON.stringify(data));
   } catch (e) {
-    console.error(e)
+    console.error(e);
   }
 }
 
@@ -134,7 +153,7 @@ export function getCache(key) {
     return data ? JSON.parse(data) : null;
   } catch (e) {
     console.error(e);
-    return null
+    return null;
   }
 }
 
