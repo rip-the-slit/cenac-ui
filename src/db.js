@@ -4,7 +4,7 @@ const periods = [
     id: "2025",
     stats: {
       grades: { total: 1034, loaded: 600 },
-      students: { total: 120, approved: 110 },
+      students: { total: 120, approved: 50 },
     },
   },
   {
@@ -124,9 +124,33 @@ export async function getPeriodList() {
   return periods.map((p) => p.id);
 }
 
+export async function getClass(periodId) {
+  return sampleStudents[periodId];
+}
+
 export async function getClassSuggestions() {
   const students = sampleStudents["2025"];
   return { students, studentClass, studentFieldLabels };
+}
+
+export async function getClassesByYear(periodId) {
+  const students = sampleStudents[periodId] || [];
+  const classesByYear = years.reduce((acc, year) => {
+    acc[year.id] = [];
+    return acc;
+  }, {});
+  for (const student of students) {
+    const yearId = student?._class?.year;
+    const classId = student?._class?.id;
+    if (!yearId || !classId) {
+      continue;
+    }
+    if (!classesByYear[yearId].includes(classId)) {
+      classesByYear[yearId].push(classId);
+    }
+  }
+  Object.values(classesByYear).forEach((classList) => classList.sort());
+  return classesByYear;
 }
 
 export async function loadPeriodData(periodId, students, subjects) {

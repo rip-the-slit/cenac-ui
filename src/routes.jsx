@@ -13,6 +13,7 @@ import ClassLoader, {
   classLoader,
 } from "./routes/root/load/ClassLoader";
 import { ErrorDialogProvider } from "./context/ErrorDialogContext";
+import PeriodOverview, { periodOverviewLoader } from "./routes/root/PeriodOverview";
 
 async function AuthLoader({ request }) {
   const data = await getUsers();
@@ -49,10 +50,16 @@ export default [
         action: loginAction,
       },
       {
+        id: "period",
         path: "periodo/:periodId",
         element: <App />,
         loader: appLoader,
         children: [
+          {
+            index: true,
+            element: <PeriodOverview />,
+            loader: periodOverviewLoader,
+          },
           {
             path: "cargar",
             children: [

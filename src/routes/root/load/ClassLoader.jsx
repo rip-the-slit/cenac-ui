@@ -6,6 +6,7 @@ import {
   saveCache,
 } from "../../../db";
 import CollapsibleSection from "./CollapsibleSection";
+import ClassCard from "./ClassCard";
 import { createContext, useContext, useReducer, useState } from "react";
 import { Plus, Trash2, X } from "lucide-react";
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
@@ -307,27 +308,13 @@ function ClassGrid({ yearId, classes, onAddClass, onClassClick, onDeleteClass })
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {classes.map((className) => (
-        <div
+        <ClassCard
           key={className}
-          className="relative group bg-white border border-gray-200 rounded-lg shadow-sm"
-        >
-          <button
-            type="button"
-            onClick={() => onClassClick(className)}
-            className="w-full rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer"
-          >
-            <span className="text-2xl font-bold text-gray-700">{className}</span>
-            <span className="text-sm text-gray-500">Sección</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onDeleteClass(className)}
-            className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 bg-white p-1 text-red-500"
-            aria-label={`Eliminar sección ${className}`}
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
+          className={className}
+          onClick={() => onClassClick(className)}
+          onDelete={() => onDeleteClass(className)}
+          showDelete
+        />
       ))}
       <button
         type="button"
