@@ -10,6 +10,14 @@ import ClassCard from "./ClassCard";
 import { createContext, useContext, useReducer, useState } from "react";
 import { Plus, Trash2, X } from "lucide-react";
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
+import {
+  BodyCell,
+  DataTable,
+  HeadCell,
+  TableBody,
+  TableContainer,
+  TableHead,
+} from "./TablePrimitives";
 
 export async function classAction({ request }) {
   const formData = await request.formData();
@@ -170,9 +178,9 @@ function StudentRow({ student, studentAttributes }) {
   const selectedClass = `${student._class.year}-${student._class.id}`;
 
   return (
-    <tr className="border-b group">
+    <tr className="group">
       {studentAttributes.map((attr) => (
-        <td key={attr} className="p-2 border-r">
+        <BodyCell key={attr} className="border-r">
           <input
             type="text"
             name={attr === "id" ? attr : `${attr}-${student.id}`}
@@ -193,9 +201,9 @@ function StudentRow({ student, studentAttributes }) {
             pattern={attr === "id" ? "[0-9.]+" : undefined}
             className="w-full bg-transparent"
           />
-        </td>
+        </BodyCell>
       ))}
-      <td className="p-2 sticky right-0 bg-white">
+      <BodyCell className="sticky right-0">
         <div className="flex items-center gap-2">
           <select
             name={`_class-${student.id}`}
@@ -232,7 +240,7 @@ function StudentRow({ student, studentAttributes }) {
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
-      </td>
+      </BodyCell>
     </tr>
   );
 }
@@ -255,21 +263,19 @@ function StudentTable({ yearId, classId, students, onDeselectClass }) {
           Sección {classId} <X className="w-4 h-4 text-gray-600" />
         </button>
       </div>
-      <div className="overflow-x-auto relative">
-        <table className="w-full table-auto">
-          <thead className="text-left">
+      <TableContainer className="">
+        <DataTable>
+          <TableHead>
             <tr className="bg-gray-100">
               {studentAttributes.map((attr) => (
-                <th key={attr} className="p-2 border-r font-semibold">
+                <HeadCell key={attr} className="">
                   {studentFieldLabels[attr] || attr}
-                </th>
+                </HeadCell>
               ))}
-              <th className="p-2 sticky right-0 bg-gray-100 font-semibold">
-                Sección
-              </th>
+              <HeadCell className="sticky right-0 bg-gray-100">Sección</HeadCell>
             </tr>
-          </thead>
-          <tbody>
+          </TableHead>
+          <TableBody>
             {students.map((student) => (
               <StudentRow
                 key={student.id}
@@ -277,9 +283,9 @@ function StudentTable({ yearId, classId, students, onDeselectClass }) {
                 studentAttributes={studentAttributes}
               />
             ))}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </DataTable>
+      </TableContainer>
       <button
         type="button"
         onClick={() =>

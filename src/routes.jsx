@@ -14,6 +14,7 @@ import ClassLoader, {
 } from "./routes/root/load/ClassLoader";
 import { ErrorDialogProvider } from "./context/ErrorDialogContext";
 import PeriodOverview, { periodOverviewLoader } from "./routes/root/PeriodOverview";
+import Grades, { gradesAction, gradesLoader } from "./routes/root/grades/Grades";
 
 async function AuthLoader({ request }) {
   const data = await getUsers();
@@ -22,12 +23,13 @@ async function AuthLoader({ request }) {
   const url = new URL(request.url);
   const isTryingToAccessLogin = url.pathname.startsWith("/ingresar");
   const isTryingToAccessApp = !isTryingToAccessLogin;
+  const isTryingToAccessRoot = url.pathname === "/";
 
   if (!user && isTryingToAccessApp) {
     return redirect("/ingresar");
   }
 
-  if (user && isTryingToAccessLogin) {
+  if (user && (isTryingToAccessLogin || isTryingToAccessRoot)) {
     return redirect("/periodo/actual");
   }
 
@@ -37,6 +39,7 @@ async function AuthLoader({ request }) {
 export default [
   {
     id: "auth",
+    path: "/",
     loader: AuthLoader,
     element: (
       <ErrorDialogProvider>
@@ -59,6 +62,16 @@ export default [
             index: true,
             element: <PeriodOverview />,
             loader: periodOverviewLoader,
+          },
+          {
+            path: "notas",
+            element: <Grades />,
+            loader: gradesLoader,
+            action: gradesAction,
+          },
+          {
+            path: "estudiantes",
+            element: <Outlet />,
           },
           {
             path: "cargar",
