@@ -1,6 +1,7 @@
 import { redirect } from "react-router";
 import { Outlet } from "react-router";
 import { getUsers } from "./auth";
+import ErrorBoundary from "./routes/ErrorBoundary";
 import App, { appLoader } from "./routes/root/App";
 import Login, { loginAction } from "./routes/login/Login";
 import DataLoader, { dataAction, dataLoader } from "./routes/root/load/DataLoader";
@@ -51,6 +52,7 @@ export default [
         <Outlet />
       </ErrorDialogProvider>
     ),
+    errorElement: <ErrorBoundary />,
     children: [
       {
         path: "ingresar",
