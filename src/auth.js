@@ -1,19 +1,16 @@
-const data =  {
-    users: [
-      { id: "12339", name: "Valeria", type: "Coordinador" },
-      { id: "29382", name: "Maite", type: "Coordinador" },
-    ],
-    activeUser: "29382",
-  }
+import { request } from "./db";
 
 export async function getUsers() {
-    return data;
+  return request("/users");
 }
 
 export async function login(userId) {
-    data.activeUser = userId;
+  return request("/users/login", {
+    method: "POST",
+    body: JSON.stringify({ userId }),
+  });
 }
 
 export async function logout() {
-    data.activeUser = null;
+  return request("/users/logout", { method: "POST" });
 }
