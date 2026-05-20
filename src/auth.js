@@ -3,7 +3,7 @@ const data =  {
       { id: "12339", name: "Valeria", type: "Coordinador" },
       { id: "29382", name: "Maite", type: "Coordinador" },
     ],
-    activeUser: null,
+    activeUser: "29382",
   }
 
 export async function getUsers() {

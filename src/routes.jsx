@@ -15,6 +15,11 @@ import ClassLoader, {
 import { ErrorDialogProvider } from "./context/ErrorDialogContext";
 import PeriodOverview, { periodOverviewLoader } from "./routes/root/PeriodOverview";
 import Grades, { gradesAction, gradesLoader } from "./routes/root/grades/Grades";
+import Students, { studentsLoader } from "./routes/root/students/Students";
+import StudentDetail, {
+  studentDetailAction,
+  studentDetailLoader,
+} from "./routes/root/students/StudentDetail";
 
 async function AuthLoader({ request }) {
   const data = await getUsers();
@@ -71,7 +76,16 @@ export default [
           },
           {
             path: "estudiantes",
-            element: <Outlet />,
+            element: <Students />,
+            loader: studentsLoader,
+            children: [
+              {
+                path: "estudiante/:studentId",
+                element: <StudentDetail />,
+                loader: studentDetailLoader,
+                action: studentDetailAction,
+              },
+            ],
           },
           {
             path: "cargar",

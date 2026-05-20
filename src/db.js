@@ -261,6 +261,68 @@ export async function getClassSuggestions() {
   return { students, studentClass, studentFieldLabels };
 }
 
+export async function getStudents(periodId, filters = {}) {
+  const students = sampleStudents[periodId] || [];
+  const normalize = (value) => String(value ?? "").toLowerCase().trim();
+  const yearFilter = filters.year ? Number(filters.year) : null;
+  const classFilter = String(filters.classId || "");
+  const rows = students.filter((student) => {
+    if (yearFilter && student?._class?.year !== yearFilter) return false;
+    if (classFilter && student?._class?.id !== classFilter) return false;
+    for (const [field, value] of Object.entries(filters)) {
+      if (!value || field === "year" || field === "classId") continue;
+      const source =
+        field === "class"
+          ? `${student?._class?.year || ""}-${student?._class?.id || ""}`
+          : student?.[field];
+      if (!normalize(source).includes(normalize(value))) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  return {
+    rows,
+    years,
+    classesByYear: await getClassesByYear(periodId),
+    studentFieldLabels,
+    fields: Object.keys(studentClass).filter((field) => !field.startsWith("_")),
+  };
+}
+
+export async function getStudentById(periodId, studentId) {
+  const student = (sampleStudents[periodId] || []).find((item) => item.id === String(studentId));
+  if (!student) return null;
+  return {
+    student,
+    years,
+    classesByYear: await getClassesByYear(periodId),
+    studentFieldLabels,
+    fields: Object.keys(studentClass).filter((field) => !field.startsWith("_")),
+  };
+}
+
+export async function updateStudent(periodId, studentId, payload) {
+  const students = sampleStudents[periodId] || [];
+  const index = students.findIndex((item) => item.id === String(studentId));
+  if (index < 0) return null;
+  const current = students[index];
+  const nextYear = Number(payload?._class?.year);
+  const nextClass = String(payload?._class?.id || "");
+  const updated = {
+    ...current,
+    ...payload,
+    id: String(payload?.id || current.id),
+    _class: {
+      year: Number.isFinite(nextYear) ? nextYear : current?._class?.year,
+      id: nextClass || current?._class?.id,
+    },
+  };
+  students[index] = updated;
+  return updated;
+}
+
 export async function getClassesByYear(periodId) {
   const students = sampleStudents[periodId] || [];
   const classesByYear = years.reduce((acc, year) => {
