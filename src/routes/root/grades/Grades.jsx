@@ -83,9 +83,13 @@ export async function gradesLoader({ params, request }) {
   const year = url.searchParams.get("year") || "";
   const classId = url.searchParams.get("class") || "";
   const q = url.searchParams.get("q") || "";
+  const status = url.searchParams.get("status") || "";
   const expanded = url.searchParams.get("expanded") || "";
-  const data = await getGrades(periodId, year, classId, null, q);
-  return { ...data, filters: { year, classId, q, expanded } };
+  const data = await getGrades(periodId, year, classId, status, q);
+  const rows = status
+    ? data.rows.filter((row) => String(row.status) === status)
+    : data.rows;
+  return { ...data, rows, filters: { year, classId, q, status, expanded } };
 }
 
 export async function gradesAction({ params, request }) {
@@ -126,14 +130,16 @@ export default function Grades() {
     q: getFilterValue("q", filters.q),
     year: getFilterValue("year", filters.year),
     classId: getFilterValue("class", filters.classId),
+    status: getFilterValue("status", filters.status),
     expanded: getFilterValue("expanded", filters.expanded),
   };
 
-  const submitFilters = ({ q, year, classId, expanded }) => {
+  const submitFilters = ({ q, year, classId, status, expanded }) => {
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (year) params.set("year", year);
     if (year && classId) params.set("class", classId);
+    if (status) params.set("status", status);
     if (expanded) params.set("expanded", expanded);
     filterFetcher.submit(params, { method: "get" });
   };
@@ -160,6 +166,7 @@ export default function Grades() {
       q: viewFilters.q,
       year: viewFilters.year,
       classId: viewFilters.classId,
+      status: viewFilters.status,
       expanded: nextExpanded,
     });
   };
@@ -170,13 +177,14 @@ export default function Grades() {
   if (viewFilters.year && viewFilters.classId) {
     returnSearch.set("class", viewFilters.classId);
   }
+  if (viewFilters.status) returnSearch.set("status", viewFilters.status);
   if (viewFilters.expanded) returnSearch.set("expanded", viewFilters.expanded);
 
   return (
     <div className="space-y-4 mt-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <filterFetcher.Form
-          className="grid gap-3 md:grid-cols-3"
+          className="grid gap-3 md:grid-cols-4"
           method="get"
           onChange={(event) => {
             const formData = new FormData(event.currentTarget);
@@ -215,6 +223,19 @@ export default function Grades() {
             {classes.map((classId) => (
               <option key={classId} value={classId}>
                 {classId}
+              </option>
+            ))}
+          </select>
+          <select
+            name="status"
+            className="rounded-lg border border-gray-300 px-3 py-2"
+            value={viewFilters.status}
+            onChange={() => {}}
+          >
+            <option value="">Todos los estatus</option>
+            {(loaderData.statuses || []).map((status) => (
+              <option key={status} value={status}>
+                {status}
               </option>
             ))}
           </select>
