@@ -82,7 +82,7 @@ export default [
             loader: studentsLoader,
             children: [
               {
-                path: "estudiante/:studentId",
+                path: ":studentId",
                 element: <StudentDetail />,
                 loader: studentDetailLoader,
                 action: studentDetailAction,
