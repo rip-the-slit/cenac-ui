@@ -2,6 +2,7 @@ import { Link, useLoaderData, useRouteLoaderData } from "react-router";
 import { getClassesByYear, getPeriodList, getYears } from "../../db";
 import ClassCard from "./load/ClassCard";
 import CollapsibleSection from "./load/CollapsibleSection";
+import { Plus } from "lucide-react";
 
 export async function periodOverviewLoader({ params }) {
   const periodList = await getPeriodList();
@@ -52,7 +53,7 @@ export default function PeriodOverview() {
   );
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 mt-10">
       <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-700 via-emerald-600 to-emerald-500 p-6 text-white shadow-lg">
         <div className="absolute right-0 top-0 h-36 w-36 -translate-y-6 translate-x-8 rounded-full bg-white/15 blur-2xl" />
         <div className="absolute bottom-0 left-0 h-28 w-28 -translate-x-8 translate-y-8 rounded-full bg-emerald-300/40 blur-2xl" />
@@ -67,8 +68,8 @@ export default function PeriodOverview() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <article className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
-          <h2 className="text-base font-semibold text-emerald-900">
+        <article className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <h2 className="text-base font-semibold">
             Aprobados vs Total
           </h2>
           <p className="mt-1 text-sm text-emerald-700">
@@ -103,8 +104,8 @@ export default function PeriodOverview() {
           </div>
         </article>
 
-        <article className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
-          <h2 className="text-base font-semibold text-emerald-900">
+        <article className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <h2 className="text-base font-semibold">
             Notas Cargadas
           </h2>
           <p className="mt-1 text-sm text-emerald-700">
@@ -116,14 +117,14 @@ export default function PeriodOverview() {
               style={{ width: `${gradesPercent}%` }}
             />
           </div>
-          <p className="mt-1 text-right text-sm font-semibold text-emerald-900">
+          <p className="mt-1 text-right text-sm font-semibold">
             {gradesPercent.toFixed(1)}%
           </p>
         </article>
       </section>
 
-      <section className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-4">
-        <h2 className="text-base font-semibold text-emerald-900">
+      <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-4">
+        <h2 className="text-base font-semibold">
           Secciones por Año
         </h2>
         {years.map((year, i) => {
@@ -139,7 +140,7 @@ export default function PeriodOverview() {
                   classes.map((classId) => (
                     <Link
                       key={`${year.id}-${classId}`}
-                      to={`cargar/secciones?year=${year.id}&class=${classId}`}
+                      to={`notas?year=${year.id}&class=${classId}`}
                       className="block"
                     >
                       <ClassCard className={classId} />
