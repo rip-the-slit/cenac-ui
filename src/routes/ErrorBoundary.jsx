@@ -13,12 +13,12 @@ export default function ErrorBoundary() {
     );
   }
 
-  const message = error instanceof Error ? error.message : "Unexpected application error.";
+  error instanceof Error && console.error(error)
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col items-start justify-center gap-3 p-6">
       <h1 className="text-2xl font-semibold">Unexpected Error</h1>
-      <p className="text-lg">{message}</p>
+      <p className="text-lg">{error instanceof Error ? error.message : "Unexpected application error."}</p>
     </main>
   );
 }
