@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Form, redirect, useFetcher, useLoaderData } from "react-router";
 import { getGrades, getPeriodList, loadGrades } from "../../../db";
 import {
@@ -12,6 +12,9 @@ import {
 import { Pencil, RefreshCw, Save } from "lucide-react";
 
 function safeNumber(value) {
+  if (typeof value === "string" && value.trim() === "") {
+    return null;
+  }
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -150,12 +153,6 @@ export default function Grades() {
     subjects.find((subject) => String(subject.id) === expandedId) || null;
   const termCount = 3;
   const gradeSlotsPerTerm = 4;
-  const sampleTerm = useMemo(() => {
-    const rowWithExpanded = rows.find(
-      (row) => row.subjectDetails?.[expandedId]
-    );
-    return rowWithExpanded?.subjectDetails?.[expandedId]?.terms || [[], [], []];
-  }, [rows, expandedId]);
 
   const handleToggleExpanded = (subjectId) => {
     const nextExpanded = expandedId === String(subjectId) ? "" : String(subjectId);
@@ -245,7 +242,11 @@ export default function Grades() {
           <button
             type={isEditing ? "submit" : "button"}
             form={isEditing ? "grades-form" : ""}
-            onClick={() => setIsEditing(prev => !prev)}
+            onClick={() => {
+              if (!isEditing) {
+                setIsEditing(true);
+              }
+            }}
             className={`flex items-center gap-2 font-semibold p-3 shadow-sm rounded-lg bg-gradient-to-b border ${
               isEditing
                 ? "from-emerald-500 to-emerald-600 border-emerald-500 text-white"
@@ -378,7 +379,7 @@ export default function Grades() {
                           );
                         }
                         const terms =
-                          row.subjectDetails?.[subjectId]?.terms || sampleTerm;
+                          row.subjectDetails?.[subjectId]?.terms || [[], [], []];
                         return Array.from({ length: termCount }, (_, termIndex) =>
                           Array.from(
                             { length: gradeSlotsPerTerm },
