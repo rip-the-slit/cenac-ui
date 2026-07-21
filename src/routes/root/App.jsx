@@ -125,35 +125,11 @@ export default function App() {
       {/* Main Content Wrapper */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shrink-0">
-          {/* Search */}
-          <div className="flex items-center flex-1 max-w-md">
-            <div className="relative w-full">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="What are you working on..."
-                className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-colors"
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <span className="text-gray-400 text-xs bg-gray-200 px-1.5 py-0.5 rounded">
-                  /
-                </span>
-              </div>
-            </div>
-          </div>
-
+        <header className="h-16 absolute bg-transparent top-0 right-0 z-10 flex items-center justify-end px-8 shrink-0">
+          
           {/* Right Actions */}
           <div className="flex items-center space-x-4">
             <PeriodSelector list={period.list} currentId={period.periodId} />
-            <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600">
-              <Lightbulb className="w-4 h-4" />
-            </button>
-            <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 text-gray-600">
-              <MoreHorizontal className="w-4 h-4" />
-            </button>
           </div>
         </header>
 
