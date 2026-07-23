@@ -1,3 +1,4 @@
+import { ArrowLeft } from "lucide-react";
 import {
   DataTable,
   HeadCell,
@@ -40,9 +41,22 @@ export default function GradesTable({
             {visibleSubjects.map((subject) => (
               <HeadCell
                 key={subject.id}
-                className="text-center"
+                className="text-center relative"
                 colSpan={expandedSubject ? TERM_COUNT * GRADE_SLOTS_PER_TERM : 1}
+                title={expandedSubject ? "Volver" : subject.name}
               >
+                {expandedSubject ? (
+                  <button
+                    type="button"
+                    className="absolute left-2"
+                    onClick={() => onExpandedChange("")}
+                    aria-label="Volver"
+                  >
+                    <ArrowLeft width={20} className="text-gray-500"/>
+                  </button>
+                ) : (
+                  ""
+                )}
                 <button
                   type="button"
                   className="underline decoration-dotted"
