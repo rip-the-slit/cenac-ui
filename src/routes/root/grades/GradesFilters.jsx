@@ -2,7 +2,7 @@ import Filter from "./Filter";
 import { pickClasses } from "./gradesUtils";
 
 const CONTROL_CLASS_NAME =
-  "rounded-lg border border-gray-300 px-3 py-2 font-normal text-gray-900";
+  "rounded-lg border border-gray-300 px-3 py-2 font-normal text-gray-900 overflow-hidden w-full";
 
 export default function GradesFilters({
   FormComponent,
@@ -10,13 +10,14 @@ export default function GradesFilters({
   years,
   classesByYear,
   statuses,
+  subjects,
   onSubmit,
 }) {
   const FilterForm = FormComponent;
 
   return (
     <FilterForm
-      className="grid gap-3 md:grid-cols-4"
+      className="grid gap-3 md:grid-cols-4 md:auto-cols-4 max-w-[50rem]"
       method="get"
       onChange={(event) => {
         const formData = new FormData(event.currentTarget);
@@ -29,6 +30,7 @@ export default function GradesFilters({
           name="q"
           className={CONTROL_CLASS_NAME}
           placeholder="Buscar cédula o nombre"
+          size="1"
           value={filters.q}
           onChange={() => {}}
         />
@@ -37,6 +39,7 @@ export default function GradesFilters({
         <select
           name="year"
           className={CONTROL_CLASS_NAME}
+          size="1"
           value={filters.year}
           onChange={() => {}}
         >
@@ -50,6 +53,7 @@ export default function GradesFilters({
         <select
           name="class"
           className={CONTROL_CLASS_NAME}
+          size="1"
           value={filters.classId}
           onChange={() => {}}
         >
@@ -63,6 +67,7 @@ export default function GradesFilters({
         <select
           name="status"
           className={CONTROL_CLASS_NAME}
+          size="1"
           value={filters.status}
           onChange={() => {}}
         >
@@ -72,7 +77,20 @@ export default function GradesFilters({
           ))}
         </select>
       </Filter>
-      <input name="expanded" type="hidden" value={filters.expanded} readOnly />
+      <Filter label="Materia">
+        <select
+          name="expanded"
+          className={CONTROL_CLASS_NAME}
+          size="1"
+          value={filters.expanded}
+          onChange={() => {}}
+        >
+          <option value="">Todas las materias</option>
+          {subjects.map((subject) => (
+            <option key={subject.id} value={subject.id}>{subject.name}</option>
+          ))}
+        </select>
+      </Filter>
     </FilterForm>
   );
 }

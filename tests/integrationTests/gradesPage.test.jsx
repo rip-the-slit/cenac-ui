@@ -190,6 +190,27 @@ describe("Grades page", () => {
     expect(cells.slice(-expectedGrades.length)).toEqual(expectedGrades);
   });
 
+  it("closes subject detail view", async () => {
+    renderGrades();
+    const subject = gradesResponse.subjects[0];
+    await expandSubject(subject.id);
+
+    const table = screen.getByRole("table");
+    const backButton = screen.getByRole("button", { name: "Volver" });
+    await userEvent.click(backButton);
+
+    await waitFor(() => {
+      expect(
+        within(table).queryByRole("button", {
+          name: subject.name,
+        })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Editar" })
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it("offers editing only in a subject detail view and turns grades into inputs", async () => {
     renderGrades();
     const subject = gradesResponse.subjects[0];
@@ -231,15 +252,18 @@ describe("Grades page", () => {
     const yearFilter = getSelectByOption("Todos los años");
     const classFilter = getSelectByOption("Todas las secciones");
     const statusFilter = getSelectByOption("Todos los estatus");
+    const subjectFilter = getSelectByOption("Todas las materias");
     const selectedYear = gradesResponse.years[0].id;
     const selectedClass = gradesResponse.classesByYear[selectedYear][0];
     const selectedStatus = gradesResponse.statuses[0];
+    const selectedSubject = gradesResponse.subjects[0].id;
     const searchQuery = gradesResponse.rows[0].fullName.split(" ")[0];
 
     expect(searchFilter).toBeInTheDocument();
     expect(yearFilter).toBeInTheDocument();
     expect(classFilter).toBeInTheDocument();
     expect(statusFilter).toBeInTheDocument();
+    expect(subjectFilter).toBeInTheDocument();
 
     await user.selectOptions(yearFilter, selectedYear);
     await waitFor(() =>
@@ -247,13 +271,15 @@ describe("Grades page", () => {
         selectedYear
       )
     );
+    expect(yearFilter).toHaveValue(selectedYear);
 
     await user.selectOptions(classFilter, selectedClass);
     await waitFor(() => {
-      const params = latestLoaderUrl(loader)?.searchParams;
-      expect(params?.get("year")).toBe(selectedYear);
-      expect(params?.get("class")).toBe(selectedClass);
+      expect(latestLoaderUrl(loader)?.searchParams?.get("class")).toBe(
+        selectedClass
+      );
     });
+    expect(classFilter).toHaveValue(selectedClass)
 
     await user.selectOptions(statusFilter, selectedStatus);
     await waitFor(() =>
@@ -261,6 +287,15 @@ describe("Grades page", () => {
         selectedStatus
       )
     );
+    expect(statusFilter).toHaveValue(selectedStatus)
+
+    await user.selectOptions(subjectFilter, selectedSubject);
+    await waitFor(() => {
+      expect(latestLoaderUrl(loader)?.searchParams?.get("expanded")).toBe(
+        selectedSubject
+      );
+    });
+    expect(subjectFilter).toHaveValue(selectedSubject)
 
     fireEvent.change(searchFilter, { target: { value: searchQuery } });
     await waitFor(() => {
@@ -269,6 +304,8 @@ describe("Grades page", () => {
       expect(params?.get("year")).toBe(selectedYear);
       expect(params?.get("class")).toBe(selectedClass);
       expect(params?.get("status")).toBe(selectedStatus);
+      expect(params?.get("expanded")).toBe(selectedSubject);
     });
+    expect(searchFilter).toHaveValue(searchQuery)
   });
 });

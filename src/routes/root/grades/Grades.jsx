@@ -65,6 +65,7 @@ export default function Grades() {
           years={years}
           classesByYear={classesByYear}
           statuses={statuses || []}
+          subjects={subjects || []}
           onSubmit={submitFilters}
         />
         {expandedSubject && (
