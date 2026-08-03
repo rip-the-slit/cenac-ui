@@ -133,6 +133,7 @@ describe("Grades page", () => {
       "Estatus",
       "Areas de Formación",
       ...gradesResponse.subjects.map((subject) => subject.abbr || subject.name),
+      "Nota Final"
     ];
 
     for (const header of expectedHeaders) {
@@ -143,14 +144,16 @@ describe("Grades page", () => {
 
     for (const record of gradesResponse.rows) {
       const row = within(getRecordRow(record.id));
+      const expectedGrades = Object.values(record.subjectAverages).map((grade) =>
+        grade.toFixed(1)
+      )
       const expectedValues = [
         record.id,
         record.fullName,
         record.class,
         record.status,
-        ...Object.values(record.subjectAverages).map((grade) =>
-          grade.toFixed(1)
-        ),
+        ...expectedGrades,
+        (expectedGrades.reduce((sum, grade) => sum + parseFloat(grade), 0) / expectedGrades.length).toFixed(1)
       ];
 
       for (const value of expectedValues) {
@@ -180,9 +183,16 @@ describe("Grades page", () => {
       ).not.toBeInTheDocument();
     }
 
+    expect(
+      screen.getByRole("columnheader", { name:
+        "Nota Final"
+       })
+    ).toBeInTheDocument();
+
     const expectedGrades = record.subjectDetails[subject.id].terms
       .flat()
       .map((grade) => grade.toFixed(1));
+    expectedGrades.push(record.subjectAverages[subject.id].toFixed(1))
     const cells = within(getRecordRow(record.id))
       .getAllByRole("cell")
       .map((cell) => cell.textContent);

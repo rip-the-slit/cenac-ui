@@ -8,6 +8,13 @@ export function formatGrade(value) {
   return Number.isFinite(value) ? value.toFixed(1) : "—";
 }
 
+export function calculateAverage(values) {
+  const validValues = values.filter(Number.isFinite);
+  if (validValues.length === 0) return null;
+
+  return validValues.reduce((sum, value) => sum + value, 0) / validValues.length;
+}
+
 export function pickClasses(classesByYear, year) {
   if (year) return classesByYear?.[Number(year)] || [];
 

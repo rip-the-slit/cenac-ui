@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  calculateAverage,
   createFilterSearchParams,
   formatGrade,
   getViewFilters,
@@ -66,6 +67,22 @@ describe("formatGrade", () => {
     for (const value of [undefined, null, "12", NaN, Infinity]) {
       expect(formatGrade(value)).toBe("—");
     }
+  });
+});
+
+describe("calculateAverage", () => {
+  it("averages finite values", () => {
+    expect(calculateAverage([10, 15, 20])).toBe(15);
+    expect(calculateAverage([-2, 3.5])).toBe(0.75);
+  });
+
+  it("ignores values that are not finite numbers", () => {
+    expect(calculateAverage([10, NaN, Infinity, "15", 20])).toBe(15);
+  });
+
+  it("returns null when no finite values are supplied", () => {
+    expect(calculateAverage([])).toBeNull();
+    expect(calculateAverage([NaN, Infinity, undefined, "10"])).toBeNull();
   });
 });
 

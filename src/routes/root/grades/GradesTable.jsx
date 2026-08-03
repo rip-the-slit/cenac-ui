@@ -36,6 +36,7 @@ export default function GradesTable({
                 Areas de Formación
               </HeadCell>
             )}
+            {!expandedSubject && <HeadCell rowSpan={2}>Nota Final</HeadCell>}
           </tr>
           <tr>
             {visibleSubjects.map((subject) => (
@@ -68,6 +69,7 @@ export default function GradesTable({
                 </button>
               </HeadCell>
             ))}
+            {expandedSubject && <HeadCell rowSpan={3}>Nota Final</HeadCell>}
           </tr>
           {expandedSubject && (
             <tr>

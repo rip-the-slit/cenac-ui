@@ -1,5 +1,5 @@
 import { BodyCell } from "../load/TablePrimitives";
-import { formatGrade } from "./gradesUtils";
+import { calculateAverage, formatGrade } from "./gradesUtils";
 
 export default function GradesTableRow({
   row,
@@ -54,6 +54,13 @@ export default function GradesTableRow({
           })
         );
       })}
+      <BodyCell className="text-center">
+        {formatGrade(
+          expandedSubject
+            ? row.subjectAverages?.[String(expandedSubject.id)]
+            : calculateAverage(Object.values(row.subjectAverages || {}))
+        )}
+      </BodyCell>
     </tr>
   );
 }
