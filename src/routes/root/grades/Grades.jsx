@@ -4,27 +4,53 @@ import { Pencil, RefreshCw, Save } from "lucide-react";
 import { getGrades, getPeriodList, loadGrades } from "../../../db";
 import GradesFilters from "./GradesFilters";
 import GradesTable from "./GradesTable";
+import TableControl from "./TableControl";
 import {
   createFilterSearchParams,
   getViewFilters,
   parseGradeEntries,
 } from "./gradesUtils";
 
+const MAX_TABLE_ROWS = 20;
+
 export async function gradesLoader({ params, request }) {
+  const url = new URL(request.url);
   const periodList = await getPeriodList();
   const periodId =
     params.periodId === "actual" ? periodList[0] : params.periodId;
-  const url = new URL(request.url);
   const year = url.searchParams.get("year") || "";
   const classId = url.searchParams.get("class") || "";
   const q = url.searchParams.get("q") || "";
   const status = url.searchParams.get("status") || "";
   const expanded = url.searchParams.get("expanded") || "";
-  const data = await getGrades(periodId, year, classId, status, q);
-  const rows = status
-    ? data.rows.filter((row) => String(row.status) === status)
-    : data.rows;
-  return { ...data, rows, filters: { year, classId, q, status, expanded } };
+  const requestedPage = Number.parseInt(url.searchParams.get("page"), 10);
+  const page = Number.isInteger(requestedPage) && requestedPage > 0
+    ? requestedPage
+    : 1;
+  const data = await getGrades(
+    periodId,
+    year,
+    classId,
+    status,
+    q,
+    page,
+    MAX_TABLE_ROWS
+  );
+  const recordsAmount = data.recordsAmount;
+  const pageCount = Math.max(1, Math.ceil(recordsAmount / MAX_TABLE_ROWS));
+  const currentPage = Math.min(page, pageCount);
+  return {
+    ...data,
+    recordsAmount,
+    filters: {
+      year,
+      classId,
+      q,
+      status,
+      expanded,
+      page: String(currentPage),
+    },
+  };
 }
 
 export async function gradesAction({ params, request }) {
@@ -49,16 +75,26 @@ export default function Grades() {
   const filterFetcher = useFetcher();
   const [isEditing, setIsEditing] = useState(false);
   const activeData = filterFetcher.data ?? loaderData;
-  const { rows, years, classesByYear, subjects, statuses, filters } = activeData;
+  const {
+    rows,
+    years,
+    classesByYear,
+    subjects,
+    statuses,
+    filters,
+    recordsAmount,
+  } = activeData;
   const viewFilters = getViewFilters(filters, filterFetcher.formData);
   const expandedSubject =
     subjects.find((subject) => String(subject.id) === viewFilters.expanded) || null;
+  const page = Number(viewFilters.page);
+  const pageCount = Math.max(1, Math.ceil(recordsAmount / MAX_TABLE_ROWS));
   const submitFilters = (formData) =>
     filterFetcher.submit(formData, { method: "get" });
 
   return (
-    <div className="space-y-4 mt-10">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="flex flex-col gap-4 pt-10 h-full">
+      <div className="flex-0 flex flex-wrap items-end justify-between gap-3">
         <GradesFilters
           FormComponent={filterFetcher.Form}
           filters={viewFilters}
@@ -88,26 +124,43 @@ export default function Grades() {
         )}
       </div>
 
-      <Form id="grades-form" method="post">
-        <input type="hidden" name="return_search" value={createFilterSearchParams(viewFilters).toString()} />
-        <div className="relative">
+      <Form id="grades-form" method="post" className="relative">
+        <input
+          type="hidden"
+          name="return_search"
+          value={createFilterSearchParams(viewFilters).toString()}
+        />
           {filterFetcher.state !== "idle" && (
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60">
               <RefreshCw className="h-5 w-5 animate-spin text-gray-500" />
             </div>
           )}
-          <GradesTable
-            rows={rows}
-            subjects={subjects}
-            expandedSubject={expandedSubject}
-            isEditing={isEditing}
-            className={filterFetcher.state !== "idle" ? "opacity-60" : ""}
-            onExpandedChange={(expanded) => {
-              if (!expanded) setIsEditing(false);
-              submitFilters(createFilterSearchParams({ ...viewFilters, expanded }));
-            }}
-          />
-        </div>
+          <TableControl
+            page={page}
+            pageCount={pageCount}
+            onPageChange={(nextPage) =>
+              submitFilters(
+                createFilterSearchParams({
+                  ...viewFilters,
+                  page: String(nextPage),
+                })
+              )
+            }
+          >
+            <GradesTable
+              rows={rows}
+              subjects={subjects}
+              expandedSubject={expandedSubject}
+              isEditing={isEditing}
+              className={"max-h-[55vh] overflow-auto " + (filterFetcher.state !== "idle" ? "opacity-60" : "")}
+              onExpandedChange={(expanded) => {
+                if (!expanded) setIsEditing(false);
+                submitFilters(
+                  createFilterSearchParams({ ...viewFilters, expanded })
+                );
+              }}
+            />
+          </TableControl>
       </Form>
     </div>
   );

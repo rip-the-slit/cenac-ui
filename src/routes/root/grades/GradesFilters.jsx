@@ -17,11 +17,12 @@ export default function GradesFilters({
 
   return (
     <FilterForm
-      className="grid gap-3 md:grid-cols-4 md:auto-cols-4 max-w-[50rem]"
+      className="grid gap-3 md:grid-cols-4 md:auto-cols-4 max-w-[45rem]"
       method="get"
       onChange={(event) => {
         const formData = new FormData(event.currentTarget);
         if (!formData.get("year")) formData.delete("class");
+        formData.set("page", "1");
         onSubmit(formData);
       }}
     >

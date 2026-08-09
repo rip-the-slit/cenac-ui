@@ -25,6 +25,7 @@ vi.mock("../../src/db", () => ({
 }));
 
 const gradesResponse = {
+  recordsAmount: 40,
   years: [
     { id: "1", name: "Primer año" },
     { id: "2", name: "Segundo año" },
@@ -133,7 +134,7 @@ describe("Grades page", () => {
       "Estatus",
       "Areas de Formación",
       ...gradesResponse.subjects.map((subject) => subject.abbr || subject.name),
-      "Nota Final"
+      "Nota Final",
     ];
 
     for (const header of expectedHeaders) {
@@ -144,16 +145,19 @@ describe("Grades page", () => {
 
     for (const record of gradesResponse.rows) {
       const row = within(getRecordRow(record.id));
-      const expectedGrades = Object.values(record.subjectAverages).map((grade) =>
-        grade.toFixed(1)
-      )
+      const expectedGrades = Object.values(record.subjectAverages).map(
+        (grade) => grade.toFixed(1)
+      );
       const expectedValues = [
         record.id,
         record.fullName,
         record.class,
         record.status,
         ...expectedGrades,
-        (expectedGrades.reduce((sum, grade) => sum + parseFloat(grade), 0) / expectedGrades.length).toFixed(1)
+        (
+          expectedGrades.reduce((sum, grade) => sum + parseFloat(grade), 0) /
+          expectedGrades.length
+        ).toFixed(1),
       ];
 
       for (const value of expectedValues) {
@@ -184,15 +188,13 @@ describe("Grades page", () => {
     }
 
     expect(
-      screen.getByRole("columnheader", { name:
-        "Nota Final"
-       })
+      screen.getByRole("columnheader", { name: "Nota Final" })
     ).toBeInTheDocument();
 
     const expectedGrades = record.subjectDetails[subject.id].terms
       .flat()
       .map((grade) => grade.toFixed(1));
-    expectedGrades.push(record.subjectAverages[subject.id].toFixed(1))
+    expectedGrades.push(record.subjectAverages[subject.id].toFixed(1));
     const cells = within(getRecordRow(record.id))
       .getAllByRole("cell")
       .map((cell) => cell.textContent);
@@ -263,6 +265,7 @@ describe("Grades page", () => {
     const classFilter = getSelectByOption("Todas las secciones");
     const statusFilter = getSelectByOption("Todos los estatus");
     const subjectFilter = getSelectByOption("Todas las materias");
+
     const selectedYear = gradesResponse.years[0].id;
     const selectedClass = gradesResponse.classesByYear[selectedYear][0];
     const selectedStatus = gradesResponse.statuses[0];
@@ -289,7 +292,7 @@ describe("Grades page", () => {
         selectedClass
       );
     });
-    expect(classFilter).toHaveValue(selectedClass)
+    expect(classFilter).toHaveValue(selectedClass);
 
     await user.selectOptions(statusFilter, selectedStatus);
     await waitFor(() =>
@@ -297,7 +300,7 @@ describe("Grades page", () => {
         selectedStatus
       )
     );
-    expect(statusFilter).toHaveValue(selectedStatus)
+    expect(statusFilter).toHaveValue(selectedStatus);
 
     await user.selectOptions(subjectFilter, selectedSubject);
     await waitFor(() => {
@@ -305,7 +308,7 @@ describe("Grades page", () => {
         selectedSubject
       );
     });
-    expect(subjectFilter).toHaveValue(selectedSubject)
+    expect(subjectFilter).toHaveValue(selectedSubject);
 
     fireEvent.change(searchFilter, { target: { value: searchQuery } });
     await waitFor(() => {
@@ -316,6 +319,46 @@ describe("Grades page", () => {
       expect(params?.get("status")).toBe(selectedStatus);
       expect(params?.get("expanded")).toBe(selectedSubject);
     });
-    expect(searchFilter).toHaveValue(searchQuery)
+    expect(searchFilter).toHaveValue(searchQuery);
+  });
+  it("renders pagination input", async () => {
+    const user = userEvent.setup();
+    const { loader } = renderGrades();
+
+    const paginationInput = await screen.findByRole("textbox", { name: "Página" });
+    const previousPageButton = screen.getByRole("button", { name: "Anterior" });
+    const nextPageButton = screen.getByRole("button", { name: "Siguiente" });
+
+    expect(paginationInput).toBeInTheDocument();
+    expect(paginationInput).toHaveValue("1")
+    expect(previousPageButton).toBeDisabled();
+    expect(nextPageButton).toBeInTheDocument();
+
+    expect(latestLoaderUrl(loader)?.searchParams.get("page") || "1").toBe("1")
+
+    await user.click(nextPageButton);
+    await waitFor(() => {
+      expect(latestLoaderUrl(loader)?.searchParams.get("page")).toBe("2")
+    });
+    expect(paginationInput).toHaveValue("2")
+
+    await user.click(previousPageButton);
+    await waitFor(() => {
+      expect(latestLoaderUrl(loader)?.searchParams.get("page")).toBe("1")
+    });
+    expect(paginationInput).toHaveValue("1")
+
+    await user.click(previousPageButton);
+    await waitFor(() => {
+      expect(latestLoaderUrl(loader)?.searchParams.get("page")).toBe("1")
+    });
+    expect(paginationInput).toHaveValue("1")
+
+    fireEvent.change(paginationInput, { target: { value: "999" } });
+    await waitFor(() => {
+      expect(latestLoaderUrl(loader)?.searchParams.get("page")).toBe("2");
+    });
+    expect(paginationInput).toHaveValue("2");
+    expect(nextPageButton).toBeDisabled();
   });
 });

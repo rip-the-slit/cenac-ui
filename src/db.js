@@ -58,12 +58,14 @@ export async function loadPeriodData(periodId, students, subjects) {
   });
 }
 
-export async function getGrades(periodId, yearId, classId, status, q) {
+export async function getGrades(periodId, yearId, classId, status, q, page, limit) {
   const params = new URLSearchParams({ periodId });
   if (yearId)    params.set("yearId",    yearId);
   if (classId)   params.set("classId",   classId);
   if (status)    params.set("status", status);
   if (q)         params.set("q",         q);
+  if (page)      params.set("page",       page);
+  if (limit)     params.set("limit",      limit);
   return request(`/grades?${params.toString()}`);
 }
 

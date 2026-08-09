@@ -23,11 +23,11 @@ export default function GradesTable({
   const rowSpan = expandedSubject ? 4 : 2;
 
   return (
-    <TableContainer className={className}>
+    <TableContainer className={"relative " + className}>
       <DataTable className="text-sm">
-        <TableHead className="bg-gray-100">
+        <TableHead className="bg-gray-100 shadow-md sticky top-0 z-10">
           <tr>
-            <HeadCell rowSpan={rowSpan}>C.I.</HeadCell>
+            <HeadCell rowSpan={rowSpan} className="sticky left-0 bg-gray-100">C.I.</HeadCell>
             <HeadCell rowSpan={rowSpan}>Nombre Completo</HeadCell>
             <HeadCell rowSpan={rowSpan}>Sección</HeadCell>
             <HeadCell rowSpan={rowSpan}>Estatus</HeadCell>
@@ -36,7 +36,7 @@ export default function GradesTable({
                 Areas de Formación
               </HeadCell>
             )}
-            {!expandedSubject && <HeadCell rowSpan={2}>Nota Final</HeadCell>}
+            {!expandedSubject && <HeadCell className="text-center" rowSpan={2}>Nota Final</HeadCell>}
           </tr>
           <tr>
             {visibleSubjects.map((subject) => (
@@ -69,7 +69,7 @@ export default function GradesTable({
                 </button>
               </HeadCell>
             ))}
-            {expandedSubject && <HeadCell rowSpan={3}>Nota Final</HeadCell>}
+            {expandedSubject && <HeadCell className="text-center" rowSpan={3}>Nota Final</HeadCell>}
           </tr>
           {expandedSubject && (
             <tr>

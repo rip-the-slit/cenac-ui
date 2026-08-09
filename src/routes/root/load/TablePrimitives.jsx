@@ -28,7 +28,7 @@ export function HeadCell({ children, className = "", ...props }) {
 
 export function BodyCell({ children, className = "", ...props }) {
   return (
-    <td className={`p-2 bg-white border whitespace-nowrap ${className}`} {...props}>
+    <td className={`p-2 border whitespace-nowrap ${className}`} {...props}>
       {children}
     </td>
   );

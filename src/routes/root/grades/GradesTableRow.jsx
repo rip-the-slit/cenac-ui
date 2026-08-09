@@ -12,8 +12,8 @@ export default function GradesTableRow({
   const visibleSubjects = expandedSubject ? [expandedSubject] : subjects;
 
   return (
-    <tr>
-      <BodyCell>{row.id}</BodyCell>
+    <tr className="odd:bg-white even:bg-gray-50">
+      <BodyCell className="sticky left-0">{row.id}</BodyCell>
       <BodyCell>{row.fullName}</BodyCell>
       <BodyCell>{row.class}</BodyCell>
       <BodyCell>{row.status}</BodyCell>

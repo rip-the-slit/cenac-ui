@@ -68,15 +68,17 @@ export function getViewFilters(filters, pendingFormData) {
     classId: pendingValue("class", filters.classId),
     status: pendingValue("status", filters.status),
     expanded: pendingValue("expanded", filters.expanded),
+    page: pendingValue("page", filters.page),
   };
 }
 
-export function createFilterSearchParams({ q, year, classId, status, expanded }) {
+export function createFilterSearchParams({ q, year, classId, status, expanded, page }) {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (year) params.set("year", year);
   if (year && classId) params.set("class", classId);
   if (status) params.set("status", status);
   if (expanded) params.set("expanded", expanded);
+  if (page) params.set("page", page);
   return params;
 }

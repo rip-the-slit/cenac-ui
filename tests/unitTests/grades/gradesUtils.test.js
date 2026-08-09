@@ -262,6 +262,7 @@ describe("getViewFilters", () => {
     classId: "1-A",
     status: "active",
     expanded: "math",
+    page: "2",
   };
 
   it("returns loader filters when there is no pending data", () => {
@@ -307,6 +308,7 @@ describe("createFilterSearchParams", () => {
       classId: "2-B",
       status: "active",
       expanded: "math",
+      page: "3",
     };
     const snapshot = { ...filters };
 
@@ -318,6 +320,7 @@ describe("createFilterSearchParams", () => {
       class: "2-B",
       status: "active",
       expanded: "math",
+      page: "3",
     });
     expect(filters).toEqual(snapshot);
   });
