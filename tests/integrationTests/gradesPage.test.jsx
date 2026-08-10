@@ -128,6 +128,7 @@ describe("Grades page", () => {
 
     const table = await screen.findByRole("table");
     const expectedHeaders = [
+      "Seleccionar todos",
       "C.I.",
       "Nombre Completo",
       "Sección",
@@ -159,6 +160,8 @@ describe("Grades page", () => {
           expectedGrades.length
         ).toFixed(1),
       ];
+
+      expect(row.getByRole("checkbox")).toBeInTheDocument();
 
       for (const value of expectedValues) {
         expect(row.getByText(value, { exact: true })).toBeInTheDocument();
@@ -325,34 +328,36 @@ describe("Grades page", () => {
     const user = userEvent.setup();
     const { loader } = renderGrades();
 
-    const paginationInput = await screen.findByRole("textbox", { name: "Página" });
+    const paginationInput = await screen.findByRole("textbox", {
+      name: "Página",
+    });
     const previousPageButton = screen.getByRole("button", { name: "Anterior" });
     const nextPageButton = screen.getByRole("button", { name: "Siguiente" });
 
     expect(paginationInput).toBeInTheDocument();
-    expect(paginationInput).toHaveValue("1")
+    expect(paginationInput).toHaveValue("1");
     expect(previousPageButton).toBeDisabled();
     expect(nextPageButton).toBeInTheDocument();
 
-    expect(latestLoaderUrl(loader)?.searchParams.get("page") || "1").toBe("1")
+    expect(latestLoaderUrl(loader)?.searchParams.get("page") || "1").toBe("1");
 
     await user.click(nextPageButton);
     await waitFor(() => {
-      expect(latestLoaderUrl(loader)?.searchParams.get("page")).toBe("2")
+      expect(latestLoaderUrl(loader)?.searchParams.get("page")).toBe("2");
     });
-    expect(paginationInput).toHaveValue("2")
+    expect(paginationInput).toHaveValue("2");
 
     await user.click(previousPageButton);
     await waitFor(() => {
-      expect(latestLoaderUrl(loader)?.searchParams.get("page")).toBe("1")
+      expect(latestLoaderUrl(loader)?.searchParams.get("page")).toBe("1");
     });
-    expect(paginationInput).toHaveValue("1")
+    expect(paginationInput).toHaveValue("1");
 
     await user.click(previousPageButton);
     await waitFor(() => {
-      expect(latestLoaderUrl(loader)?.searchParams.get("page")).toBe("1")
+      expect(latestLoaderUrl(loader)?.searchParams.get("page")).toBe("1");
     });
-    expect(paginationInput).toHaveValue("1")
+    expect(paginationInput).toHaveValue("1");
 
     fireEvent.change(paginationInput, { target: { value: "999" } });
     await waitFor(() => {
@@ -360,5 +365,43 @@ describe("Grades page", () => {
     });
     expect(paginationInput).toHaveValue("2");
     expect(nextPageButton).toBeDisabled();
+  });
+  it("selects and deselects records", async () => {
+    const user = userEvent.setup();
+    renderGrades();
+    const selectAllInput = await screen.findByRole("checkbox", {
+      name: "Seleccionar todos",
+    });
+    const rowGroups = screen.getAllByRole("rowgroup");
+    const selectInputs = within(rowGroups.at(-1)).getAllByRole("checkbox");
+    const bulkActionCombobox = screen.getByRole("combobox", {
+      name: "Acciones masivas",
+    });
+    const applyButton = screen.getByRole("button", { name: "Aplicar" });
+
+    expect(selectAllInput).toBeInTheDocument();
+    expect(selectInputs).toHaveLength(gradesResponse.rows.length);
+    expect(bulkActionCombobox).toBeInTheDocument();
+    expect(applyButton).toBeInTheDocument();
+
+    await user.click(selectInputs[0]);
+    await user.click(selectInputs[1]);
+    await waitFor(() => {
+      expect(selectInputs[0].checked).toBe(true);
+      expect(selectInputs[1].checked).toBe(true);
+      expect(within(applyButton).getByText("2")).toBeInTheDocument();
+    });
+
+    await user.click(selectAllInput);
+    await waitFor(() => {
+      expect(selectInputs.every((input) => input.checked)).toBe(true);
+      expect(within(applyButton).getByText("Todos")).toBeInTheDocument();
+    });
+
+    await user.click(selectAllInput);
+    await waitFor(() => {
+      expect(selectInputs.every((input) => !input.checked)).toBe(true);
+      expect(within(applyButton).getByText("Ninguno")).toBeInTheDocument();
+    });
   });
 });

@@ -6,14 +6,24 @@ export default function GradesTableRow({
   subjects,
   expandedSubject,
   isEditing,
+  selected,
   termCount,
   gradeSlotsPerTerm,
+  onSelect,
 }) {
   const visibleSubjects = expandedSubject ? [expandedSubject] : subjects;
 
   return (
     <tr className="odd:bg-white even:bg-gray-50">
-      <BodyCell className="sticky left-0">{row.id}</BodyCell>
+      <BodyCell className="text-center">
+        <input
+          type="checkbox"
+          aria-label={`Seleccionar ${row.fullName}`}
+          checked={selected}
+          onChange={onSelect}
+        />
+      </BodyCell>
+      <BodyCell>{row.id}</BodyCell>
       <BodyCell>{row.fullName}</BodyCell>
       <BodyCell>{row.class}</BodyCell>
       <BodyCell>{row.status}</BodyCell>

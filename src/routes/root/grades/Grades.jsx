@@ -74,6 +74,7 @@ export default function Grades() {
   const loaderData = useLoaderData();
   const filterFetcher = useFetcher();
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedIds, setSelectedIds] = useState({ all: false });
   const activeData = filterFetcher.data ?? loaderData;
   const {
     rows,
@@ -138,6 +139,8 @@ export default function Grades() {
           <TableControl
             page={page}
             pageCount={pageCount}
+            recordsAmount={recordsAmount}
+            selectedIds={selectedIds}
             onPageChange={(nextPage) =>
               submitFilters(
                 createFilterSearchParams({
@@ -152,6 +155,7 @@ export default function Grades() {
               subjects={subjects}
               expandedSubject={expandedSubject}
               isEditing={isEditing}
+              selectedIds={selectedIds}
               className={"max-h-[55vh] overflow-auto " + (filterFetcher.state !== "idle" ? "opacity-60" : "")}
               onExpandedChange={(expanded) => {
                 if (!expanded) setIsEditing(false);
@@ -159,6 +163,17 @@ export default function Grades() {
                   createFilterSearchParams({ ...viewFilters, expanded })
                 );
               }}
+              onSelectAll={(selected) =>
+                setSelectedIds(selected ? { all: true } : { all: false })
+              }
+              onSelectRow={(id) =>
+                setSelectedIds((current) => ({
+                  ...current,
+                  [id]: current.all
+                    ? current[id] === false
+                    : current[id] !== true,
+                }))
+              }
             />
           </TableControl>
       </Form>
