@@ -32,7 +32,9 @@ export default function GradesTableRow({
         if (!expandedSubject) {
           return (
             <BodyCell key={`${row.id}-${subjectId}`} className="text-center">
-              {formatGrade(row.subjectAverages?.[subjectId])}
+              {row.subjectAverages?.[subjectId]
+                ? formatGrade(row.subjectAverages[subjectId])
+                : "N/A"}
             </BodyCell>
           );
         }
