@@ -33,7 +33,7 @@ export default function GradesTable({
       <DataTable className="text-sm">
         <TableHead className="bg-gray-100 shadow-md sticky top-0 z-10">
           <tr>
-            <HeadCell rowSpan={rowSpan} className="sticky left-0 bg-gray-100">
+            <HeadCell rowSpan={rowSpan} className="bg-gray-100">
               <input
                 type="checkbox"
                 aria-label="Seleccionar todos"
@@ -128,7 +128,13 @@ export default function GradesTable({
               row={row}
               subjects={subjects}
               expandedSubject={expandedSubject}
-              isEditing={isEditing}
+              isEditing={
+                isEditing &&
+                Boolean(
+                  expandedSubject &&
+                    row.subjectDetails?.[String(expandedSubject.id)]
+                )
+              }
               selected={
                 selectedIds.all
                   ? selectedIds[row.id] !== false

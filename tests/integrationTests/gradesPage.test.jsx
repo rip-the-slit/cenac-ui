@@ -30,6 +30,7 @@ const gradesResponse = {
     { id: "1", name: "Primer año" },
     { id: "2", name: "Segundo año" },
   ],
+  subjectsByYear: { 1: ["math"], 2: ["math", "language"] },
   classesByYear: { 1: ["1-A", "1-B"], 2: ["2-A"] },
   statuses: ["Activo", "Retirado"],
   subjects: [
@@ -49,6 +50,13 @@ const gradesResponse = {
             [10, 11, 12, 13],
             [14, 15, 16, 17],
             [18, 19, 20, 9],
+          ],
+        },
+        language: {
+          terms: [
+            [11, 12, 13, 14],
+            [15, 16, 17, 18],
+            [19, 20, 10, 11],
           ],
         },
       },
@@ -323,6 +331,51 @@ describe("Grades page", () => {
       expect(params?.get("expanded")).toBe(selectedSubject);
     });
     expect(searchFilter).toHaveValue(searchQuery);
+  });
+  it("only displays subjects taught in selected year filter", async () => {
+    const user = userEvent.setup();
+    renderGrades();
+
+    const yearFilter = (
+      await screen.findByRole("option", { name: "Todos los años" })
+    ).closest("select");
+    const selectedYear = gradesResponse.years[0].id;
+    const taughtSubjectIds = gradesResponse.subjectsByYear[selectedYear];
+
+    await user.selectOptions(yearFilter, selectedYear);
+
+    await waitFor(() => {
+      for (const subject of gradesResponse.subjects) {
+        const header = screen.queryByRole("columnheader", {
+          name: subject.abbr,
+        });
+
+        if (taughtSubjectIds.includes(subject.id)) {
+          expect(header).toBeInTheDocument();
+        } else {
+          expect(header).not.toBeInTheDocument();
+        }
+      }
+    });
+  });
+
+  it("disables grade inputs for subjects not taught in the student year", async () => {
+    const user = userEvent.setup();
+    renderGrades();
+    const subject = gradesResponse.subjects[1];
+
+    await expandSubject(subject.id);
+    await user.click(screen.getByRole("button", { name: "Editar" }));
+
+    const gradeInputs = screen.getAllByRole("spinbutton");
+    expect(
+      gradeInputs.length
+    ).toBe(
+      gradesResponse.rows.reduce(
+        (total, r) => total + (r.subjectDetails[subject.id] ? 1 : 0),
+        0
+      ) * TERM_COUNT * GRADE_SLOTS_PER_TERM
+    );
   });
   it("renders pagination input", async () => {
     const user = userEvent.setup();

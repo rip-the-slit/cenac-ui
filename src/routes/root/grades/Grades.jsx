@@ -76,16 +76,25 @@ export default function Grades() {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedIds, setSelectedIds] = useState({ all: false });
   const activeData = filterFetcher.data ?? loaderData;
-  const {
+  let {
     rows,
     years,
     classesByYear,
     subjects,
+    subjectsByYear,
     statuses,
     filters,
     recordsAmount,
   } = activeData;
   const viewFilters = getViewFilters(filters, filterFetcher.formData);
+  if (viewFilters.year) {
+    const taughtSubjectIds = subjectsByYear?.[viewFilters.year] || [];
+    subjects = subjects.filter((subject) =>
+      taughtSubjectIds.some((subjectId) =>
+        String(subjectId) === String(subject.id)
+      )
+    );
+  }
   const expandedSubject =
     subjects.find((subject) => String(subject.id) === viewFilters.expanded) || null;
   const page = Number(viewFilters.page);
