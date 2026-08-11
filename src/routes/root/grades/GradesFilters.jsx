@@ -32,7 +32,7 @@ export default function GradesFilters({
           className={CONTROL_CLASS_NAME}
           placeholder="Buscar cédula o nombre"
           size="1"
-          value={filters.q}
+          defaultValue={filters.q}
           onChange={() => {}}
         />
       </Filter>
@@ -41,7 +41,7 @@ export default function GradesFilters({
           name="year"
           className={CONTROL_CLASS_NAME}
           size="1"
-          value={filters.year}
+          defaultValue={filters.year}
           onChange={() => {}}
         >
           <option value="">Todos los años</option>
@@ -69,7 +69,7 @@ export default function GradesFilters({
           name="status"
           className={CONTROL_CLASS_NAME}
           size="1"
-          value={filters.status}
+          defaultValue={filters.status}
           onChange={() => {}}
         >
           <option value="">Todos los estatus</option>
@@ -83,7 +83,7 @@ export default function GradesFilters({
           name="expanded"
           className={CONTROL_CLASS_NAME}
           size="1"
-          value={filters.expanded}
+          defaultValue={filters.expanded}
           onChange={() => {}}
         >
           <option value="">Todas las materias</option>
