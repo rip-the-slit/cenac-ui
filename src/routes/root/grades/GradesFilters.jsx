@@ -1,4 +1,4 @@
-import Filter from "./Filter";
+import Filter from "../components/Filter";
 import { pickClasses } from "./gradesUtils";
 
 const CONTROL_CLASS_NAME =

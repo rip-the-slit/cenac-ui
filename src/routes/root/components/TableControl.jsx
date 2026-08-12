@@ -9,6 +9,9 @@ export default function TableControl({
   pageCount,
   recordsAmount,
   selectedIds,
+  bulkActionId,
+  bulkActionOptions,
+  bulkActionLabel = "Acciones masivas",
   onPageChange,
 }) {
   const selectedCount = selectedIds.all
@@ -32,18 +35,20 @@ export default function TableControl({
       {children}
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-2">
-          <label className="sr-only" htmlFor="grades-bulk-action">
-            Acciones masivas
+          <label className="sr-only" htmlFor={bulkActionId}>
+            {bulkActionLabel}
           </label>
           <select
-            id="grades-bulk-action"
+            id={bulkActionId}
+            name={bulkActionId}
             className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700"
-            defaultValue=""
+            defaultValue={bulkActionOptions[0]?.value ?? ""}
           >
-            <option value="">Acciones masivas</option>
-            <option value="none" disabled>
-              Sin acciones disponibles
-            </option>
+            {bulkActionOptions.map(({ value, label, disabled = false }) => (
+              <option key={value} value={value} disabled={disabled}>
+                {label}
+              </option>
+            ))}
           </select>
           <button
             type="button"

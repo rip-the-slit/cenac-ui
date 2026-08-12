@@ -14,7 +14,7 @@ export default function GradesTableRow({
   const visibleSubjects = expandedSubject ? [expandedSubject] : subjects;
 
   return (
-    <tr className="odd:bg-white even:bg-gray-50">
+    <tr className="odd:bg-white even:bg-gray-50 hover:bg-gray-100">
       <BodyCell className="text-center">
         <input
           type="checkbox"

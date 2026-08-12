@@ -1,35 +1,29 @@
-import {
-  Link,
-  Outlet,
-  useFetcher,
-  useLoaderData,
-  useParams,
-} from "react-router";
-import { getPeriodList, getStudents } from "../../../db";
-import {
-  BodyCell,
-  DataTable,
-  HeadCell,
-  TableBody,
-  TableContainer,
-  TableHead,
-} from "../load/TablePrimitives";
+import { useState } from "react";
+import { Outlet, useFetcher, useLoaderData, useParams } from "react-router";
 import { RefreshCw } from "lucide-react";
+import { getPeriodList, getStudents } from "../../../db";
+import TableControl from "../components/TableControl";
+import StudentsFilters from "./StudentsFilters";
+import StudentsTable from "./StudentsTable";
+import {
+  createFilterSearchParams,
+  getViewFilters,
+} from "./studentsUtils";
 
-function pickClasses(classesByYear, year) {
-  if (year) return classesByYear?.[Number(year)] || [];
-  const all = new Set();
-  Object.values(classesByYear || {}).forEach((list) =>
-    (list || []).forEach((classId) => all.add(classId))
-  );
-  return [...all].sort();
-}
+const MAX_TABLE_ROWS = 20;
+const BULK_ACTION_OPTIONS = [
+  { value: "", label: "Acciones masivas" },
+  { value: "none", label: "Sin acciones disponibles", disabled: true },
+];
 
 export async function studentsLoader({ params, request }) {
   const periodList = await getPeriodList();
   const periodId =
     params.periodId === "actual" ? periodList[0] : params.periodId;
   const url = new URL(request.url);
+  const requestedPage = Number.parseInt(url.searchParams.get("page"), 10);
+  const page =
+    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const filters = {
     id: url.searchParams.get("id") || "",
     firstName: url.searchParams.get("firstName") || "",
@@ -38,179 +32,102 @@ export async function studentsLoader({ params, request }) {
     birthPlace: url.searchParams.get("birthPlace") || "",
     year: url.searchParams.get("year") || "",
     classId: url.searchParams.get("class") || "",
+    page: String(page),
   };
-  const data = await getStudents(periodId, filters);
-  return { ...data, filters };
+  const data = await getStudents(periodId, {
+    ...filters,
+    page,
+    limit: MAX_TABLE_ROWS,
+  });
+  const recordsAmount = data.recordsAmount;
+  const pageCount = Math.max(1, Math.ceil(recordsAmount / MAX_TABLE_ROWS));
+  const currentPage = Math.min(page, pageCount);
+
+  return {
+    ...data,
+    recordsAmount,
+    filters: { ...filters, page: String(currentPage) },
+  };
 }
 
 export default function Students() {
   const loaderData = useLoaderData();
   const fetcher = useFetcher();
   const params = useParams();
-
-  const activeData = fetcher.data ?? loaderData;
-  const { rows, years, classesByYear, studentFieldLabels, filters } =
-    activeData;
-  const isSearching = fetcher.state !== "idle";
-
-  const getFilterValue = (name, fallback = "") => {
-    const pending = fetcher.formData?.get(name);
-    if (pending != null) return String(pending);
-    return fallback;
-  };
-
-  const viewFilters = {
-    id: getFilterValue("id", filters.id),
-    firstName: getFilterValue("firstName", filters.firstName),
-    lastName: getFilterValue("lastName", filters.lastName),
-    birthDate: getFilterValue("birthDate", filters.birthDate),
-    birthPlace: getFilterValue("birthPlace", filters.birthPlace),
-    year: getFilterValue("year", filters.year),
-    classId: getFilterValue("class", filters.classId),
-  };
-
-  const classes = pickClasses(classesByYear, viewFilters.year);
+  const [selectedIds, setSelectedIds] = useState({ all: false });
 
   if (params.studentId) return <Outlet />;
 
+  const activeData = fetcher.data ?? loaderData;
+  const {
+    rows,
+    years,
+    classesByYear,
+    studentFieldLabels,
+    filters,
+    recordsAmount,
+  } = activeData;
+  const viewFilters = getViewFilters(filters, fetcher.formData);
+  const page = Number(viewFilters.page);
+  const pageCount = Math.max(1, Math.ceil(recordsAmount / MAX_TABLE_ROWS));
+  const submitFilters = (formData) =>
+    fetcher.submit(formData, { method: "get" });
+
   return (
-    <div className="space-y-5 mt-8">
-      <fetcher.Form
-        className="grid gap-3 md:grid-cols-4"
-        method="get"
-        onChange={(event) => {
-          const formData = new FormData(event.currentTarget);
-          const year = String(formData.get("year") || "");
-          if (!year) formData.delete("class");
-          fetcher.submit(formData, { method: "get" });
-        }}
-      >
-        <input
-          name="id"
-          className="rounded-lg border border-gray-300 px-3 py-2"
-          placeholder={studentFieldLabels.id}
-          value={viewFilters.id}
-          onChange={() => {}}
-        />
-        <input
-          name="firstName"
-          className="rounded-lg border border-gray-300 px-3 py-2"
-          placeholder={studentFieldLabels.firstName}
-          value={viewFilters.firstName}
-          onChange={() => {}}
-        />
-        <input
-          name="lastName"
-          className="rounded-lg border border-gray-300 px-3 py-2"
-          placeholder={studentFieldLabels.lastName}
-          value={viewFilters.lastName}
-          onChange={() => {}}
-        />
-        <input
-          name="birthDate"
-          className="rounded-lg border border-gray-300 px-3 py-2"
-          placeholder={studentFieldLabels.birthDate}
-          value={viewFilters.birthDate}
-          onChange={() => {}}
-        />
-        <input
-          name="birthPlace"
-          className="rounded-lg border border-gray-300 px-3 py-2"
-          placeholder={studentFieldLabels.birthPlace}
-          value={viewFilters.birthPlace}
-          onChange={() => {}}
-        />
-        <select
-          name="year"
-          className="rounded-lg border border-gray-300 px-3 py-2"
-          value={viewFilters.year}
-          onChange={() => {}}
-        >
-          <option value="">Todos los años</option>
-          {years.map((year) => (
-            <option key={year.id} value={year.id}>
-              {year.name}
-            </option>
-          ))}
-        </select>
-        <select
-          name="class"
-          className="rounded-lg border border-gray-300 px-3 py-2"
-          value={viewFilters.classId}
-          onChange={() => {}}
-        >
-          <option value="">Todas las secciones</option>
-          {classes.map((classId) => (
-            <option key={classId} value={classId}>
-              {classId}
-            </option>
-          ))}
-        </select>
-      </fetcher.Form>
+    <div className="flex flex-col gap-4 pt-10 h-full">
+      <StudentsFilters
+        FormComponent={fetcher.Form}
+        filters={viewFilters}
+        years={years}
+        classesByYear={classesByYear}
+        studentFieldLabels={studentFieldLabels}
+        onSubmit={submitFilters}
+      />
 
       <div className="relative">
-        {isSearching && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60">
+        {fetcher.state !== "idle" && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/60">
             <RefreshCw className="h-5 w-5 animate-spin text-gray-500" />
           </div>
         )}
-        <TableContainer className={isSearching ? "opacity-60" : ""}>
-          <DataTable className="text-sm">
-            <TableHead>
-              <tr className="bg-gray-100">
-                <HeadCell>{studentFieldLabels.id}</HeadCell>
-                <HeadCell>{studentFieldLabels.firstName}</HeadCell>
-                <HeadCell>{studentFieldLabels.lastName}</HeadCell>
-                <HeadCell>{studentFieldLabels.birthDate}</HeadCell>
-                <HeadCell>{studentFieldLabels.birthPlace}</HeadCell>
-                <HeadCell>Sección</HeadCell>
-              </tr>
-            </TableHead>
-            <TableBody>
-              {rows.map((student) => {
-                const to = `${student.id}`;
-                return (
-                  <tr key={student.id} className="border-t hover:bg-gray-50">
-                    <BodyCell>
-                      <Link className="block" to={to}>
-                        {student.id}
-                      </Link>
-                    </BodyCell>
-                    <BodyCell>
-                      <Link className="block" to={to}>
-                        {student.firstName}
-                      </Link>
-                    </BodyCell>
-                    <BodyCell>
-                      <Link className="block" to={to}>
-                        {student.lastName}
-                      </Link>
-                    </BodyCell>
-                    <BodyCell>
-                      <Link className="block" to={to}>
-                        {student.birthDate}
-                      </Link>
-                    </BodyCell>
-                    <BodyCell>
-                      <Link className="block" to={to}>
-                        {student.birthPlace}
-                      </Link>
-                    </BodyCell>
-                    <BodyCell>
-                      <Link className="block" to={to}>
-                        {`${
-                          years.find(
-                            (year) => year.id === student?._class?.year
-                          )?.name || ""
-                        } ${student?._class?.id || ""}`}
-                      </Link>
-                    </BodyCell>
-                  </tr>
-                );
-              })}
-            </TableBody>
-          </DataTable>
-        </TableContainer>
+        <TableControl
+          page={page}
+          pageCount={pageCount}
+          recordsAmount={recordsAmount}
+          selectedIds={selectedIds}
+          bulkActionId="students-bulk-action"
+          bulkActionOptions={BULK_ACTION_OPTIONS}
+          onPageChange={(nextPage) =>
+            submitFilters(
+              createFilterSearchParams({
+                ...viewFilters,
+                page: String(nextPage),
+              })
+            )
+          }
+        >
+          <StudentsTable
+            rows={rows}
+            years={years}
+            studentFieldLabels={studentFieldLabels}
+            selectedIds={selectedIds}
+            className={
+              "max-h-[55vh] overflow-auto " +
+              (fetcher.state !== "idle" ? "opacity-60" : "")
+            }
+            onSelectAll={(selected) =>
+              setSelectedIds(selected ? { all: true } : { all: false })
+            }
+            onSelectRow={(id) =>
+              setSelectedIds((current) => ({
+                ...current,
+                [id]: current.all
+                  ? current[id] === false
+                  : current[id] !== true,
+              }))
+            }
+          />
+        </TableControl>
       </div>
     </div>
   );

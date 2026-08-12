@@ -4,7 +4,7 @@ import { Pencil, RefreshCw, Save } from "lucide-react";
 import { getGrades, getPeriodList, loadGrades } from "../../../db";
 import GradesFilters from "./GradesFilters";
 import GradesTable from "./GradesTable";
-import TableControl from "./TableControl";
+import TableControl from "../components/TableControl";
 import {
   createFilterSearchParams,
   getViewFilters,
@@ -12,6 +12,10 @@ import {
 } from "./gradesUtils";
 
 const MAX_TABLE_ROWS = 20;
+const BULK_ACTION_OPTIONS = [
+  { value: "", label: "Acciones masivas" },
+  { value: "none", label: "Sin acciones disponibles", disabled: true },
+];
 
 export async function gradesLoader({ params, request }) {
   const url = new URL(request.url);
@@ -150,6 +154,8 @@ export default function Grades() {
             pageCount={pageCount}
             recordsAmount={recordsAmount}
             selectedIds={selectedIds}
+            bulkActionId="grades-bulk-action"
+            bulkActionOptions={BULK_ACTION_OPTIONS}
             onPageChange={(nextPage) =>
               submitFilters(
                 createFilterSearchParams({

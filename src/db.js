@@ -31,10 +31,12 @@ export async function getStudents(periodId, filters = {}) {
   if (filters.id)          params.set("id",          filters.id);
   if (filters.firstName)   params.set("firstName",   filters.firstName);
   if (filters.lastName)    params.set("lastName",     filters.lastName);
-  if (filters.dateOfBirth) params.set("dateOfBirth",  filters.dateOfBirth);
+  if (filters.birthDate)   params.set("dateOfBirth",  filters.birthDate);
   if (filters.birthPlace)  params.set("birthPlace",   filters.birthPlace);
   if (filters.year)        params.set("year",         filters.year);
   if (filters.classId)     params.set("class",        filters.classId);
+  if (filters.page)        params.set("page",         filters.page);
+  if (filters.limit)       params.set("limit",        filters.limit);
   const qs = params.toString();
   return request(`/periods/${periodId}/students${qs ? `?${qs}` : ""}`);
 }
