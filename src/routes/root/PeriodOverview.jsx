@@ -1,8 +1,19 @@
-import { Link, useLoaderData, useRouteLoaderData } from "react-router";
-import { getClassesByYear, getPeriodList, getYears } from "../../db";
+import {
+  Form,
+  Link,
+  redirect,
+  useLoaderData,
+  useRouteLoaderData,
+} from "react-router";
+import {
+  archivePeriod,
+  getClassesByYear,
+  getPeriodList,
+  getYears,
+} from "../../db";
 import ClassCard from "./load/ClassCard";
 import CollapsibleSection from "./load/CollapsibleSection";
-import { Plus } from "lucide-react";
+import { Archive, Plus } from "lucide-react";
 
 export async function periodOverviewLoader({ params }) {
   const periodList = await getPeriodList();
@@ -12,6 +23,20 @@ export async function periodOverviewLoader({ params }) {
   const classesByYear = await getClassesByYear(periodId);
   return { years, classesByYear };
 }
+
+export async function periodOverviewAction({ params, request }) {
+  const periodList = await getPeriodList();
+  const periodId =
+    params.periodId === "actual" ? periodList[0].id : params.periodId;
+  const formData = await request.formData();
+  const action = formData.get("action");
+
+  if (action === "archive") {
+    const newPeriod = await archivePeriod(periodId, true);
+    return redirect(`/periodo/${newPeriod.id}`);
+  }
+}
+
 function clampPercent(value) {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, value));
@@ -62,16 +87,13 @@ export default function PeriodOverview() {
         </p>
         <h1 className="mt-2 text-2xl font-bold">Período {periodId}</h1>
         <p className="mt-1 max-w-2xl text-sm text-emerald-50">
-          Estado general de aprobación estudiantil y progreso de carga de
-          notas.
+          Estado general de aprobación estudiantil y progreso de carga de notas.
         </p>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <h2 className="text-base font-semibold">
-            Aprobados vs Total
-          </h2>
+          <h2 className="text-base font-semibold">Aprobados vs Total</h2>
           <p className="mt-1 text-sm text-emerald-700">
             {studentsApproved} de {studentsTotal} estudiantes (
             {approvedPercent.toFixed(1)}%)
@@ -105,9 +127,7 @@ export default function PeriodOverview() {
         </article>
 
         <article className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-          <h2 className="text-base font-semibold">
-            Notas Cargadas
-          </h2>
+          <h2 className="text-base font-semibold">Notas Cargadas</h2>
           <p className="mt-1 text-sm text-emerald-700">
             {gradesLoaded} de {gradesTotal} registros
           </p>
@@ -120,13 +140,25 @@ export default function PeriodOverview() {
           <p className="mt-1 text-right text-sm font-semibold">
             {gradesPercent.toFixed(1)}%
           </p>
+
+          <Form method="post">
+            {periodData.data.status !== "archived" && (
+              <button
+                type="submit"
+                name="action"
+                value="archive"
+                className="flex items-center gap-2 font-semibold text-gray-600 p-2 shadow-sm rounded-xl bg-gradient-to-b border hover:shadow-lg transition-all"
+              >
+                <Archive />
+                Cerrar período
+              </button>
+            )}
+          </Form>
         </article>
       </section>
 
       <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-4">
-        <h2 className="text-base font-semibold">
-          Secciones por Año
-        </h2>
+        <h2 className="text-base font-semibold">Secciones por Año</h2>
         {years.map((year, i) => {
           const classes = classesByYear[year.id] || [];
           return (

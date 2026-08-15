@@ -14,7 +14,7 @@ import ClassLoader, {
   classLoader,
 } from "./routes/root/load/ClassLoader";
 import { ErrorDialogProvider } from "./context/ErrorDialogContext";
-import PeriodOverview, { periodOverviewLoader } from "./routes/root/PeriodOverview";
+import PeriodOverview, { periodOverviewAction, periodOverviewLoader } from "./routes/root/PeriodOverview";
 import Grades, { gradesAction, gradesLoader } from "./routes/root/grades/Grades";
 import Students, { studentsLoader } from "./routes/root/students/Students";
 import StudentDetail, {
@@ -69,6 +69,7 @@ export default [
             index: true,
             element: <PeriodOverview />,
             loader: periodOverviewLoader,
+            action: periodOverviewAction,
           },
           {
             path: "notas",

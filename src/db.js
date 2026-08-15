@@ -82,6 +82,13 @@ export async function getYears() {
   return request("/years");
 }
 
+export async function archivePeriod(periodId, supersede) {
+  return request(`/periods/${periodId}/archive`, {
+    method: "POST",
+    body: JSON.stringify({ supersede }),
+  })
+}
+
 export async function getSubjects() {
   return request("/subjects");
 }
