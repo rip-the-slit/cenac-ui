@@ -4,7 +4,7 @@ import { getPeriodList, getStudentById, updateStudent } from "../../../db";
 export async function studentDetailLoader({ params }) {
   const periodList = await getPeriodList();
   const periodId =
-    params.periodId === "actual" ? periodList[0] : params.periodId;
+    params.periodId === "actual" ? periodList[0].id : params.periodId;
   const data = await getStudentById(periodId, params.studentId);
   if (!data) {
     throw new Response("Estudiante no encontrado", { status: 404 });
@@ -15,7 +15,7 @@ export async function studentDetailLoader({ params }) {
 export async function studentDetailAction({ params, request }) {
   const periodList = await getPeriodList();
   const periodId =
-    params.periodId === "actual" ? periodList[0] : params.periodId;
+    params.periodId === "actual" ? periodList[0].id : params.periodId;
   const formData = await request.formData();
   await updateStudent(periodId, params.studentId, {
     id: String(formData.get("id") || ""),

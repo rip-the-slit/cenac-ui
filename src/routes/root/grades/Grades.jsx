@@ -21,7 +21,7 @@ export async function gradesLoader({ params, request }) {
   const url = new URL(request.url);
   const periodList = await getPeriodList();
   const periodId =
-    params.periodId === "actual" ? periodList[0] : params.periodId;
+    params.periodId === "actual" ? periodList[0].id : params.periodId;
   const year = url.searchParams.get("year") || "";
   const classId = url.searchParams.get("class") || "";
   const q = url.searchParams.get("q") || "";
@@ -60,7 +60,7 @@ export async function gradesLoader({ params, request }) {
 export async function gradesAction({ params, request }) {
   const periodList = await getPeriodList();
   const periodId =
-    params.periodId === "actual" ? periodList[0] : params.periodId;
+    params.periodId === "actual" ? periodList[0].id : params.periodId;
   const formData = await request.formData();
 
   try {

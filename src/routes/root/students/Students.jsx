@@ -19,7 +19,7 @@ const BULK_ACTION_OPTIONS = [
 export async function studentsLoader({ params, request }) {
   const periodList = await getPeriodList();
   const periodId =
-    params.periodId === "actual" ? periodList[0] : params.periodId;
+    params.periodId === "actual" ? periodList[0].id : params.periodId;
   const url = new URL(request.url);
   const requestedPage = Number.parseInt(url.searchParams.get("page"), 10);
   const page =

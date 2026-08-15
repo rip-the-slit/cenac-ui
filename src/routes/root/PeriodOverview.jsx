@@ -7,7 +7,7 @@ import { Plus } from "lucide-react";
 export async function periodOverviewLoader({ params }) {
   const periodList = await getPeriodList();
   const periodId =
-    params.periodId === "actual" ? periodList[0] : params.periodId;
+    params.periodId === "actual" ? periodList[0].id : params.periodId;
   const years = await getYears();
   const classesByYear = await getClassesByYear(periodId);
   return { years, classesByYear };

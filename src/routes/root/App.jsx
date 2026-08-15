@@ -23,7 +23,7 @@ import { PeriodSelector } from "./PeriodSelector";
 export async function appLoader({ params, request }) {
   const periodList = await getPeriodList();
   const periodId =
-    params.periodId === "actual" ? periodList[0] : params.periodId;
+    params.periodId === "actual" ? periodList[0].id : params.periodId;
   const periodData = await getPeriodStats(periodId);
 
   const url = new URL(request.url);

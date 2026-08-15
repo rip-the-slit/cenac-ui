@@ -104,7 +104,16 @@ function getSelectByOption(optionName) {
 describe("Students page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getPeriodList.mockResolvedValue(["2025"]);
+    getPeriodList.mockResolvedValue([
+      {
+        id: "2025",
+        status: "loaded",
+        startYear: 2024,
+        endYear: 2025,
+        openingDate: "2024-09-01",
+        closingDate: "2025-07-31",
+      },
+    ]);
     getStudents.mockResolvedValue(studentsResponse);
     getStudentById.mockImplementation(async (_periodId, studentId) => ({
       student:

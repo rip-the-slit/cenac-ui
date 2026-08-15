@@ -29,7 +29,7 @@ export async function dataAction({ params }) {
   const classStudents = getCache("class_students");
   const periodList = await getPeriodList();
   const periodId =
-    params.periodId === "actual" ? periodList[0] : params.periodId;
+    params.periodId === "actual" ? periodList[0].id : params.periodId;
 
   await loadPeriodData(periodId, classStudents, subjects);
   clearCache("subjects");
