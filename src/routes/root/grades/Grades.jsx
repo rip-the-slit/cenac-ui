@@ -45,6 +45,7 @@ export async function gradesLoader({ params, request }) {
   const currentPage = Math.min(page, pageCount);
   return {
     ...data,
+    periodId,
     recordsAmount,
     filters: {
       year,
@@ -87,6 +88,7 @@ export default function Grades() {
     subjects,
     subjectsByYear,
     statuses,
+    studentGradesFieldLabels,
     filters,
     recordsAmount,
   } = activeData;
@@ -116,9 +118,10 @@ export default function Grades() {
           classesByYear={classesByYear}
           statuses={statuses || []}
           subjects={subjects || []}
+          studentGradesFieldLabels={studentGradesFieldLabels}
           onSubmit={submitFilters}
         />
-        {expandedSubject && (
+        {(activeData.periodId !== "all" && expandedSubject) && (
           <button
             type={isEditing ? "submit" : "button"}
             form={isEditing ? "grades-form" : undefined}
@@ -168,9 +171,11 @@ export default function Grades() {
             <GradesTable
               rows={rows}
               subjects={subjects}
+              studentGradesFieldLabels={studentGradesFieldLabels}
               expandedSubject={expandedSubject}
               isEditing={isEditing}
               selectedIds={selectedIds}
+              showPeriod={activeData.periodId === "all"}
               className={"max-h-[55vh] overflow-auto " + (filterFetcher.state !== "idle" ? "opacity-60" : "")}
               onExpandedChange={(expanded) => {
                 if (!expanded) setIsEditing(false);

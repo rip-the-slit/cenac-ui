@@ -10,6 +10,7 @@ export default function GradesTableRow({
   termCount,
   gradeSlotsPerTerm,
   onSelect,
+  showPeriod,
 }) {
   const visibleSubjects = expandedSubject ? [expandedSubject] : subjects;
 
@@ -26,6 +27,7 @@ export default function GradesTableRow({
       <BodyCell>{row.id}</BodyCell>
       <BodyCell>{row.fullName}</BodyCell>
       <BodyCell>{row.class}</BodyCell>
+      {showPeriod && <BodyCell>{row.period ?? "—"}</BodyCell>}
       <BodyCell>{row.status}</BodyCell>
       {visibleSubjects.map((subject) => {
         const subjectId = String(subject.id);

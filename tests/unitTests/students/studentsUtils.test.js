@@ -32,12 +32,14 @@ describe("student filter utilities", () => {
       birthPlace: "Caracas",
       year: "1",
       classId: "1-A",
+      status: "Activo",
       page: "2",
     };
     const pending = formDataFrom([
       ["firstName", "Luis"],
       ["year", ""],
       ["class", ""],
+      ["status", "Retirado"],
       ["page", "1"],
     ]);
 
@@ -46,6 +48,7 @@ describe("student filter utilities", () => {
       firstName: "Luis",
       year: "",
       classId: "",
+      status: "Retirado",
       page: "1",
     });
   });
@@ -59,6 +62,7 @@ describe("student filter utilities", () => {
       birthPlace: "Los Teques",
       year: "",
       classId: "1-A",
+      status: "Retirado",
       page: "3",
     });
 
@@ -68,6 +72,7 @@ describe("student filter utilities", () => {
       lastName: "Pérez",
       birthDate: "2010-01-01",
       birthPlace: "Los Teques",
+      status: "Retirado",
       page: "3",
     });
   });

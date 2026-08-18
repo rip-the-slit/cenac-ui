@@ -17,6 +17,12 @@ import { getGrades, getPeriodList, loadGrades } from "../../src/db";
 
 const TERM_COUNT = 3;
 const GRADE_SLOTS_PER_TERM = 4;
+const studentGradesFieldLabels = {
+  id: "Documento",
+  fullName: "Estudiante",
+  class: "Grupo",
+  status: "Situación",
+};
 
 vi.mock("../../src/db", () => ({
   getGrades: vi.fn(),
@@ -33,6 +39,7 @@ const gradesResponse = {
   subjectsByYear: { 1: ["math"], 2: ["math", "language"] },
   classesByYear: { 1: ["1-A", "1-B"], 2: ["2-A"] },
   statuses: ["Activo", "Retirado"],
+  studentGradesFieldLabels,
   subjects: [
     { id: "math", name: "Matemática", abbr: "MAT" },
     { id: "language", name: "Castellano", abbr: "CAS" },
@@ -40,6 +47,7 @@ const gradesResponse = {
   rows: [
     {
       id: "V-1001",
+      period: "2024 - 2025",
       fullName: "Ana Pérez",
       class: "1-A",
       status: "Activo",
@@ -63,6 +71,7 @@ const gradesResponse = {
     },
     {
       id: "V-1002",
+      period: "2023 - 2024",
       fullName: "Luis Gómez",
       class: "1-B",
       status: "Retirado",
@@ -146,10 +155,7 @@ describe("Grades page", () => {
     const table = await screen.findByRole("table");
     const expectedHeaders = [
       "Seleccionar todos",
-      "C.I.",
-      "Nombre Completo",
-      "Sección",
-      "Estatus",
+      ...Object.values(studentGradesFieldLabels),
       "Areas de Formación",
       ...gradesResponse.subjects.map((subject) => subject.abbr || subject.name),
       "Nota Final",
@@ -184,6 +190,32 @@ describe("Grades page", () => {
         expect(row.getByText(value, { exact: true })).toBeInTheDocument();
       }
     }
+  });
+
+  it("shows a period column when viewing grades across all periods", async () => {
+    studentGradesFieldLabels.period = "Periodo Escolar";
+    renderGrades("/periodo/all/notas");
+
+    const table = await screen.findByRole("table");
+    expect(
+      within(table).getByRole("columnheader", { name: studentGradesFieldLabels.period })
+    ).toBeInTheDocument();
+
+    for (const record of gradesResponse.rows) {
+      expect(
+        within(getRecordRow(record.id)).getByText(record.period)
+      ).toBeInTheDocument();
+    }
+  });
+
+  it("disables editing when viewing grades across all periods", async () => {
+    renderGrades("/periodo/all/notas");
+
+    await expandSubject(gradesResponse.subjects[0].id);
+
+    expect(
+      screen.queryByRole("button", { name: "Editar" })
+    ).not.toBeInTheDocument();
   });
 
   it("opens a subject detail view and shows its grades for every term", async () => {
@@ -279,7 +311,7 @@ describe("Grades page", () => {
     const { loader } = renderGrades();
 
     const searchFilter = await screen.findByPlaceholderText(
-      "Buscar cédula o nombre"
+      `Buscar ${studentGradesFieldLabels.id} o ${studentGradesFieldLabels.fullName}`
     );
     const yearFilter = getSelectByOption("Todos los años");
     const classFilter = getSelectByOption("Todas las secciones");
@@ -377,13 +409,13 @@ describe("Grades page", () => {
     await user.click(screen.getByRole("button", { name: "Editar" }));
 
     const gradeInputs = screen.getAllByRole("spinbutton");
-    expect(
-      gradeInputs.length
-    ).toBe(
+    expect(gradeInputs.length).toBe(
       gradesResponse.rows.reduce(
         (total, r) => total + (r.subjectDetails[subject.id] ? 1 : 0),
         0
-      ) * TERM_COUNT * GRADE_SLOTS_PER_TERM
+      ) *
+        TERM_COUNT *
+        GRADE_SLOTS_PER_TERM
     );
   });
   it("renders pagination input", async () => {

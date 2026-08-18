@@ -32,6 +32,7 @@ export async function studentsLoader({ params, request }) {
     birthPlace: url.searchParams.get("birthPlace") || "",
     year: url.searchParams.get("year") || "",
     classId: url.searchParams.get("class") || "",
+    status: url.searchParams.get("status") || "",
     page: String(page),
   };
   const data = await getStudents(periodId, {
@@ -64,6 +65,7 @@ export default function Students() {
     years,
     classesByYear,
     studentFieldLabels,
+    statuses,
     filters,
     recordsAmount,
   } = activeData;
@@ -81,6 +83,7 @@ export default function Students() {
         years={years}
         classesByYear={classesByYear}
         studentFieldLabels={studentFieldLabels}
+        statuses={statuses || []}
         onSubmit={submitFilters}
       />
 

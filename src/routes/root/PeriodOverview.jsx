@@ -61,6 +61,7 @@ export default function PeriodOverview() {
   const loaderData = useLoaderData();
   const periodData = useRouteLoaderData("period");
   const periodId = loaderData?.periodId ?? periodData?.periodId ?? "actual";
+  const isAllPeriods = periodId === "all";
   const stats = loaderData?.stats ?? periodData?.data?.stats ?? null;
   const years = loaderData?.years ?? [];
   const classesByYear = loaderData?.classesByYear ?? {};
@@ -85,7 +86,9 @@ export default function PeriodOverview() {
         <p className="text-xs uppercase tracking-[0.2em] text-emerald-100">
           Resumen del período
         </p>
-        <h1 className="mt-2 text-2xl font-bold">Período {periodId}</h1>
+        <h1 className="mt-2 text-2xl font-bold">
+          {isAllPeriods ? "Todos los Períodos" : `Período ${periodId}`}
+        </h1>
         <p className="mt-1 max-w-2xl text-sm text-emerald-50">
           Estado general de aprobación estudiantil y progreso de carga de notas.
         </p>
@@ -141,8 +144,9 @@ export default function PeriodOverview() {
             {gradesPercent.toFixed(1)}%
           </p>
 
-          <Form method="post">
-            {periodData.data.status !== "archived" && (
+          {!isAllPeriods && (
+            <Form method="post">
+              {periodData?.data?.status !== "archived" && (
               <button
                 type="submit"
                 name="action"
@@ -152,12 +156,14 @@ export default function PeriodOverview() {
                 <Archive />
                 Cerrar período
               </button>
-            )}
-          </Form>
+              )}
+            </Form>
+          )}
         </article>
       </section>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-4">
+      {!isAllPeriods && (
+        <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-4">
         <h2 className="text-base font-semibold">Secciones por Año</h2>
         {years.map((year, i) => {
           const classes = classesByYear[year.id] || [];
@@ -183,7 +189,8 @@ export default function PeriodOverview() {
             </CollapsibleSection>
           );
         })}
-      </section>
+        </section>
+      )}
     </div>
   );
 }

@@ -36,10 +36,13 @@ const studentFieldLabels = {
   lastName: "Apellidos",
   birthDate: "Fecha de nacimiento",
   birthPlace: "Lugar de nacimiento",
+  status: "Estatus del Periodo",
+  class: "Sección"
 };
 
 const studentsResponse = {
   recordsAmount: 40,
+  statuses: ["Activo", "Retirado"],
   years: [
     { id: "1", name: "Primer año" },
     { id: "2", name: "Segundo año" },
@@ -53,6 +56,7 @@ const studentsResponse = {
       lastName: "Pérez",
       birthDate: "2010-01-01",
       birthPlace: "Caracas",
+      status: "Activo",
       _class: { year: "1", id: "1-A" },
     },
     {
@@ -61,6 +65,7 @@ const studentsResponse = {
       lastName: "Gómez",
       birthDate: "2010-02-02",
       birthPlace: "Valencia",
+      status: "Retirado",
       _class: { year: "2", id: "2-A" },
     },
   ],
@@ -130,8 +135,7 @@ describe("Students page", () => {
 
     for (const header of [
       "Seleccionar todos",
-      ...Object.values(studentFieldLabels),
-      "Sección",
+      ...Object.values(studentFieldLabels)
     ]) {
       expect(
         within(table).getByRole("columnheader", { name: header })
@@ -147,6 +151,7 @@ describe("Students page", () => {
       );
       expect(within(table).getByText(student.firstName)).toBeInTheDocument();
       expect(within(table).getByText(student.lastName)).toBeInTheDocument();
+      expect(within(table).getByText(student.status)).toBeInTheDocument();
     }
     expect(within(table).getByText("Primer año 1-A")).toBeInTheDocument();
     expect(within(table).getByText("Segundo año 2-A")).toBeInTheDocument();
@@ -164,6 +169,7 @@ describe("Students page", () => {
     const birthPlaceFilter = screen.getByLabelText(studentFieldLabels.birthPlace);
     const yearFilter = getSelectByOption("Todos los años");
     const classFilter = getSelectByOption("Todas las secciones");
+    const statusFilter = getSelectByOption("Todos los estatus");
 
     await user.selectOptions(yearFilter, "1");
     await waitFor(() => {
@@ -179,6 +185,7 @@ describe("Students page", () => {
     fireEvent.change(lastNameFilter, { target: { value: "Pérez" } });
     fireEvent.change(birthDateFilter, { target: { value: "2010-01-01" } });
     fireEvent.change(birthPlaceFilter, { target: { value: "Caracas" } });
+    fireEvent.change(statusFilter, { target: { value: "Activo" } });
 
     await waitFor(() => {
       const params = latestLoaderUrl(loader)?.searchParams;
@@ -190,6 +197,7 @@ describe("Students page", () => {
         birthPlace: "Caracas",
         year: "1",
         class: "1-A",
+        status: "Activo",
         page: "1",
       });
     });

@@ -10,6 +10,7 @@ export default function StudentsFilters({
   years,
   classesByYear,
   studentFieldLabels,
+  statuses,
   onSubmit,
 }) {
   const FilterForm = FormComponent;
@@ -91,7 +92,7 @@ export default function StudentsFilters({
           ))}
         </select>
       </Filter>
-      <Filter label="Sección">
+      <Filter label={studentFieldLabels.class}>
         <select
           name="class"
           className={CONTROL_CLASS_NAME}
@@ -103,6 +104,22 @@ export default function StudentsFilters({
           {pickClasses(classesByYear, filters.year).map((classId) => (
             <option key={classId} value={classId}>
               {classId}
+            </option>
+          ))}
+        </select>
+      </Filter>
+      <Filter label={studentFieldLabels.status}>
+        <select
+          name="status"
+          className={CONTROL_CLASS_NAME}
+          size="1"
+          defaultValue={filters.status}
+          onChange={() => {}}
+        >
+          <option value="">Todos los estatus</option>
+          {statuses.map((status) => (
+            <option key={status} value={status}>
+              {status}
             </option>
           ))}
         </select>

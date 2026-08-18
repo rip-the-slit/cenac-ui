@@ -40,9 +40,10 @@ export default function StudentsTableRow({
       </BodyCell>
       <BodyCell>
         <Link className="block" to={to}>
-          {`${yearName} ${student?._class?.id || ""}`.trim()}
+          {`${yearName} ${student?._class?.id || "—"}`.trim()}
         </Link>
       </BodyCell>
+      <BodyCell>{student.status ?? "—"}</BodyCell>
     </tr>
   );
 }

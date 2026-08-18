@@ -2,6 +2,21 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { Archive, CalendarDays, CircleCheck } from "lucide-react";
 
+function PeriodOption({ icon, id, isSelected, label, onClick }) {
+  return (
+    <Link
+      to={`/periodo/${id}`}
+      onClick={onClick}
+      className={`flex items-center gap-2 px-4 py-2 hover:bg-gray-100 ${
+        isSelected ? "bg-gray-100 font-medium text-gray-900" : "text-gray-700"
+      }`}
+    >
+      {icon}
+      <span>{label}</span>
+    </Link>
+  );
+}
+
 export function PeriodSelector({ currentId, list }) {
   const [isOpen, setIsOpen] = useState(false);
   const currentPeriod = list.find(
@@ -9,7 +24,7 @@ export function PeriodSelector({ currentId, list }) {
   );
   const currentLabel = currentPeriod
     ? `${currentPeriod.startYear} - ${currentPeriod.endYear}`
-    : currentId;
+    : currentId === "all" && "Todos los períodos";
 
   return (
     <div className="relative">
@@ -29,21 +44,27 @@ export function PeriodSelector({ currentId, list }) {
       {isOpen && (
         <div className="absolute z-10 right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-10 overflow-hidden">
           <div>
+            <PeriodOption
+              icon={<CalendarDays className="h-4 w-4" aria-hidden="true" />}
+              id="all"
+              isSelected={String(currentId) === "all"}
+              label="Todos los períodos"
+              onClick={() => setIsOpen(false)}
+            />
             {list.map((period) => {
               const label = `${period.startYear} - ${period.endYear}`;
               const StatusIcon =
                 period.status === "archived" ? Archive : CircleCheck;
 
               return (
-                <Link
+                <PeriodOption
                   key={period.id}
-                  to={`/periodo/${period.id}`}
+                  icon={<StatusIcon className="h-4 w-4" aria-hidden="true" />}
+                  id={period.id}
+                  isSelected={String(period.id) === String(currentId)}
+                  label={label}
                   onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100"
-                >
-                  <StatusIcon className="h-4 w-4" aria-hidden="true" />
-                  <span>{label}</span>
-                </Link>
+                />
               );
             })}
           </div>

@@ -38,7 +38,8 @@ export default function StudentsTable({
             <HeadCell>{studentFieldLabels.lastName}</HeadCell>
             <HeadCell>{studentFieldLabels.birthDate}</HeadCell>
             <HeadCell>{studentFieldLabels.birthPlace}</HeadCell>
-            <HeadCell>Sección</HeadCell>
+            <HeadCell>{studentFieldLabels.class}</HeadCell>
+            <HeadCell>{studentFieldLabels.status}</HeadCell>
           </tr>
         </TableHead>
         <TableBody>

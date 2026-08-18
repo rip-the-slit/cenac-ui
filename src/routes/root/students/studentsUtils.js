@@ -22,6 +22,7 @@ export function getViewFilters(filters, pendingFormData) {
     birthPlace: pendingValue("birthPlace", filters.birthPlace),
     year: pendingValue("year", filters.year),
     classId: pendingValue("class", filters.classId),
+    status: pendingValue("status", filters.status),
     page: pendingValue("page", filters.page),
   };
 }
@@ -34,6 +35,7 @@ export function createFilterSearchParams({
   birthPlace,
   year,
   classId,
+  status,
   page,
 }) {
   const params = new URLSearchParams();
@@ -44,6 +46,7 @@ export function createFilterSearchParams({
   if (birthPlace) params.set("birthPlace", birthPlace);
   if (year) params.set("year", year);
   if (year && classId) params.set("class", classId);
+  if (status) params.set("status", status);
   if (page) params.set("page", page);
   return params;
 }

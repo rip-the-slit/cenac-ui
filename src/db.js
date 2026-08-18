@@ -35,6 +35,7 @@ export async function getStudents(periodId, filters = {}) {
   if (filters.birthPlace)  params.set("birthPlace",   filters.birthPlace);
   if (filters.year)        params.set("year",         filters.year);
   if (filters.classId)     params.set("class",        filters.classId);
+  if (filters.status)      params.set("status",       filters.status);
   if (filters.page)        params.set("page",         filters.page);
   if (filters.limit)       params.set("limit",        filters.limit);
   const qs = params.toString();

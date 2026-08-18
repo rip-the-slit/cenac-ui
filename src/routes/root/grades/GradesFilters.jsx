@@ -11,6 +11,7 @@ export default function GradesFilters({
   classesByYear,
   statuses,
   subjects,
+  studentGradesFieldLabels,
   onSubmit,
 }) {
   const FilterForm = FormComponent;
@@ -26,11 +27,11 @@ export default function GradesFilters({
         onSubmit(formData);
       }}
     >
-      <Filter label="Estudiante">
+      <Filter label={studentGradesFieldLabels.id}>
         <input
           name="q"
           className={CONTROL_CLASS_NAME}
-          placeholder="Buscar cédula o nombre"
+          placeholder={`Buscar ${studentGradesFieldLabels.id} o ${studentGradesFieldLabels.fullName}`}
           size="1"
           defaultValue={filters.q}
           onChange={() => {}}

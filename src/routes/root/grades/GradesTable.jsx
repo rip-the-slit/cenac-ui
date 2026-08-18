@@ -14,6 +14,7 @@ const GRADE_SLOTS_PER_TERM = 4;
 export default function GradesTable({
   rows,
   subjects,
+  studentGradesFieldLabels,
   expandedSubject,
   isEditing,
   selectedIds,
@@ -21,6 +22,7 @@ export default function GradesTable({
   onExpandedChange,
   onSelectAll,
   onSelectRow,
+  showPeriod,
 }) {
   const visibleSubjects = expandedSubject ? [expandedSubject] : subjects;
   const rowSpan = expandedSubject ? 4 : 2;
@@ -41,10 +43,11 @@ export default function GradesTable({
                 onChange={(event) => onSelectAll(event.target.checked)}
               />
             </HeadCell>
-            <HeadCell rowSpan={rowSpan}>C.I.</HeadCell>
-            <HeadCell rowSpan={rowSpan}>Nombre Completo</HeadCell>
-            <HeadCell rowSpan={rowSpan}>Sección</HeadCell>
-            <HeadCell rowSpan={rowSpan}>Estatus</HeadCell>
+            <HeadCell rowSpan={rowSpan}>{studentGradesFieldLabels.id}</HeadCell>
+            <HeadCell rowSpan={rowSpan}>{studentGradesFieldLabels.fullName}</HeadCell>
+            <HeadCell rowSpan={rowSpan}>{studentGradesFieldLabels.class}</HeadCell>
+            {showPeriod && <HeadCell rowSpan={rowSpan}>{studentGradesFieldLabels.period}</HeadCell>}
+            <HeadCell rowSpan={rowSpan}>{studentGradesFieldLabels.status}</HeadCell>
             {!expandedSubject && (
               <HeadCell className="text-center" colSpan={subjects.length}>
                 Areas de Formación
@@ -143,6 +146,7 @@ export default function GradesTable({
               termCount={TERM_COUNT}
               gradeSlotsPerTerm={GRADE_SLOTS_PER_TERM}
               onSelect={() => onSelectRow(row.id)}
+              showPeriod={showPeriod}
             />
           ))}
         </TableBody>

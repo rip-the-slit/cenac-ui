@@ -112,6 +112,20 @@ describe("PeriodOverview", () => {
     expect(gradesCard.querySelector("[style]")).toHaveStyle({ width: "0%" });
   });
 
+  it("renders the all-period summary without period-specific controls", async () => {
+    renderOverview({ entry: "/periodo/all" });
+
+    expect(
+      await screen.findByRole("heading", { name: "Todos los Períodos" })
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Cerrar período" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Secciones por Año" })
+    ).not.toBeInTheDocument();
+  });
+
   it("expands years, renders empty states, and links classes to filtered grades", async () => {
     const user = userEvent.setup();
     renderOverview();
@@ -136,6 +150,8 @@ describe("PeriodOverview", () => {
   it("renders button to archive period", async () => {
     renderOverview();
 
-    const archiveButton = expect(await screen.findByRole("button", { name: "Cerrar período" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Cerrar período" })
+    ).toBeInTheDocument();
   })
 });
