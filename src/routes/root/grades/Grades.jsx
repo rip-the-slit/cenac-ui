@@ -28,9 +28,8 @@ export async function gradesLoader({ params, request }) {
   const status = url.searchParams.get("status") || "";
   const expanded = url.searchParams.get("expanded") || "";
   const requestedPage = Number.parseInt(url.searchParams.get("page"), 10);
-  const page = Number.isInteger(requestedPage) && requestedPage > 0
-    ? requestedPage
-    : 1;
+  const page =
+    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const data = await getGrades(
     periodId,
     year,
@@ -96,13 +95,14 @@ export default function Grades() {
   if (viewFilters.year) {
     const taughtSubjectIds = subjectsByYear?.[viewFilters.year] || [];
     subjects = subjects.filter((subject) =>
-      taughtSubjectIds.some((subjectId) =>
-        String(subjectId) === String(subject.id)
+      taughtSubjectIds.some(
+        (subjectId) => String(subjectId) === String(subject.id)
       )
     );
   }
   const expandedSubject =
-    subjects.find((subject) => String(subject.id) === viewFilters.expanded) || null;
+    subjects.find((subject) => String(subject.id) === viewFilters.expanded) ||
+    null;
   const page = Number(viewFilters.page);
   const pageCount = Math.max(1, Math.ceil(recordsAmount / MAX_TABLE_ROWS));
   const submitFilters = (formData) =>
@@ -121,7 +121,7 @@ export default function Grades() {
           studentGradesFieldLabels={studentGradesFieldLabels}
           onSubmit={submitFilters}
         />
-        {(activeData.periodId !== "all" && expandedSubject) && (
+        {activeData.periodId !== "all" && expandedSubject && (
           <button
             type={isEditing ? "submit" : "button"}
             form={isEditing ? "grades-form" : undefined}
@@ -133,9 +133,13 @@ export default function Grades() {
             }`}
           >
             {isEditing ? (
-              <>Guardar edición <Save className="w-5 h-5" /></>
+              <>
+                Guardar edición <Save className="w-5 h-5" />
+              </>
             ) : (
-              <>Editar <Pencil className="w-5 h-5" /></>
+              <>
+                Editar <Pencil className="w-5 h-5" />
+              </>
             )}
           </button>
         )}
@@ -147,55 +151,59 @@ export default function Grades() {
           name="return_search"
           value={createFilterSearchParams(viewFilters).toString()}
         />
-          {filterFetcher.state !== "idle" && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60">
-              <RefreshCw className="h-5 w-5 animate-spin text-gray-500" />
-            </div>
-          )}
-          <TableControl
-            page={page}
-            pageCount={pageCount}
-            recordsAmount={recordsAmount}
+        {filterFetcher.state !== "idle" && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60">
+            <RefreshCw className="h-5 w-5 animate-spin text-gray-500" />
+          </div>
+        )}
+        <TableControl
+          page={page}
+          pageCount={pageCount}
+          recordsAmount={recordsAmount}
+          selectedIds={selectedIds}
+          bulkActionId="grades-bulk-action"
+          bulkActionOptions={BULK_ACTION_OPTIONS}
+          onPageChange={(nextPage) =>
+            submitFilters(
+              createFilterSearchParams({
+                ...viewFilters,
+                page: String(nextPage),
+              })
+            )
+          }
+        >
+          <GradesTable
+            rows={rows}
+            subjects={subjects}
+            studentGradesFieldLabels={studentGradesFieldLabels}
+            statuses={statuses || []}
+            expandedSubject={expandedSubject}
+            isEditing={isEditing}
             selectedIds={selectedIds}
-            bulkActionId="grades-bulk-action"
-            bulkActionOptions={BULK_ACTION_OPTIONS}
-            onPageChange={(nextPage) =>
-              submitFilters(
-                createFilterSearchParams({
-                  ...viewFilters,
-                  page: String(nextPage),
-                })
-              )
+            showPeriod={activeData.periodId === "all"}
+            className={
+              "max-h-[55vh] overflow-auto " +
+              (filterFetcher.state !== "idle" ? "opacity-60" : "")
             }
-          >
-            <GradesTable
-              rows={rows}
-              subjects={subjects}
-              studentGradesFieldLabels={studentGradesFieldLabels}
-              expandedSubject={expandedSubject}
-              isEditing={isEditing}
-              selectedIds={selectedIds}
-              showPeriod={activeData.periodId === "all"}
-              className={"max-h-[55vh] overflow-auto " + (filterFetcher.state !== "idle" ? "opacity-60" : "")}
-              onExpandedChange={(expanded) => {
-                if (!expanded) setIsEditing(false);
-                submitFilters(
-                  createFilterSearchParams({ ...viewFilters, expanded })
-                );
-              }}
-              onSelectAll={(selected) =>
-                setSelectedIds(selected ? { all: true } : { all: false })
-              }
-              onSelectRow={(id) =>
-                setSelectedIds((current) => ({
-                  ...current,
-                  [id]: current.all
-                    ? current[id] === false
-                    : current[id] !== true,
-                }))
-              }
-            />
-          </TableControl>
+            onExpandedChange={(expanded) => {
+              if (!expanded) setIsEditing(false);
+              submitFilters(
+                createFilterSearchParams({ ...viewFilters, expanded })
+              );
+            }}
+            onSelectAll={(selected) =>
+              setSelectedIds(selected ? { all: true } : { all: false })
+            }
+            onSelectRow={(id) =>
+              setSelectedIds((current) => ({
+                ...current,
+                [id]: current.all
+                  ? current[id] === false
+                  : current[id] !== true,
+              }))
+            }
+          />
+        </TableControl>
       </Form>
     </div>
   );

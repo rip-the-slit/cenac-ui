@@ -16,7 +16,7 @@ import Grades, {
 import { getGrades, getPeriodList, loadGrades } from "../../src/db";
 
 const TERM_COUNT = 3;
-const GRADE_SLOTS_PER_TERM = 4;
+const GRADE_SLOTS_PER_TERM = 5;
 const studentGradesFieldLabels = {
   id: "Documento",
   fullName: "Estudiante",
@@ -38,7 +38,11 @@ const gradesResponse = {
   ],
   subjectsByYear: { 1: ["math"], 2: ["math", "language"] },
   classesByYear: { 1: ["1-A", "1-B"], 2: ["2-A"] },
-  statuses: ["Activo", "Retirado"],
+  statuses: [
+    { value: "pending", name: "Pendiente" },
+    { value: "passed", name: "Aprobado" },
+    { value: "failed", name: "Reprobado" },
+  ],
   studentGradesFieldLabels,
   subjects: [
     { id: "math", name: "Matemática", abbr: "MAT" },
@@ -50,21 +54,21 @@ const gradesResponse = {
       period: "2024 - 2025",
       fullName: "Ana Pérez",
       class: "1-A",
-      status: "Activo",
+      status: "passed",
       subjectAverages: { math: 15.5, language: 17 },
       subjectDetails: {
         math: {
           terms: [
-            [10, 11, 12, 13],
-            [14, 15, 16, 17],
-            [18, 19, 20, 9],
+            [10, 11, 12, 13, 14],
+            [14, 15, 16, 17, 18],
+            [18, 19, 20, 9, 10],
           ],
         },
         language: {
           terms: [
-            [11, 12, 13, 14],
-            [15, 16, 17, 18],
-            [19, 20, 10, 11],
+            [11, 12, 13, 14, 15],
+            [15, 16, 17, 18, 19],
+            [19, 20, 10, 11, 12],
           ],
         },
       },
@@ -74,14 +78,14 @@ const gradesResponse = {
       period: "2023 - 2024",
       fullName: "Luis Gómez",
       class: "1-B",
-      status: "Retirado",
+      status: "pending",
       subjectAverages: { math: 12, language: 13.5 },
       subjectDetails: {
         math: {
           terms: [
-            [8, 9, 10, 11],
-            [12, 13, 14, 15],
-            [16, 17, 18, 19],
+            [8, 9, 10, 11, 12],
+            [12, 13, 14, 15, 16],
+            [16, 17, 18, 19, 20],
           ],
         },
       },
@@ -176,7 +180,9 @@ describe("Grades page", () => {
         record.id,
         record.fullName,
         record.class,
-        record.status,
+        gradesResponse.statuses.find(
+          (status) => status.value === record.status
+        ).name,
         ...expectedGrades,
         (
           expectedGrades.reduce((sum, grade) => sum + parseFloat(grade), 0) /
@@ -229,6 +235,11 @@ describe("Grades page", () => {
         screen.getByRole("columnheader", { name: `L${term}` })
       ).toBeInTheDocument();
     }
+    expect(
+      screen.getAllByRole("columnheader", {
+        name: `E${GRADE_SLOTS_PER_TERM}`,
+      })
+    ).toHaveLength(TERM_COUNT);
     for (const collapsedSubject of gradesResponse.subjects.filter(
       (candidate) => candidate.id !== subject.id
     )) {
@@ -346,13 +357,16 @@ describe("Grades page", () => {
     });
     expect(classFilter).toHaveValue(selectedClass);
 
-    await user.selectOptions(statusFilter, selectedStatus);
+    expect(
+      within(statusFilter).getByRole("option", { name: selectedStatus.name })
+    ).toHaveValue(selectedStatus.value);
+    await user.selectOptions(statusFilter, selectedStatus.value);
     await waitFor(() =>
       expect(latestLoaderUrl(loader)?.searchParams.get("status")).toBe(
-        selectedStatus
+        selectedStatus.value
       )
     );
-    expect(statusFilter).toHaveValue(selectedStatus);
+    expect(statusFilter).toHaveValue(selectedStatus.value);
 
     await user.selectOptions(subjectFilter, selectedSubject);
     await waitFor(() => {
@@ -368,7 +382,7 @@ describe("Grades page", () => {
       expect(params?.get("q")).toBe(searchQuery);
       expect(params?.get("year")).toBe(selectedYear);
       expect(params?.get("class")).toBe(selectedClass);
-      expect(params?.get("status")).toBe(selectedStatus);
+      expect(params?.get("status")).toBe(selectedStatus.value);
       expect(params?.get("expanded")).toBe(selectedSubject);
     });
     expect(searchFilter).toHaveValue(searchQuery);

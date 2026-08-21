@@ -37,12 +37,16 @@ const studentFieldLabels = {
   birthDate: "Fecha de nacimiento",
   birthPlace: "Lugar de nacimiento",
   status: "Estatus del Periodo",
-  class: "Sección"
+  class: "Sección",
 };
 
 const studentsResponse = {
   recordsAmount: 40,
-  statuses: ["Activo", "Retirado"],
+  statuses: [
+    { value: "pending", name: "Pendiente" },
+    { value: "passed", name: "Aprobado" },
+    { value: "failed", name: "Reprobado" },
+  ],
   years: [
     { id: "1", name: "Primer año" },
     { id: "2", name: "Segundo año" },
@@ -56,7 +60,7 @@ const studentsResponse = {
       lastName: "Pérez",
       birthDate: "2010-01-01",
       birthPlace: "Caracas",
-      status: "Activo",
+      status: "pending",
       _class: { year: "1", id: "1-A" },
     },
     {
@@ -65,7 +69,7 @@ const studentsResponse = {
       lastName: "Gómez",
       birthDate: "2010-02-02",
       birthPlace: "Valencia",
-      status: "Retirado",
+      status: "passed",
       _class: { year: "2", id: "2-A" },
     },
   ],
@@ -135,7 +139,7 @@ describe("Students page", () => {
 
     for (const header of [
       "Seleccionar todos",
-      ...Object.values(studentFieldLabels)
+      ...Object.values(studentFieldLabels),
     ]) {
       expect(
         within(table).getByRole("columnheader", { name: header })
@@ -145,13 +149,16 @@ describe("Students page", () => {
     for (const student of studentsResponse.rows) {
       expect(
         within(table).getByRole("link", { name: student.id })
-      ).toHaveAttribute(
-        "href",
-        "/periodo/2025/estudiantes/" + student.id
-      );
+      ).toHaveAttribute("href", "/periodo/2025/estudiantes/" + student.id);
       expect(within(table).getByText(student.firstName)).toBeInTheDocument();
       expect(within(table).getByText(student.lastName)).toBeInTheDocument();
-      expect(within(table).getByText(student.status)).toBeInTheDocument();
+      expect(
+        within(table).getByText(
+          studentsResponse.statuses.find(
+            (status) => status.value === student.status
+          ).name
+        )
+      ).toBeInTheDocument();
     }
     expect(within(table).getByText("Primer año 1-A")).toBeInTheDocument();
     expect(within(table).getByText("Segundo año 2-A")).toBeInTheDocument();
@@ -159,14 +166,14 @@ describe("Students page", () => {
 
   it("submits all filters, resets pagination, and limits classes by year", async () => {
     const user = userEvent.setup();
-    const { loader } = renderStudents(
-      "/periodo/2025/estudiantes?page=2"
-    );
+    const { loader } = renderStudents("/periodo/2025/estudiantes?page=2");
     const idFilter = await screen.findByLabelText(studentFieldLabels.id);
     const firstNameFilter = screen.getByLabelText(studentFieldLabels.firstName);
     const lastNameFilter = screen.getByLabelText(studentFieldLabels.lastName);
     const birthDateFilter = screen.getByLabelText(studentFieldLabels.birthDate);
-    const birthPlaceFilter = screen.getByLabelText(studentFieldLabels.birthPlace);
+    const birthPlaceFilter = screen.getByLabelText(
+      studentFieldLabels.birthPlace
+    );
     const yearFilter = getSelectByOption("Todos los años");
     const classFilter = getSelectByOption("Todas las secciones");
     const statusFilter = getSelectByOption("Todos los estatus");
@@ -177,7 +184,9 @@ describe("Students page", () => {
       expect(params?.get("year")).toBe("1");
       expect(params?.get("page")).toBe("1");
     });
-    expect(within(classFilter).queryByRole("option", { name: "2-A" })).toBeNull();
+    expect(
+      within(classFilter).queryByRole("option", { name: "2-A" })
+    ).toBeNull();
 
     await user.selectOptions(classFilter, "1-A");
     fireEvent.change(idFilter, { target: { value: "V-1001" } });
@@ -185,7 +194,11 @@ describe("Students page", () => {
     fireEvent.change(lastNameFilter, { target: { value: "Pérez" } });
     fireEvent.change(birthDateFilter, { target: { value: "2010-01-01" } });
     fireEvent.change(birthPlaceFilter, { target: { value: "Caracas" } });
-    fireEvent.change(statusFilter, { target: { value: "Activo" } });
+    const selectedStatus = studentsResponse.statuses[1];
+    expect(
+      within(statusFilter).getByRole("option", { name: selectedStatus.name })
+    ).toHaveValue(selectedStatus.value);
+    fireEvent.change(statusFilter, { target: { value: selectedStatus.value } });
 
     await waitFor(() => {
       const params = latestLoaderUrl(loader)?.searchParams;
@@ -197,7 +210,7 @@ describe("Students page", () => {
         birthPlace: "Caracas",
         year: "1",
         class: "1-A",
-        status: "Activo",
+        status: selectedStatus.value,
         page: "1",
       });
     });
@@ -247,8 +260,9 @@ describe("Students page", () => {
     const selectAll = await screen.findByRole("checkbox", {
       name: "Seleccionar todos",
     });
-    const rowCheckboxes = within(screen.getAllByRole("rowgroup").at(-1))
-      .getAllByRole("checkbox");
+    const rowCheckboxes = within(
+      screen.getAllByRole("rowgroup").at(-1)
+    ).getAllByRole("checkbox");
     const bulkActions = screen.getByRole("combobox", {
       name: "Acciones masivas",
     });

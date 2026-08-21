@@ -67,12 +67,12 @@ export default function PeriodOverview() {
   const classesByYear = loaderData?.classesByYear ?? {};
 
   const studentsTotal = stats?.students?.total ?? 0;
-  const studentsApproved = stats?.students?.approved ?? 0;
+  const studentsPassed = stats?.students?.passed ?? 0;
   const gradesTotal = stats?.grades?.total ?? 0;
   const gradesLoaded = stats?.grades?.loaded ?? 0;
 
-  const approvedPercent = clampPercent(
-    studentsTotal > 0 ? (studentsApproved / studentsTotal) * 100 : 0
+  const passedPercent = clampPercent(
+    studentsTotal > 0 ? (studentsPassed / studentsTotal) * 100 : 0
   );
   const gradesPercent = clampPercent(
     gradesTotal > 0 ? (gradesLoaded / gradesTotal) * 100 : 0
@@ -98,8 +98,8 @@ export default function PeriodOverview() {
         <article className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <h2 className="text-base font-semibold">Aprobados vs Total</h2>
           <p className="mt-1 text-sm text-emerald-700">
-            {studentsApproved} de {studentsTotal} estudiantes (
-            {approvedPercent.toFixed(1)}%)
+            {studentsPassed} de {studentsTotal} estudiantes (
+            {passedPercent.toFixed(1)}%)
           </p>
           <div className="mt-3">
             <svg viewBox="0 0 240 140" className="mx-auto h-36 w-full max-w-xs">
@@ -113,7 +113,7 @@ export default function PeriodOverview() {
                   120,
                   78,
                   180,
-                  180 + (180 * approvedPercent) / 100
+                  180 + (180 * passedPercent) / 100
                 )}
                 className="fill-none stroke-emerald-500 [stroke-width:22] [stroke-linecap:round]"
               />
@@ -123,7 +123,7 @@ export default function PeriodOverview() {
                 textAnchor="middle"
                 className="fill-emerald-900 text-[20px] font-bold"
               >
-                {approvedPercent.toFixed(1)}%
+                {passedPercent.toFixed(1)}%
               </text>
             </svg>
           </div>

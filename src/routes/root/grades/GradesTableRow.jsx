@@ -4,6 +4,7 @@ import { calculateAverage, formatGrade } from "./gradesUtils";
 export default function GradesTableRow({
   row,
   subjects,
+  statuses,
   expandedSubject,
   isEditing,
   selected,
@@ -13,6 +14,9 @@ export default function GradesTableRow({
   showPeriod,
 }) {
   const visibleSubjects = expandedSubject ? [expandedSubject] : subjects;
+  const statusName = statuses.find(
+    (status) => String(status.value) === String(row.status)
+  )?.name || "";
 
   return (
     <tr className="odd:bg-white even:bg-gray-50 hover:bg-gray-100">
@@ -28,7 +32,7 @@ export default function GradesTableRow({
       <BodyCell>{row.fullName}</BodyCell>
       <BodyCell>{row.class}</BodyCell>
       {showPeriod && <BodyCell>{row.period ?? "—"}</BodyCell>}
-      <BodyCell>{row.status}</BodyCell>
+      <BodyCell>{statusName}</BodyCell>
       {visibleSubjects.map((subject) => {
         const subjectId = String(subject.id);
         if (!expandedSubject) {

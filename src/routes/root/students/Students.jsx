@@ -113,6 +113,7 @@ export default function Students() {
             rows={rows}
             years={years}
             studentFieldLabels={studentFieldLabels}
+            statuses={statuses || []}
             selectedIds={selectedIds}
             className={
               "max-h-[55vh] overflow-auto " +

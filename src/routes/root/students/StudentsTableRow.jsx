@@ -6,12 +6,17 @@ export default function StudentsTableRow({
   years,
   selected,
   onSelect,
+  statuses,
 }) {
   const to = String(student.id);
   const yearName =
     years.find(
       (year) => String(year.id) === String(student?._class?.year)
     )?.name || "";
+  const statusName = statuses.find(
+    (status) => String(status.value) === String(student.status)
+  )?.name || "";
+
 
   return (
     <tr className="odd:bg-white even:bg-gray-50 hover:bg-gray-100">
@@ -43,7 +48,7 @@ export default function StudentsTableRow({
           {`${yearName} ${student?._class?.id || "—"}`.trim()}
         </Link>
       </BodyCell>
-      <BodyCell>{student.status ?? "—"}</BodyCell>
+      <BodyCell>{statusName ?? "—"}</BodyCell>
     </tr>
   );
 }

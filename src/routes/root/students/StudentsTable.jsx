@@ -11,6 +11,7 @@ export default function StudentsTable({
   rows,
   years,
   studentFieldLabels,
+  statuses,
   selectedIds,
   className,
   onSelectAll,
@@ -54,6 +55,7 @@ export default function StudentsTable({
                   : selectedIds[student.id] === true
               }
               onSelect={() => onSelectRow(student.id)}
+              statuses={statuses}
             />
           ))}
         </TableBody>

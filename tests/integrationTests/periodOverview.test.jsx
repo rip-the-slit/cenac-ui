@@ -26,7 +26,7 @@ const classesByYear = {
   3: [],
 };
 const populatedStats = {
-  students: { total: 40, approved: 30 },
+  students: { total: 40, passed: 30 },
   grades: { total: 60, loaded: 15 },
 };
 

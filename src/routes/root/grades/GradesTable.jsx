@@ -9,12 +9,13 @@ import {
 import GradesTableRow from "./GradesTableRow";
 
 const TERM_COUNT = 3;
-const GRADE_SLOTS_PER_TERM = 4;
+const GRADE_SLOTS_PER_TERM = 5;
 
 export default function GradesTable({
   rows,
   subjects,
   studentGradesFieldLabels,
+  statuses,
   expandedSubject,
   isEditing,
   selectedIds,
@@ -104,7 +105,7 @@ export default function GradesTable({
                   className="text-center"
                   colSpan={GRADE_SLOTS_PER_TERM}
                 >
-                  {`L${termIndex + 1}`}
+                 L{termIndex + 1}
                 </HeadCell>
               ))}
             </tr>
@@ -117,7 +118,7 @@ export default function GradesTable({
                     key={`l${termIndex + 1}-${gradeIndex + 1}`}
                     className="text-center"
                   >
-                    {gradeIndex + 1}
+                    E{gradeIndex + 1}
                   </HeadCell>
                 ))
               )}
@@ -129,6 +130,7 @@ export default function GradesTable({
             <GradesTableRow
               key={row.id}
               row={row}
+          statuses={statuses}
               subjects={subjects}
               expandedSubject={expandedSubject}
               isEditing={

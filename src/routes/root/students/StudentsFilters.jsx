@@ -118,8 +118,8 @@ export default function StudentsFilters({
         >
           <option value="">Todos los estatus</option>
           {statuses.map((status) => (
-            <option key={status} value={status}>
-              {status}
+            <option key={status.value} value={status.value}>
+              {status.name}
             </option>
           ))}
         </select>
