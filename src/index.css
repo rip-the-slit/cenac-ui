@@ -4,5 +4,21 @@
 
 input:focus {
     outline: none;
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+@keyframes class-student-count-expand {
+    0% { transform: scale(0.75); }
+    60% { transform: scale(1.12); }
+    100% { transform: scale(1); }
+}
+
+.animate-class-student-count {
+    animation: class-student-count-expand 300ms ease-out;
+    transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animate-class-student-count {
+        animation: none;
+    }
 }

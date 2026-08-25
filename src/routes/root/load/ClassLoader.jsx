@@ -1,15 +1,23 @@
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { Form, redirect, useLoaderData } from "react-router";
+import { Plus, Trash2, User } from "lucide-react";
+
+import { useErrorDialog } from "../../../context/ErrorDialogContext";
 import {
   getCache,
   getClassSuggestions,
   getYears,
   saveCache,
 } from "../../../db";
+import TableControl from "../components/TableControl";
 import CollapsibleSection from "./CollapsibleSection";
-import ClassCard from "./ClassCard";
-import { createContext, useContext, useReducer, useState } from "react";
-import { Plus, Trash2, X } from "lucide-react";
-import { useErrorDialog } from "../../../context/ErrorDialogContext";
 import {
   BodyCell,
   DataTable,
@@ -18,6 +26,12 @@ import {
   TableContainer,
   TableHead,
 } from "./TablePrimitives";
+
+const STUDENT_ID_BASE = 30000000;
+const MAX_TABLE_ROWS = 10;
+const BULK_ACTION_OPTIONS = [
+  { value: "delete", label: "Eliminar seleccionados" },
+];
 
 export async function classAction({ request }) {
   const formData = await request.formData();
@@ -35,14 +49,18 @@ export async function classAction({ request }) {
   }
 
   const { studentClass } = await getClassSuggestions();
-  const fields = Object.keys(studentClass).filter((field) => !field.startsWith("_"));
+  const fields = Object.keys(studentClass).filter(
+    (field) => !field.startsWith("_")
+  );
   const studentIds = formData.getAll("id");
   const students = [];
 
   for (const studentId of studentIds) {
     const student = {};
     for (const field of fields) {
-      student[field] = String(field === "id" ? studentId : formData.get(`${field}-${studentId}`) || "");
+      student[field] = String(
+        field === "id" ? studentId : formData.get(`${field}-${studentId}`) || ""
+      );
     }
 
     const classValue = String(formData.get(`_class-${studentId}`) || "");
@@ -67,26 +85,50 @@ export async function classLoader() {
     Array.isArray(cachedStudents) && cachedStudents.length > 0
       ? cachedStudents
       : suggestedStudents;
-  const classesByYear = years.reduce((acc, year) => {
-    acc[year.id] = [];
-    return acc;
-  }, {});
+  const classesByYear = Object.fromEntries(years.map((year) => [year.id, {}]));
+  let nextRowSequence = 0;
+
   for (const student of students) {
     const yearId = student?._class?.year;
-    const classId = student?._class?.id;
-    if (!yearId || !classId) {
+    const className = student?._class?.id;
+    if (!yearId || !className || !classesByYear[yearId]) {
       continue;
     }
-    if (!classesByYear[yearId].includes(classId)) {
-      classesByYear[yearId].push(classId);
-    }
+
+    classesByYear[yearId][className] ??= {
+      className,
+      students: [],
+    };
+    classesByYear[yearId][className].students.push({
+      ...student,
+      _rowId: `student-row-${nextRowSequence}`,
+    });
+    nextRowSequence += 1;
   }
-  Object.values(classesByYear).forEach((classList) => classList.sort());
-  return { years, students, classesByYear, studentClass, studentFieldLabels };
+
+  for (const year of years) {
+    classesByYear[year.id] = Object.fromEntries(
+      Object.entries(classesByYear[year.id]).sort(([left], [right]) =>
+        left.localeCompare(right)
+      )
+    );
+  }
+
+  const studentAttributes = Object.keys(studentClass).filter(
+    (field) => !field.startsWith("_")
+  );
+
+  return {
+    years,
+    classesByYear,
+    studentClass,
+    studentAttributes,
+    studentFieldLabels,
+    nextRowSequence,
+  };
 }
 
 const ClassLoaderContext = createContext(null);
-const STUDENT_ID_BASE = 30000000;
 
 function useClassLoaderContext() {
   const context = useContext(ClassLoaderContext);
@@ -96,10 +138,15 @@ function useClassLoaderContext() {
   return context;
 }
 
-function getNextStudentId(students) {
-  const existing = new Set(
-    students.map((student) => String(student.id ?? "").replace(/\D/g, ""))
-  );
+function getNextStudentId(classesByYear) {
+  const existing = new Set();
+  for (const classes of Object.values(classesByYear)) {
+    for (const classGroup of Object.values(classes)) {
+      for (const student of classGroup.students) {
+        existing.add(String(student.id ?? "").replace(/\D/g, ""));
+      }
+    }
+  }
   let next = STUDENT_ID_BASE;
   while (existing.has(String(next))) {
     next += 1;
@@ -107,91 +154,187 @@ function getNextStudentId(students) {
   return String(next);
 }
 
+function getNextClassId(classes) {
+  const existing = new Set(classes);
+  let index = 0;
+  let classId = "A";
+  while (existing.has(classId)) {
+    index += 1;
+    classId = String.fromCharCode(65 + index);
+  }
+  return classId;
+}
+
+function updateClassStudents(state, yearId, classId, update) {
+  const yearClasses = state.classesByYear[yearId];
+  const classGroup = yearClasses?.[classId];
+  if (!classGroup) {
+    return state;
+  }
+
+  return {
+    ...state,
+    classesByYear: {
+      ...state.classesByYear,
+      [yearId]: {
+        ...yearClasses,
+        [classId]: {
+          ...classGroup,
+          students: update(classGroup.students),
+        },
+      },
+    },
+  };
+}
+
 function classLoaderReducer(state, action) {
   switch (action.type) {
     case "ADD_CLASS": {
-      const currentYearClasses = state.classesByYear[action.yearId] || [];
+      const yearClasses = state.classesByYear[action.yearId] || {};
       return {
         ...state,
         classesByYear: {
           ...state.classesByYear,
-          [action.yearId]: [
-            ...currentYearClasses,
-            String.fromCharCode(65 + currentYearClasses.length),
-          ],
+          [action.yearId]: {
+            ...yearClasses,
+            [action.classId]: {
+              className: action.classId,
+              students: [],
+            },
+          },
         },
       };
     }
     case "DELETE_CLASS": {
-      const currentYearClasses = state.classesByYear[action.yearId] || [];
+      const yearClasses = state.classesByYear[action.yearId] || {};
+      const nextYearClasses = { ...yearClasses };
+      delete nextYearClasses[action.classId];
       return {
         ...state,
         classesByYear: {
           ...state.classesByYear,
-          [action.yearId]: currentYearClasses.filter(
-            (classId) => classId !== action.classId
-          ),
+          [action.yearId]: nextYearClasses,
         },
       };
     }
-    case "UPDATE_STUDENT_FIELD":
-      return {
-        ...state,
-        students: state.students.map((student) =>
-          student.id === action.studentId
-            ? { ...student, [action.field]: action.value }
-            : student
-        ),
-      };
-    case "UPDATE_STUDENT_CLASS":
-      return {
-        ...state,
-        students: state.students.map((student) =>
-          student.id === action.studentId
-            ? {
-                ...student,
-                _class: { year: action.yearId, id: action.classId },
-              }
-            : student
-        ),
-      };
+    case "MOVE_STUDENT": {
+      if (
+        action.yearId === action.targetYearId &&
+        action.classId === action.targetClassId
+      ) {
+        return state;
+      }
+
+      const sourceStudents =
+        state.classesByYear[action.yearId]?.[action.classId]?.students;
+      const studentIndex = sourceStudents?.findIndex(
+        (candidate) => candidate._rowId === action.rowId
+      );
+      if (studentIndex == null || studentIndex < 0) {
+        return state;
+      }
+      const student = sourceStudents[studentIndex];
+
+      const withoutStudent = updateClassStudents(
+        state,
+        action.yearId,
+        action.classId,
+        (students) => {
+          const nextStudents = students.slice();
+          nextStudents.splice(studentIndex, 1);
+          return nextStudents;
+        }
+      );
+      return updateClassStudents(
+        withoutStudent,
+        action.targetYearId,
+        action.targetClassId,
+        (students) => [
+          ...students,
+          {
+            ...student,
+            _class: {
+              year: action.targetYearId,
+              id: action.targetClassId,
+            },
+          },
+        ]
+      );
+    }
     case "ADD_STUDENT":
-      return {
-        ...state,
-        students: [...state.students, action.student],
-      };
+      return updateClassStudents(
+        state,
+        action.yearId,
+        action.classId,
+        (students) => [...students, action.student]
+      );
     case "DELETE_STUDENT":
-      return {
-        ...state,
-        students: state.students.filter(
-          (student) => student.id !== action.studentId
-        ),
-      };
+      return updateClassStudents(
+        state,
+        action.yearId,
+        action.classId,
+        (students) =>
+          students.filter((student) => student._rowId !== action.rowId)
+      );
+    case "DELETE_STUDENTS": {
+      const deletedRowIds = new Set(action.rowIds);
+      return updateClassStudents(
+        state,
+        action.yearId,
+        action.classId,
+        (students) =>
+          students.filter((student) => !deletedRowIds.has(student._rowId))
+      );
+    }
     default:
       return state;
   }
 }
 
-function StudentRow({ student, studentAttributes }) {
-  const { years, classesByYear, dispatch, studentFieldLabels, students, emitError } =
+function StudentRow({
+  student,
+  studentAttributes,
+  selected,
+  onSelect,
+  onDelete,
+  onMove,
+}) {
+  const { years, classesByYear, draftsRef, studentFieldLabels } =
     useClassLoaderContext();
+  const [isChangingClass, setIsChangingClass] = useState(false);
+  const changeClassButtonRef = useRef(null);
   const selectedClass = `${student._class.year}-${student._class.id}`;
+  const studentName =
+    `${student.firstName ?? ""} ${student.lastName ?? ""}`.trim() ||
+    String(student.id);
+
+  const finishChangingClass = () => {
+    setIsChangingClass(false);
+    requestAnimationFrame(() => changeClassButtonRef.current?.focus());
+  };
 
   return (
-    <tr className="group">
+    <tr className="group odd:bg-white even:bg-gray-50 hover:bg-gray-100">
+      <BodyCell className="text-center">
+        <input
+          type="checkbox"
+          aria-label={`Seleccionar ${studentName}`}
+          checked={selected}
+          onChange={onSelect}
+        />
+      </BodyCell>
       {studentAttributes.map((attr) => (
-        <BodyCell key={attr} className="border-r">
+        <BodyCell key={attr}>
           <input
             type="text"
-            name={attr === "id" ? attr : `${attr}-${student.id}`}
-            value={student[attr] ?? ""}
-            onChange={(e) => {
-              dispatch({
-                type: "UPDATE_STUDENT_FIELD",
-                studentId: student.id,
-                field: attr,
-                value: e.target.value,
-              });
+            defaultValue={
+              draftsRef.current[student._rowId]?.[attr] ?? student[attr] ?? ""
+            }
+            onChange={(event) => {
+              draftsRef.current[student._rowId] = {
+                ...draftsRef.current[student._rowId],
+                [attr]: event.target.value,
+              };
             }}
             disabled={student._locked === true}
             aria-label={studentFieldLabels[attr] || attr}
@@ -203,41 +346,60 @@ function StudentRow({ student, studentAttributes }) {
           />
         </BodyCell>
       ))}
-      <BodyCell className="sticky right-0">
-        <div className="flex items-center gap-2">
-          <select
-            name={`_class-${student.id}`}
-            className="min-w-[2ch]"
-            value={selectedClass}
-            onChange={(e) => {
-              const [yearId, classId] = e.target.value.split("-");
-              dispatch({
-                type: "UPDATE_STUDENT_CLASS",
-                studentId: student.id,
-                yearId: Number(yearId),
-                classId,
-              });
-            }}
-          >
-            {years.map((year) => (
-              <optgroup label={year.name} key={year.id}>
-                {(classesByYear[year.id] || []).map((c) => (
-                  <option key={c} value={`${year.id}-${c}`}>
-                    {c}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
+      <BodyCell className="">
+        <div className="flex gap-2">
+          {isChangingClass ? (
+            <select
+              aria-label={`Cambiar sección de ${studentName}`}
+              className="w-[15ch]"
+              defaultValue={selectedClass}
+              autoFocus
+              onBlur={finishChangingClass}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  finishChangingClass();
+                }
+              }}
+              onChange={(event) => {
+                const [targetYearId, targetClassId] =
+                  event.target.value.split("-");
+                onMove(Number(targetYearId), targetClassId);
+                finishChangingClass();
+              }}
+            >
+              {years.map((year) => (
+                <optgroup label={year.name} key={year.id}>
+                  {Object.values(classesByYear[year.id] || {}).map(
+                    (classGroup) => (
+                      <option
+                        key={classGroup.className}
+                        value={`${year.id}-${classGroup.className}`}
+                      >
+                        {classGroup.className}
+                      </option>
+                    )
+                  )}
+                </optgroup>
+              ))}
+            </select>
+          ) : (
+            <button
+              ref={changeClassButtonRef}
+              type="button"
+              onClick={() => setIsChangingClass(true)}
+              aria-label={`Cambiar sección de ${studentName}`}
+              className="rounded border border-gray-200 w-[15ch]"
+            >
+              {student._class.id}
+            </button>
+          )}
           <button
             type="button"
-            onClick={() =>
-              dispatch({ type: "DELETE_STUDENT", studentId: student.id })
-            }
-            className="opacity-0 rounded shadow border border-gray-200 group-hover:opacity-100 p-1 text-red-500"
+            onClick={onDelete}
+            className="rounded border border-gray-200 p-1 text-red-500 opacity-0 shadow group-hover:opacity-100 group-focus-within:opacity-100"
             aria-label="Eliminar estudiante"
           >
-            <Trash2 className="w-4 h-4" />
+            <Trash2 aria-hidden="true" className="h-4 w-4" />
           </button>
         </div>
       </BodyCell>
@@ -245,136 +407,349 @@ function StudentRow({ student, studentAttributes }) {
   );
 }
 
-function StudentTable({ yearId, classId, students, onDeselectClass }) {
-  const { studentClass, dispatch, studentFieldLabels } = useClassLoaderContext();
-  const studentAttributes = Object.keys(studentClass).filter(
-    (attr) => !attr.startsWith("_")
+function StudentTable({ yearId, classId, students }) {
+  const {
+    createRowId,
+    draftsRef,
+    studentAttributes,
+    studentClass,
+    dispatch,
+    studentFieldLabels,
+    classesByYear,
+  } = useClassLoaderContext();
+  const [page, setPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState({ all: false });
+  const recordsAmount = students.length;
+  const pageCount = Math.max(1, Math.ceil(recordsAmount / MAX_TABLE_ROWS));
+  const currentPage = Math.min(page, pageCount);
+  const visibleStudents = students.slice(
+    (currentPage - 1) * MAX_TABLE_ROWS,
+    currentPage * MAX_TABLE_ROWS
   );
+  const allSelected =
+    selectedIds.all &&
+    !Object.values(selectedIds).some((selected) => selected === false);
+
+  const removeSelection = (rowId) => {
+    setSelectedIds((current) => {
+      const next = { ...current };
+      delete next[rowId];
+      return next;
+    });
+  };
+
+  const handleBulkAction = (action) => {
+    if (action !== "delete") {
+      return;
+    }
+
+    const rowIds = [];
+    for (const student of students) {
+      if (
+        selectedIds.all
+          ? selectedIds[student._rowId] !== false
+          : selectedIds[student._rowId] === true
+      ) {
+        rowIds.push(student._rowId);
+        delete draftsRef.current[student._rowId];
+      }
+    }
+    if (rowIds.length === 0) {
+      return;
+    }
+
+    dispatch({
+      type: "DELETE_STUDENTS",
+      yearId,
+      classId,
+      rowIds,
+    });
+    setSelectedIds({ all: false });
+  };
 
   return (
     <div>
-      <div className="flex justify-end">
+      <TableControl
+        page={currentPage}
+        pageCount={pageCount}
+        recordsAmount={recordsAmount}
+        selectedIds={selectedIds}
+        bulkActionId={`class-students-bulk-action-${yearId}-${classId}`}
+        bulkActionLabel="Acciones de estudiantes"
+        bulkActionOptions={BULK_ACTION_OPTIONS}
+        onBulkAction={handleBulkAction}
+        onPageChange={setPage}
+      >
+        <TableContainer className="relative max-h-[55vh] overflow-auto">
+          <DataTable className="text-sm">
+            <TableHead className="sticky top-0 z-10 bg-gray-100 shadow-md">
+              <tr>
+                <HeadCell className="bg-gray-100 text-center">
+                  <input
+                    type="checkbox"
+                    aria-label="Seleccionar todos"
+                    checked={allSelected}
+                    onChange={(event) =>
+                      setSelectedIds(
+                        event.target.checked ? { all: true } : { all: false }
+                      )
+                    }
+                  />
+                </HeadCell>
+                {studentAttributes.map((attr) => (
+                  <HeadCell key={attr} className="bg-gray-100">
+                    {studentFieldLabels[attr] || attr}
+                  </HeadCell>
+                ))}
+                <HeadCell className="sticky right-0 bg-gray-100">
+                  Sección
+                </HeadCell>
+              </tr>
+            </TableHead>
+            <TableBody>
+              {visibleStudents.map((student) => (
+                <StudentRow
+                  key={student._rowId}
+                  student={student}
+                  studentAttributes={studentAttributes}
+                  selected={
+                    selectedIds.all
+                      ? selectedIds[student._rowId] !== false
+                      : selectedIds[student._rowId] === true
+                  }
+                  onSelect={() =>
+                    setSelectedIds((current) => ({
+                      ...current,
+                      [student._rowId]: current.all
+                        ? current[student._rowId] === false
+                        : current[student._rowId] !== true,
+                    }))
+                  }
+                  onDelete={() => {
+                    delete draftsRef.current[student._rowId];
+                    removeSelection(student._rowId);
+                    dispatch({
+                      type: "DELETE_STUDENT",
+                      yearId,
+                      classId,
+                      rowId: student._rowId,
+                    });
+                  }}
+                  onMove={(targetYearId, targetClassId) => {
+                    removeSelection(student._rowId);
+                    dispatch({
+                      type: "MOVE_STUDENT",
+                      yearId,
+                      classId,
+                      rowId: student._rowId,
+                      targetYearId,
+                      targetClassId,
+                    });
+                  }}
+                />
+              ))}
+            </TableBody>
+          </DataTable>
+        </TableContainer>
         <button
           type="button"
-          onClick={onDeselectClass}
-          className="p-1 flex items-center gap-2 text-xs border border-gray-100 rounded-t-lg hover:bg-gray-50"
-          aria-label="Deseleccionar sección"
-        >
-          Sección {classId} <X className="w-4 h-4 text-gray-600" />
-        </button>
-      </div>
-      <TableContainer className="">
-        <DataTable>
-          <TableHead>
-            <tr className="bg-gray-100">
-              {studentAttributes.map((attr) => (
-                <HeadCell key={attr} className="">
-                  {studentFieldLabels[attr] || attr}
-                </HeadCell>
-              ))}
-              <HeadCell className="sticky right-0 bg-gray-100">Sección</HeadCell>
-            </tr>
-          </TableHead>
-          <TableBody>
-            {students.map((student) => (
-              <StudentRow
-                key={student.id}
-                student={student}
-                studentAttributes={studentAttributes}
-              />
-            ))}
-          </TableBody>
-        </DataTable>
-      </TableContainer>
-      <button
-        type="button"
-        onClick={() =>
-          dispatch({
-            type: "ADD_STUDENT",
-            student: {
-              ...studentClass,
-              _class: {
-                year: yearId,
-              id: classId,
+          onClick={() => {
+            const studentId = getNextStudentId(classesByYear);
+            dispatch({
+              type: "ADD_STUDENT",
+              yearId,
+              classId,
+              student: {
+                ...studentClass,
+                _class: { year: yearId, id: classId },
+                _rowId: createRowId(),
+                id: studentId,
               },
-              id: getNextStudentId(students)
-            },
-          })
-        }
-        className="mt-4 border-2 border-dashed border-gray-300 rounded-lg p-2 flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors w-full"
-      >
-        <Plus className="w-5 h-5 text-gray-400" />
-        <span className="text-sm text-gray-600">Añadir Estudiante</span>
-      </button>
+            });
+            setPage(Math.ceil((recordsAmount + 1) / MAX_TABLE_ROWS));
+          }}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-gray-300 p-2 transition-colors hover:bg-gray-50"
+        >
+          <Plus aria-hidden="true" className="h-5 w-5 text-gray-400" />
+          <span className="text-sm text-gray-600">Añadir Estudiante</span>
+        </button>
+      </TableControl>
     </div>
   );
 }
+function StudentCountBadge({ classId, count }) {
+  const previousCount = useRef(count);
+  const [animationVersion, setAnimationVersion] = useState(0);
 
-function ClassGrid({ yearId, classes, onAddClass, onClassClick, onDeleteClass }) {
+  useEffect(() => {
+    if (previousCount.current !== count) {
+      previousCount.current = count;
+      setAnimationVersion((version) => version + 1);
+    }
+  }, [count]);
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {classes.map((className) => (
-        <ClassCard
-          key={className}
-          className={className}
-          onClick={() => onClassClick(className)}
-          onDelete={() => onDeleteClass(className)}
-          showDelete
-        />
-      ))}
-      <button
-        type="button"
-        onClick={() => onAddClass(yearId)}
-        className="border-2 border-dashed border-gray-300 rounded-lg p-4 flex flex-col items-center justify-center hover:bg-gray-50 transition-colors"
+    <span
+      key={animationVersion}
+      aria-label={`${count} estudiantes en la sección ${classId}`}
+      className={
+        "inline-flex origin-left items-center gap-1 rounded-md bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-800 " +
+        (animationVersion > 0 ? "animate-class-student-count" : "")
+      }
+    >
+      <User aria-hidden="true" className="h-3.5 w-3.5" />
+      <span aria-hidden="true">{count}</span>
+    </span>
+  );
+}
+
+function ClassTabs({
+  yearId,
+  classes,
+  selectedClass,
+  onAddClass,
+  onDeleteClass,
+  onSelectClass,
+}) {
+  return (
+    <div className="flex gap-2">
+      <div
+        role="tablist"
+        aria-label="Secciones"
+        className="flex min-w-0 gap-2 overflow-x-auto"
       >
-        <Plus className="w-8 h-8 text-gray-400" />
-        <span className="mt-2 text-sm text-gray-600">Añadir Sección</span>
+        {classes.map((classGroup, classIndex) => {
+          const classId = classGroup.className;
+          const isSelected = selectedClass === classId;
+
+          return (
+            <div
+              key={classId}
+              className={
+                "group flex shrink-0 min-w-[225px] items-center justify-between rounded-t-lg border border-b-0 transition-colors text-gray-600 border-gray-200 " +
+                (isSelected
+                  ? "bg-gray-50"
+                  : "bg-gray-100 hover:bg-gray-100")
+              }
+            >
+              <button
+                type="button"
+                id={`class-tab-${yearId}-${classId}`}
+                role="tab"
+                aria-label={`Sección ${classId}`}
+                aria-selected={isSelected}
+                aria-controls={`class-panel-${yearId}-${classId}`}
+                tabIndex={isSelected ? 0 : -1}
+                onClick={() => onSelectClass(classId)}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-semibold"
+              >
+                <span>Sección {classId}</span>
+                <StudentCountBadge
+                  classId={classId}
+                  count={classGroup.students.length}
+                />
+              </button>
+              <button
+                type="button"
+                onClick={() => onDeleteClass(classId)}
+                className="mr-1 rounded p-1 text-red-500 transition-opacity hover:bg-red-50"
+                aria-label={`Eliminar sección ${classId}`}
+              >
+                <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+      <div className="py-2">
+        <button
+        type="button"
+        onClick={onAddClass}
+        className="shrink-0 rounded-lg border-2 border-dashed border-gray-300 text-gray-400 p-1 transition-colors hover:bg-gray-50"
+        aria-label="Añadir sección"
+        title="Añadir sección"
+      >
+        <Plus aria-hidden="true" className="h-5 w-5" />
       </button>
+      </div>
+      
     </div>
   );
 }
 
 function ClassSelector({ yearId }) {
-  const { students, classesByYear, dispatch, emitError } = useClassLoaderContext();
-  const classes = classesByYear[yearId] || [];
-  const [selectedClass, setSelectedClass] = useState(null);
+  const { classesByYear, dispatch, emitError } = useClassLoaderContext();
+  const yearClasses = classesByYear[yearId] || {};
+  const classes = Object.values(yearClasses);
+  const [selectedClass, setSelectedClass] = useState(
+    classes[0]?.className ?? null
+  );
+  const selectedClassGroup = selectedClass ? yearClasses[selectedClass] : null;
 
-  const handleClassClick = (className) => {
-    setSelectedClass((prev) => (prev === className ? null : className));
+  const handleAddClass = () => {
+    const classId = getNextClassId(Object.keys(yearClasses));
+    dispatch({ type: "ADD_CLASS", yearId, classId });
+    setSelectedClass(classId);
   };
 
   const handleDeleteClass = (classId) => {
-    const hasStudents = students.some(
-      (student) => student._class?.year === yearId && student._class?.id === classId
-    );
-    if (hasStudents) {
-      emitError("No se puede eliminar la sección porque tiene estudiantes asociados. Intente moviendo los estudiantes a otras secciones.");
+    const classGroup = yearClasses[classId];
+    if (classGroup.students.length > 0) {
+      emitError(
+        "No se puede eliminar la sección porque tiene estudiantes asociados. Intente moviendo los estudiantes a otras secciones."
+      );
       return;
+    }
+
+    if (selectedClass === classId) {
+      const classIndex = classes.findIndex(
+        (candidate) => candidate.className === classId
+      );
+      const remainingClasses = classes.filter(
+        (candidate) => candidate.className !== classId
+      );
+      setSelectedClass(
+        remainingClasses[classIndex]?.className ??
+          remainingClasses[classIndex - 1]?.className ??
+          null
+      );
     }
     dispatch({ type: "DELETE_CLASS", yearId, classId });
   };
 
   return (
     <div className="p-4">
-      {selectedClass ? (
-        <StudentTable
-          yearId={yearId}
-          classId={selectedClass}
-          onDeselectClass={() => setSelectedClass(null)}
-          students={students.filter(
-            (s) => s._class.year === yearId && s._class?.id === selectedClass
-          )}
-        />
+      <ClassTabs
+        yearId={yearId}
+        classes={classes}
+        selectedClass={selectedClass}
+        onAddClass={handleAddClass}
+        onDeleteClass={handleDeleteClass}
+        onSelectClass={setSelectedClass}
+      />
+      {selectedClassGroup ? (
+        <div
+          id={`class-panel-${yearId}-${selectedClass}`}
+          role="tabpanel"
+          aria-labelledby={`class-tab-${yearId}-${selectedClass}`}
+        >
+          <StudentTable
+            key={`${yearId}-${selectedClass}`}
+            yearId={yearId}
+            classId={selectedClass}
+            students={selectedClassGroup.students}
+          />
+        </div>
       ) : (
-        <ClassGrid
-          yearId={yearId}
-          classes={classes}
-          onDeleteClass={handleDeleteClass}
-          onAddClass={(targetYearId) =>
-            dispatch({ type: "ADD_CLASS", yearId: targetYearId })
-          }
-          onClassClick={handleClassClick}
-        />
+        <div className="flex min-h-[157px] items-center justify-center border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+          No hay ninguna sección asignada.
+          <button
+            onClick={handleAddClass}
+            className="ml-1 text-gray-700 underline decoration-wavy"
+          >
+            Crear sección
+          </button>
+        </div>
       )}
     </div>
   );
@@ -384,39 +759,64 @@ export default function ClassLoader() {
   const loaderData = useLoaderData();
   const { emitError } = useErrorDialog();
   const years = loaderData.years;
+  const draftsRef = useRef({});
+  const nextRowSequenceRef = useRef(loaderData.nextRowSequence);
+  const payloadRef = useRef(null);
   const [state, dispatch] = useReducer(classLoaderReducer, {
     classesByYear: loaderData.classesByYear,
-    students: loaderData.students,
   });
   const contextValue = {
     years,
     classesByYear: state.classesByYear,
-    students: state.students,
     studentClass: loaderData.studentClass,
+    studentAttributes: loaderData.studentAttributes,
     studentFieldLabels: loaderData.studentFieldLabels,
+    draftsRef,
+    createRowId: () => `student-row-${nextRowSequenceRef.current++}`,
     dispatch,
     emitError,
+  };
+
+  const serializeStudents = () => {
+    const students = [];
+    for (const classes of Object.values(state.classesByYear)) {
+      for (const classGroup of Object.values(classes)) {
+        for (const student of classGroup.students) {
+          const { _rowId, ...persistedStudent } = student;
+          students.push({
+            ...persistedStudent,
+            ...draftsRef.current[_rowId],
+          });
+        }
+      }
+    }
+    payloadRef.current.value = JSON.stringify(students);
   };
 
   return (
     <ClassLoaderContext.Provider value={contextValue}>
       <div className="mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-8">
+        <h1 className="mb-8 text-center text-3xl font-bold">
           Carga de Secciones
         </h1>
-        <p className="text-gray-600 mb-6 text-center">
-          Cargue las secciones y sus repectivos estudiantes
+        <p className="mb-6 text-center text-gray-600">
+          Cargue las secciones y sus respectivos estudiantes
         </p>
 
-        <Form method="post">
+        <Form method="post" onSubmit={serializeStudents}>
           <input
+            ref={payloadRef}
             type="hidden"
             name="students_payload"
-            value={JSON.stringify(state.students)}
+            defaultValue=""
           />
-          {years.map((y, i) => (
-            <CollapsibleSection open={i === 0} key={y.id} title={y.name}>
-              <ClassSelector yearId={y.id} />
+          {years.map((year, index) => (
+            <CollapsibleSection
+              open={index <= 1}
+              key={year.id}
+              title={year.name}
+            >
+              <ClassSelector yearId={year.id} />
             </CollapsibleSection>
           ))}
           <button

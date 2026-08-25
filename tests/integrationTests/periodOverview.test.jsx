@@ -142,7 +142,7 @@ describe("PeriodOverview", () => {
 
     await user.click(emptyYear);
 
-    expect(emptyYearContent).toHaveClass("max-h-[2000px]");
+    expect(emptyYearContent).toHaveClass("opacity-100");
     expect(
       within(emptyYearContent).getByText("Sin secciones registradas.")
     ).toBeInTheDocument();

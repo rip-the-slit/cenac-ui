@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRef } from "react";
 
 const BUTTON_CLASS_NAME =
   "rounded-md border p-2 transition-colors enabled:border-gray-300 enabled:bg-white enabled:text-gray-700 enabled:hover:bg-gray-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-300";
@@ -12,8 +13,10 @@ export default function TableControl({
   bulkActionId,
   bulkActionOptions,
   bulkActionLabel = "Acciones masivas",
+  onBulkAction,
   onPageChange,
 }) {
+  const bulkActionRef = useRef(null);
   const selectedCount = selectedIds.all
     ? Math.max(
         0,
@@ -39,6 +42,7 @@ export default function TableControl({
             {bulkActionLabel}
           </label>
           <select
+            ref={bulkActionRef}
             id={bulkActionId}
             name={bulkActionId}
             className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700"
@@ -52,6 +56,9 @@ export default function TableControl({
           </select>
           <button
             type="button"
+            onClick={() =>
+              onBulkAction?.(bulkActionRef.current?.value ?? "")
+            }
             className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
           >
             Aplicar

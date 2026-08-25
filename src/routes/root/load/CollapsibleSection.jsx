@@ -21,10 +21,10 @@ export default function CollapsibleSection({ open = false, title, children }) {
       <div
         className={
           "overflow-hidden transition-[max-height,opacity] duration-200 " +
-          (isOpen ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0 pointer-events-none")
+          (isOpen ? "opacity-100" : "max-h-0 opacity-0 pointer-events-none")
         }
       >
-        {children}
+        {isOpen && children}
       </div>
     </div>
   );
