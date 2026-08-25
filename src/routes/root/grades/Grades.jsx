@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Form, redirect, useFetcher, useLoaderData } from "react-router";
+import { useState, useEffect, useRef } from "react";
+import { Form, useFetcher, useLoaderData, useNavigation } from "react-router";
 import { Pencil, RefreshCw, Save } from "lucide-react";
 import { getGrades, getPeriodList, loadGrades } from "../../../db";
 import GradesFilters from "./GradesFilters";
@@ -65,13 +65,10 @@ export async function gradesAction({ params, request }) {
 
   try {
     const payload = parseGradeEntries(formData);
-    if (payload.length > 0) await loadGrades(periodId, payload);
+    if (payload.length > 0) return await loadGrades(periodId, payload);
   } catch (error) {
     console.error(error);
   }
-
-  const returnSearch = String(formData.get("return_search") || "");
-  return redirect(returnSearch ? `?${returnSearch}` : ".");
 }
 
 export default function Grades() {
@@ -79,6 +76,9 @@ export default function Grades() {
   const filterFetcher = useFetcher();
   const [isEditing, setIsEditing] = useState(false);
   const [selectedIds, setSelectedIds] = useState({ all: false });
+  const navigation = useNavigation()
+  const navigationRef = useRef(null)
+
   const activeData = filterFetcher.data ?? loaderData;
   let {
     rows,
@@ -108,6 +108,15 @@ export default function Grades() {
   const submitFilters = (formData) =>
     filterFetcher.submit(formData, { method: "get" });
 
+  useEffect(() => {
+    if (navigation?.state === "submitting") {
+      navigationRef.current = navigation
+    } else if (navigation?.state === "idle" && navigationRef.current) {
+      navigationRef.current = null
+      setIsEditing(false)
+    }
+  }, [navigation])
+
   return (
     <div className="flex flex-col gap-4 pt-10 h-full">
       <div className="flex-0 flex flex-wrap items-end justify-between gap-3">
@@ -125,11 +134,16 @@ export default function Grades() {
           <button
             type={isEditing ? "submit" : "button"}
             form={isEditing ? "grades-form" : undefined}
-            onClick={() => !isEditing && setIsEditing(true)}
+            onClick={(event) => {
+              if (!isEditing) {
+                event.preventDefault();
+                setIsEditing(true);
+              }
+            }}
             className={`flex items-center gap-2 font-semibold p-3 shadow-sm rounded-lg bg-gradient-to-b border ${
               isEditing
                 ? "from-emerald-500 to-emerald-600 border-emerald-500 text-white"
-                : "from-gray-50 to-gray-200 border-gray-300"
+                : "from-gray-50 to-gray-200 border-gray-300 text-gray-700"
             }`}
           >
             {isEditing ? (

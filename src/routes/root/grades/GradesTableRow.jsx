@@ -33,7 +33,7 @@ export default function GradesTableRow({
       <BodyCell>{row.class}</BodyCell>
       {showPeriod && <BodyCell>{row.period ?? "—"}</BodyCell>}
       <BodyCell>{statusName}</BodyCell>
-      {visibleSubjects.map((subject) => {
+      {visibleSubjects?.length > 0 ? visibleSubjects.map((subject) => {
         const subjectId = String(subject.id);
         if (!expandedSubject) {
           return (
@@ -52,7 +52,7 @@ export default function GradesTableRow({
             return (
               <BodyCell
                 key={`${row.id}-${subjectId}-${termIndex}-${gradeIndex}`}
-                className="text-center p-0"
+                className="text-center"
               >
                 {isEditing ? (
                   <input
@@ -61,7 +61,7 @@ export default function GradesTableRow({
                     max="20"
                     step="0.1"
                     name={`grade::${row.id}::${subjectId}::${termIndex}::${gradeIndex}`}
-                    className="w-full p-2 text-center"
+                    className="w-[6ch] text-center bg-transparent"
                     defaultValue={grade ?? ""}
                   />
                 ) : (
@@ -71,7 +71,9 @@ export default function GradesTableRow({
             );
           })
         );
-      })}
+      }) : (
+        <BodyCell className="text-center">—</BodyCell>
+      )}
       <BodyCell className="text-center">
         {formatGrade(
           expandedSubject

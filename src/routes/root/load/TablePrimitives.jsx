@@ -26,9 +26,9 @@ export function HeadCell({ children, className = "", ...props }) {
   );
 }
 
-export function BodyCell({ children, className = "", ...props }) {
+export function BodyCell({ children, className = "", noPadding, ...props }) {
   return (
-    <td className={`p-2 border whitespace-nowrap ${className}`} {...props}>
+    <td className={`${noPadding ? "" : "p-2"} border whitespace-nowrap [&:has(input[type="number"]:focus)]:outline [&:has(input[type="text"]:focus)]:outline -outline-offset-2 outline-emerald-400 ${className}`} {...props}>
       {children}
     </td>
   );
