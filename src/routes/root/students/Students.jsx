@@ -24,6 +24,11 @@ export async function studentsLoader({ params, request }) {
   const requestedPage = Number.parseInt(url.searchParams.get("page"), 10);
   const page =
     Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const requestedLimit = Number.parseInt(url.searchParams.get("limit"), 10);
+  const limit =
+    Number.isInteger(requestedLimit) && requestedLimit > 0
+      ? Math.min(requestedLimit, MAX_TABLE_ROWS)
+      : MAX_TABLE_ROWS;
   const filters = {
     id: url.searchParams.get("id") || "",
     firstName: url.searchParams.get("firstName") || "",
@@ -38,10 +43,10 @@ export async function studentsLoader({ params, request }) {
   const data = await getStudents(periodId, {
     ...filters,
     page,
-    limit: MAX_TABLE_ROWS,
+    limit,
   });
   const recordsAmount = data.recordsAmount;
-  const pageCount = Math.max(1, Math.ceil(recordsAmount / MAX_TABLE_ROWS));
+  const pageCount = Math.max(1, Math.ceil(recordsAmount / limit));
   const currentPage = Math.min(page, pageCount);
 
   return {

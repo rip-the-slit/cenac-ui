@@ -1,6 +1,8 @@
 import { Check, ChevronsUpDown, User } from "lucide-react";
 import { useRef } from "react";
 
+import FloatingOverlay from "../root/components/FloatingOverlay";
+
 function UserOption({ name = "Usuario", type = "Personal" }) {
   return (
     <div className="flex items-center space-x-3 text-left">
@@ -29,9 +31,9 @@ export default function UserSelector({ users, userId, setUserId }) {
         />
         <ChevronsUpDown className="w-5 h-5 text-gray-400" />
       </button>
-      <dialog
-        className="shadow-md backdrop:bg-transparent 
-        bg-white border border-gray-200 rounded-lg p-2"
+      <FloatingOverlay
+        as="dialog"
+        className="p-2 backdrop:bg-transparent"
         ref={dialogRef}
         onClick={() => dialogRef.current.close()}
       >
@@ -48,7 +50,7 @@ export default function UserSelector({ users, userId, setUserId }) {
             </li>
           ))}
         </ul>
-      </dialog>
+      </FloatingOverlay>
     </div>
   );
 }

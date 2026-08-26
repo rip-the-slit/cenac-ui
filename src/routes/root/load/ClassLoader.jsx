@@ -19,6 +19,7 @@ import {
 import IdInput, { normalizeId } from "./IdInput";
 import TableControl from "../components/TableControl";
 import CollapsibleSection from "./CollapsibleSection";
+import StudentSuggestions from "./StudentSuggestions";
 import {
   BodyCell,
   DataTable,
@@ -304,6 +305,7 @@ function StudentRow({
   const { years, classesByYear, draftsRef, studentFieldLabels } =
     useClassLoaderContext();
   const [isChangingClass, setIsChangingClass] = useState(false);
+  const fieldInputRefs = useRef({});
   const changeClassButtonRef = useRef(null);
   const selectedClass = `${student._class.year}-${student._class.id}`;
   const studentName =
@@ -313,6 +315,23 @@ function StudentRow({
   const finishChangingClass = () => {
     setIsChangingClass(false);
     requestAnimationFrame(() => changeClassButtonRef.current?.focus());
+  };
+
+  const populateStudent = (selectedStudent) => {
+    const draft = { ...draftsRef.current[student._rowId] };
+    for (const attr of studentAttributes) {
+      const value =
+        attr === "id"
+          ? normalizeId(selectedStudent[attr])
+          : String(selectedStudent[attr] ?? "");
+      draft[attr] = value;
+      if (attr !== "id" && fieldInputRefs.current[attr]) {
+        fieldInputRefs.current[attr].value = value;
+        fieldInputRefs.current[attr].disabled = true;
+      }
+    }
+    draft._locked = true;
+    draftsRef.current[student._rowId] = draft;
   };
 
   return (
@@ -334,8 +353,9 @@ function StudentRow({
                 student[attr] ??
                 ""
               }
-              disabled={student._locked === true}
+              disabled={draftsRef.current[student._rowId]?._locked ?? student._locked === true}
               label={studentFieldLabels[attr] || attr}
+              onStudentSelect={populateStudent}
               onValueChange={(value) => {
                 draftsRef.current[student._rowId] = {
                   ...draftsRef.current[student._rowId],
@@ -345,6 +365,13 @@ function StudentRow({
             />
           ) : (
             <input
+              ref={(input) => {
+                if (input) {
+                  fieldInputRefs.current[attr] = input;
+                } else {
+                  delete fieldInputRefs.current[attr];
+                }
+              }}
               type="text"
               defaultValue={
                 draftsRef.current[student._rowId]?.[attr] ??
@@ -357,7 +384,7 @@ function StudentRow({
                   [attr]: event.target.value,
                 };
               }}
-              disabled={student._locked === true}
+              disabled={draftsRef.current[student._rowId]?._locked ?? student._locked === true}
               aria-label={studentFieldLabels[attr] || attr}
               required
               minLength={3}
@@ -638,7 +665,7 @@ function ClassTabs({
         aria-label="Secciones"
         className="flex min-w-0 gap-2 overflow-x-auto"
       >
-        {classes.map((classGroup, classIndex) => {
+        {classes.map((classGroup) => {
           const classId = classGroup.className;
           const isSelected = selectedClass === classId;
 
@@ -815,7 +842,8 @@ export default function ClassLoader() {
   };
 
   return (
-    <ClassLoaderContext.Provider value={contextValue}>
+    <StudentSuggestions>
+      <ClassLoaderContext.Provider value={contextValue}>
       <div className="mx-auto">
         <h1 className="mb-8 text-center text-3xl font-bold">
           Carga de Secciones
@@ -848,6 +876,7 @@ export default function ClassLoader() {
           </button>
         </Form>
       </div>
-    </ClassLoaderContext.Provider>
+      </ClassLoaderContext.Provider>
+    </StudentSuggestions>
   );
 }

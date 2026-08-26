@@ -9,6 +9,7 @@ import {
   getCache,
   getClassSuggestions,
   getPeriodList,
+  getStudents,
   getSubjects,
   getYears,
   loadPeriodData,
@@ -26,12 +27,14 @@ import ClassLoader, {
   classAction,
   classLoader,
 } from "../../src/routes/root/load/ClassLoader";
+import { studentsLoader } from "../../src/routes/root/students/Students";
 
 vi.mock("../../src/db", () => ({
   clearCache: vi.fn(),
   getCache: vi.fn(),
   getClassSuggestions: vi.fn(),
   getPeriodList: vi.fn(),
+  getStudents: vi.fn(),
   getSubjects: vi.fn(),
   getYears: vi.fn(),
   loadPeriodData: vi.fn(),
@@ -102,12 +105,24 @@ function renderClassLoader() {
       {
         path: "/periodo/:periodId/cargar/secciones",
         loader: classLoader,
-        action: classAction,
+        action: async (args) => {
+          await classAction(args);
+          return null;
+        },
         element: (
           <ErrorDialogProvider>
             <ClassLoader />
           </ErrorDialogProvider>
         ),
+      },
+      {
+        path: "/periodo/:periodId/estudiantes",
+        loader: studentsLoader,
+        element: <div />,
+      },
+      {
+        path: "/periodo/:periodId/cargar",
+        element: <div />,
       },
     ],
     { initialEntries: ["/periodo/actual/cargar/secciones"] }
@@ -132,6 +147,11 @@ describe("Data loading pages", () => {
       studentFieldLabels,
     });
     getPeriodList.mockResolvedValue([{ id: "2025" }]);
+    getStudents.mockResolvedValue({
+      recordsAmount: 0,
+      rows: [],
+      studentFieldLabels,
+    });
     loadPeriodData.mockResolvedValue(undefined);
   });
 
@@ -298,6 +318,175 @@ describe("Data loading pages", () => {
     const numberInputs = screen.getAllByRole("textbox", { name: "Documento" });
     expect(typeInputs.at(-1)).toHaveValue("V-");
     expect(numberInputs.at(-1)).toHaveValue("30000000");
+  });
+
+  it("keeps stale suggestions while loading and populates the selected student", async () => {
+    const user = userEvent.setup();
+    const firstMatches = Array.from({ length: 6 }, (_, index) => ({
+      id: `V-1${index}`,
+      firstName: index === 0 ? "Sofía" : `Nombre ${index}`,
+      lastName: index === 0 ? "Salas" : `Apellido ${index}`,
+      _class: { year: 2, id: "Z" },
+    }));
+    const currentMatch = {
+      id: "E-12",
+      firstName: "María",
+      lastName: "Mora",
+      _class: { year: 2, id: "Z" },
+    };
+    let resolveCurrentRequest;
+    getStudents
+      .mockResolvedValueOnce({
+        recordsAmount: firstMatches.length,
+        rows: firstMatches,
+      })
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveCurrentRequest = resolve;
+        })
+      );
+    cache.class_students = null;
+    renderClassLoader();
+
+    const numberInput = await screen.findByRole("textbox", {
+      name: "Documento",
+    });
+    await user.clear(numberInput);
+    await user.type(numberInput, "1");
+
+    const staleOption = await screen.findByRole("option", {
+      name: /Sofía Salas/,
+    });
+    const overlay = screen.getByRole("listbox", {
+      name: "Sugerencias de estudiantes",
+    });
+    expect(within(overlay).getAllByRole("option")).toHaveLength(5);
+    expect(getStudents).toHaveBeenLastCalledWith(
+      "all",
+      expect.objectContaining({
+        id: "V-1",
+        page: 1,
+        limit: 5,
+      })
+    );
+
+    await user.type(numberInput, "2");
+    await waitFor(() => expect(getStudents).toHaveBeenCalledTimes(2));
+
+    expect(staleOption).toBeInTheDocument();
+
+    resolveCurrentRequest({
+      recordsAmount: 1,
+      rows: [currentMatch],
+    });
+
+    const currentOption = await screen.findByRole("option", {
+      name: /María Mora/,
+    });
+    expect(within(currentOption).getByText("E-12")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("option", { name: /Sofía Salas/ })
+    ).not.toBeInTheDocument();
+
+    await user.click(currentOption);
+
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("combobox", { name: "Documento: tipo" })
+    ).toHaveValue("E-");
+    expect(numberInput).toHaveValue("12");
+    expect(screen.getByRole("textbox", { name: "Nombre" })).toHaveValue(
+      "María"
+    );
+    expect(screen.getByRole("textbox", { name: "Apellido" })).toHaveValue(
+      "Mora"
+    );
+
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await waitFor(() =>
+      expect(saveCache).toHaveBeenCalledWith(
+        "class_students",
+        expect.any(Array)
+      )
+    );
+    const savedStudents = saveCache.mock.calls.find(
+      ([key]) => key === "class_students"
+    )[1];
+    expect(savedStudents[0]).toMatchObject({
+      id: "E-12",
+      firstName: "María",
+      lastName: "Mora",
+      _class: { year: 1, id: "A" },
+    });
+    expect(savedStudents[0]._rowId).toBeUndefined();
+  });
+
+  it("hides suggestions when no students match the current id", async () => {
+    const user = userEvent.setup();
+    let resolveRequest;
+    getStudents.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveRequest = resolve;
+      })
+    );
+    cache.class_students = null;
+    renderClassLoader();
+
+    const numberInput = await screen.findByRole("textbox", {
+      name: "Documento",
+    });
+    await user.clear(numberInput);
+    await user.type(numberInput, "9");
+
+    resolveRequest({ recordsAmount: 0, rows: [] });
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("listbox", {
+          name: "Sugerencias de estudiantes",
+        })
+      ).not.toBeInTheDocument()
+    );
+  });
+
+  it("closes suggestions for empty input, Escape, and outside interaction", async () => {
+    const user = userEvent.setup();
+    getStudents.mockResolvedValue({
+      recordsAmount: 1,
+      rows: [{ id: "V-7", firstName: "Sara", lastName: "Sol" }],
+    });
+    cache.class_students = null;
+    renderClassLoader();
+
+    const numberInput = await screen.findByRole("textbox", {
+      name: "Documento",
+    });
+    await user.clear(numberInput);
+    expect(getStudents).not.toHaveBeenCalled();
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    await user.type(numberInput, "7");
+    expect(
+      await screen.findByRole("listbox", {
+        name: "Sugerencias de estudiantes",
+      })
+    ).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(numberInput).toHaveFocus();
+
+    await user.type(numberInput, "8");
+    expect(
+      await screen.findByRole("listbox", {
+        name: "Sugerencias de estudiantes",
+      })
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("heading", { name: "Carga de Secciones" })
+    );
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
   it("paginates locally and bulk deletes selected students", async () => {

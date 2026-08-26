@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { Archive, CalendarDays, CircleCheck } from "lucide-react";
+import FloatingOverlay from "./components/FloatingOverlay";
 
 function PeriodOption({ icon, id, isSelected, label, onClick }) {
   return (
@@ -42,7 +43,7 @@ export function PeriodSelector({ currentId, list }) {
         <span>{currentLabel}</span>
       </button>
       {isOpen && (
-        <div className="absolute z-10 right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-10 overflow-hidden">
+        <FloatingOverlay className="absolute right-0 z-10 mt-2 w-48 overflow-hidden">
           <div>
             <PeriodOption
               icon={<CalendarDays className="h-4 w-4" aria-hidden="true" />}
@@ -68,7 +69,7 @@ export function PeriodSelector({ currentId, list }) {
               );
             })}
           </div>
-        </div>
+        </FloatingOverlay>
       )}
     </div>
   );
