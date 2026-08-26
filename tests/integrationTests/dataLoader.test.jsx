@@ -51,13 +51,13 @@ const studentFieldLabels = {
 };
 const students = [
   {
-    id: "100",
+    id: "V-100",
     firstName: "Ana",
     lastName: "Pérez",
     _class: { year: 1, id: "A" },
   },
   {
-    id: "101",
+    id: "E-101",
     firstName: "Eva",
     lastName: "Díaz",
     _class: { year: 1, id: "B" },
@@ -225,17 +225,26 @@ describe("Data loading pages", () => {
     expect(screen.queryByDisplayValue("Ana")).not.toBeInTheDocument();
   });
 
-  it("keeps an edited id row focused and strips its internal id on save", async () => {
+  it("edits and saves a unified id without remounting its numeric input", async () => {
     const user = userEvent.setup();
     cache.class_students = null;
     renderClassLoader();
 
-    const idInput = await screen.findByRole("textbox", { name: "Documento" });
-    await user.clear(idInput);
-    await user.type(idInput, "999");
+    const typeInput = await screen.findByRole("combobox", {
+      name: "Documento: tipo",
+    });
+    const numberInput = screen.getByRole("textbox", { name: "Documento" });
 
-    expect(document.activeElement).toBe(idInput);
-    expect(screen.getByRole("textbox", { name: "Documento" })).toBe(idInput);
+    expect(typeInput).toHaveValue("V-");
+    expect(numberInput).toHaveValue("100");
+
+    await user.selectOptions(typeInput, "E-");
+    await user.clear(numberInput);
+    await user.type(numberInput, "0a123456789");
+
+    expect(numberInput).toHaveValue("12345678");
+    expect(document.activeElement).toBe(numberInput);
+    expect(screen.getByRole("textbox", { name: "Documento" })).toBe(numberInput);
 
     await user.click(screen.getByRole("button", { name: "Continuar" }));
     await waitFor(() =>
@@ -249,7 +258,7 @@ describe("Data loading pages", () => {
       ([key]) => key === "class_students"
     )[1];
     expect(savedStudents[0]).toMatchObject({
-      id: "999",
+      id: "E-12345678",
       firstName: "Ana",
       lastName: "Pérez",
       _class: { year: 1, id: "A" },
@@ -257,6 +266,38 @@ describe("Data loading pages", () => {
     expect(savedStudents.every((student) => student._rowId === undefined)).toBe(
       true
     );
+  });
+  it("treats a legacy numeric id as Venezuelan", async () => {
+    cache.class_students = null;
+    getClassSuggestions.mockResolvedValue({
+      students: [{ ...students[0], id: "321" }],
+      studentClass,
+      studentFieldLabels,
+    });
+    renderClassLoader();
+
+    expect(
+      await screen.findByRole("combobox", { name: "Documento: tipo" })
+    ).toHaveValue("V-");
+    expect(screen.getByRole("textbox", { name: "Documento" })).toHaveValue(
+      "321"
+    );
+  });
+
+  it("creates students with a canonical Venezuelan id", async () => {
+    const user = userEvent.setup();
+    cache.class_students = null;
+    renderClassLoader();
+
+    await screen.findByDisplayValue("Ana");
+    await user.click(screen.getByRole("button", { name: "Añadir Estudiante" }));
+
+    const typeInputs = screen.getAllByRole("combobox", {
+      name: "Documento: tipo",
+    });
+    const numberInputs = screen.getAllByRole("textbox", { name: "Documento" });
+    expect(typeInputs.at(-1)).toHaveValue("V-");
+    expect(numberInputs.at(-1)).toHaveValue("30000000");
   });
 
   it("paginates locally and bulk deletes selected students", async () => {

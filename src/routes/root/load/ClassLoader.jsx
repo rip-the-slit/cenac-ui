@@ -16,6 +16,7 @@ import {
   getYears,
   saveCache,
 } from "../../../db";
+import IdInput, { normalizeId } from "./IdInput";
 import TableControl from "../components/TableControl";
 import CollapsibleSection from "./CollapsibleSection";
 import {
@@ -101,6 +102,7 @@ export async function classLoader() {
     };
     classesByYear[yearId][className].students.push({
       ...student,
+      id: normalizeId(student.id),
       _rowId: `student-row-${nextRowSequence}`,
     });
     nextRowSequence += 1;
@@ -151,7 +153,7 @@ function getNextStudentId(classesByYear) {
   while (existing.has(String(next))) {
     next += 1;
   }
-  return String(next);
+  return `V-${next}`;
 }
 
 function getNextClassId(classes) {
@@ -325,25 +327,43 @@ function StudentRow({
       </BodyCell>
       {studentAttributes.map((attr) => (
         <BodyCell key={attr}>
-          <input
-            type="text"
-            defaultValue={
-              draftsRef.current[student._rowId]?.[attr] ?? student[attr] ?? ""
-            }
-            onChange={(event) => {
-              draftsRef.current[student._rowId] = {
-                ...draftsRef.current[student._rowId],
-                [attr]: event.target.value,
-              };
-            }}
-            disabled={student._locked === true}
-            aria-label={studentFieldLabels[attr] || attr}
-            required
-            minLength={3}
-            inputMode={attr === "id" ? "numeric" : undefined}
-            pattern={attr === "id" ? "[0-9.]+" : undefined}
-            className="w-full bg-transparent"
-          />
+          {attr === "id" ? (
+            <IdInput
+              defaultValue={
+                draftsRef.current[student._rowId]?.[attr] ??
+                student[attr] ??
+                ""
+              }
+              disabled={student._locked === true}
+              label={studentFieldLabels[attr] || attr}
+              onValueChange={(value) => {
+                draftsRef.current[student._rowId] = {
+                  ...draftsRef.current[student._rowId],
+                  [attr]: value,
+                };
+              }}
+            />
+          ) : (
+            <input
+              type="text"
+              defaultValue={
+                draftsRef.current[student._rowId]?.[attr] ??
+                student[attr] ??
+                ""
+              }
+              onChange={(event) => {
+                draftsRef.current[student._rowId] = {
+                  ...draftsRef.current[student._rowId],
+                  [attr]: event.target.value,
+                };
+              }}
+              disabled={student._locked === true}
+              aria-label={studentFieldLabels[attr] || attr}
+              required
+              minLength={3}
+              className="w-full bg-transparent"
+            />
+          )}
         </BodyCell>
       ))}
       <BodyCell className="">
@@ -388,7 +408,7 @@ function StudentRow({
               type="button"
               onClick={() => setIsChangingClass(true)}
               aria-label={`Cambiar sección de ${studentName}`}
-              className="rounded border border-gray-200 w-[15ch]"
+              className="rounded bg-white border border-gray-200 w-[15ch]"
             >
               {student._class.id}
             </button>
@@ -744,6 +764,7 @@ function ClassSelector({ yearId }) {
         <div className="flex min-h-[157px] items-center justify-center border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
           No hay ninguna sección asignada.
           <button
+            type="button"
             onClick={handleAddClass}
             className="ml-1 text-gray-700 underline decoration-wavy"
           >
