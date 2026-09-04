@@ -103,12 +103,16 @@ function renderGrades(initialEntry = "/periodo/2025/notas") {
         loader,
         action: gradesAction,
       },
+      {
+        path: "/periodo/:periodId/reportes",
+        element: <div>Reportes</div>,
+      },
     ],
     { initialEntries: [initialEntry] }
   );
 
   render(<RouterProvider router={router} />);
-  return { loader };
+  return { loader, router };
 }
 
 function latestLoaderUrl(loader) {
@@ -474,7 +478,69 @@ describe("Grades page", () => {
     expect(paginationInput).toHaveValue("2");
     expect(nextPageButton).toBeDisabled();
   });
+
+  it("routes explicitly selected students to the grades report", async () => {
+    const user = userEvent.setup();
+    const { router } = renderGrades();
+    const apply = await screen.findByRole("button", { name: "Aplicar" });
+    const bulkActions = screen.getByRole("combobox", {
+      name: "Acciones masivas",
+    });
+    const rowCheckboxes = within(
+      screen.getAllByRole("rowgroup").at(-1)
+    ).getAllByRole("checkbox");
+
+    expect(
+      within(bulkActions).getByRole("option", { name: "Generar boletín" })
+    ).toHaveValue("grades");
+
+    await user.click(apply);
+    expect(router.state.location.pathname).toBe("/periodo/2025/notas");
+
+    await user.click(rowCheckboxes[0]);
+    await user.click(rowCheckboxes[1]);
+    await user.click(apply);
+
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(
+        "/periodo/2025/reportes"
+      )
+    );
+    expect(
+      Object.fromEntries(new URLSearchParams(router.state.location.search))
+    ).toEqual({
+      type: "grades",
+      q: "V-1001 OR V-1002",
+    });
+  });
+
+  it("routes Select all without q and ignores exclusions", async () => {
+    const user = userEvent.setup();
+    const { router } = renderGrades();
+    const selectAll = await screen.findByRole("checkbox", {
+      name: "Seleccionar todos",
+    });
+    const rowCheckboxes = within(
+      screen.getAllByRole("rowgroup").at(-1)
+    ).getAllByRole("checkbox");
+
+    await user.click(selectAll);
+    await user.click(rowCheckboxes[0]);
+    await user.click(screen.getByRole("button", { name: "Aplicar" }));
+
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe(
+        "/periodo/2025/reportes"
+      )
+    );
+    expect(
+      Object.fromEntries(new URLSearchParams(router.state.location.search))
+    ).toEqual({
+      type: "grades",
+    });
+  });
   it("selects and deselects records", async () => {
+
     const user = userEvent.setup();
     renderGrades();
     const selectAllInput = await screen.findByRole("checkbox", {

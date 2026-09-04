@@ -1,5 +1,6 @@
+const BASE_URL = "/api";
+
 export async function request(path, options = {}) {
-  const BASE_URL = "/api";
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: { "Content-Type": "application/json" },
     ...options,
@@ -92,6 +93,25 @@ export async function archivePeriod(periodId, supersede) {
 
 export async function getSubjects() {
   return request("/subjects");
+}
+
+export async function getReportOptionData() {
+  return request("/reports/");
+}
+
+export async function generateReport(periodId, reportType, filters) {
+  const params = new URLSearchParams({periodId});
+  for (const [key, value] of Object.entries(filters)) {
+    if (value) params.set(key, value);
+  }
+  const res = await fetch(`${BASE_URL}/reports/${reportType}?${params.toString()}`, {
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || res.statusText);
+  }
+  return await res.blob()
 }
 
 export function saveCache(key, data) {

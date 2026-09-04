@@ -21,6 +21,9 @@ import StudentDetail, {
   studentDetailAction,
   studentDetailLoader,
 } from "./routes/root/students/StudentDetail";
+import Reports, {
+  reportsLoader,
+} from "./routes/root/reports/Reports";
 
 async function AuthLoader({ request }) {
   const data = await getUsers();
@@ -89,6 +92,12 @@ export default [
                 action: studentDetailAction,
               },
             ],
+          },
+          {
+            id: "reports",
+            path: "reportes",
+            element: <Reports />,
+            loader: reportsLoader,
           },
           {
             path: "cargar",

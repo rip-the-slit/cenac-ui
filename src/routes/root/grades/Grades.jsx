@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { Form, useFetcher, useLoaderData, useNavigation } from "react-router";
+import {
+  Form,
+  useFetcher,
+  useLoaderData,
+  useNavigate,
+  useNavigation,
+} from "react-router";
 import { Pencil, RefreshCw, Save } from "lucide-react";
 import { getGrades, getPeriodList, loadGrades } from "../../../db";
 import GradesFilters from "./GradesFilters";
@@ -13,8 +19,7 @@ import {
 
 const MAX_TABLE_ROWS = 20;
 const BULK_ACTION_OPTIONS = [
-  { value: "", label: "Acciones masivas" },
-  { value: "none", label: "Sin acciones disponibles", disabled: true },
+  { value: "grades", label: "Generar boletín" },
 ];
 
 export async function gradesLoader({ params, request }) {
@@ -77,6 +82,7 @@ export default function Grades() {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedIds, setSelectedIds] = useState({ all: false });
   const navigation = useNavigation()
+  const navigate = useNavigate();
   const navigationRef = useRef(null)
 
   const activeData = filterFetcher.data ?? loaderData;
@@ -107,6 +113,17 @@ export default function Grades() {
   const pageCount = Math.max(1, Math.ceil(recordsAmount / MAX_TABLE_ROWS));
   const submitFilters = (formData) =>
     filterFetcher.submit(formData, { method: "get" });
+  const handleBulkAction = (action, studentIds, allSelected) => {
+    if (action !== "grades" || (!allSelected && studentIds.length === 0)) {
+      return;
+    }
+
+    const params = new URLSearchParams({ type: action });
+    if (!allSelected) params.set("q", studentIds.join(" OR "));
+    navigate(
+      `/periodo/${encodeURIComponent(activeData.periodId)}/reportes?${params}`
+    );
+  };
 
   useEffect(() => {
     if (navigation?.state === "submitting") {
@@ -177,6 +194,7 @@ export default function Grades() {
           selectedIds={selectedIds}
           bulkActionId="grades-bulk-action"
           bulkActionOptions={BULK_ACTION_OPTIONS}
+          onBulkAction={handleBulkAction}
           onPageChange={(nextPage) =>
             submitFilters(
               createFilterSearchParams({

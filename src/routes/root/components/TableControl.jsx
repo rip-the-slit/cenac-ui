@@ -33,6 +33,20 @@ export default function TableControl({
         ? "Todos"
         : String(selectedCount);
 
+  const submitBulkAction = () => {
+    const explicitlySelectedIds = [];
+    if (!selectedIds.all) {
+      for (const [id, selected] of Object.entries(selectedIds)) {
+        if (id !== "all" && selected === true) explicitlySelectedIds.push(id);
+      }
+    }
+    onBulkAction?.(
+      bulkActionRef.current?.value ?? "",
+      explicitlySelectedIds,
+      selectedIds.all === true
+    );
+  };
+
   return (
     <>
       {children}
@@ -56,9 +70,7 @@ export default function TableControl({
           </select>
           <button
             type="button"
-            onClick={() =>
-              onBulkAction?.(bulkActionRef.current?.value ?? "")
-            }
+            onClick={submitBulkAction}
             className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
           >
             Aplicar

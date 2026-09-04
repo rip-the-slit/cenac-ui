@@ -7,6 +7,7 @@ import {
   Lightbulb,
   MoreHorizontal,
   GraduationCap,
+  FileText,
 } from "lucide-react";
 import UserSelector from "../login/UserSelector";
 import {
@@ -33,10 +34,10 @@ export async function appLoader({ params, request }) {
   return { list: periodList, data: periodData, periodId: periodId, url };
 }
 
-const SidebarItem = ({ icon: Icon, label, path }) => (
+const SidebarItem = ({ icon: Icon, label, path, end = true }) => (
   <NavLink
     to={path}
-    end
+    end={end}
     className={({ isActive, isPending }) =>
       `flex items-center w-full px-4 py-2 mt-1 text-sm rounded-lg transition-colors ${
         isActive
@@ -82,6 +83,12 @@ export default function App() {
           icon: GraduationCap,
           label: "Estudiantes",
           path: `${rootUrl}/estudiantes`,
+        },
+        {
+          icon: FileText,
+          label: "Reportes",
+          path: `${rootUrl}/reportes`,
+          end: false,
         },
       ],
     },
