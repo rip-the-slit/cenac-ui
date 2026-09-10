@@ -1,6 +1,6 @@
 import { redirect } from "react-router";
 import { Outlet } from "react-router";
-import { getUsers } from "./auth";
+import { getActiveUser, getUsers } from "./auth";
 import ErrorBoundary from "./routes/ErrorBoundary";
 import App, { appLoader } from "./routes/root/App";
 import Login, { loginAction } from "./routes/login/Login";
@@ -26,23 +26,23 @@ import Reports, {
 } from "./routes/root/reports/Reports";
 
 async function AuthLoader({ request }) {
-  const data = await getUsers();
-  const user = data.activeUser;
+  const users = await getUsers();
+  const activeUser = getActiveUser();
 
   const url = new URL(request.url);
   const isTryingToAccessLogin = url.pathname.startsWith("/ingresar");
   const isTryingToAccessApp = !isTryingToAccessLogin;
   const isTryingToAccessRoot = url.pathname === "/";
 
-  if (!user && isTryingToAccessApp) {
+  if (!activeUser && isTryingToAccessApp) {
     return redirect("/ingresar");
   }
 
-  if (user && (isTryingToAccessLogin || isTryingToAccessRoot)) {
+  if (activeUser && (isTryingToAccessLogin || isTryingToAccessRoot)) {
     return redirect("/periodo/actual");
   }
 
-  return data;
+  return {activeUser, users};
 }
 
 export default [

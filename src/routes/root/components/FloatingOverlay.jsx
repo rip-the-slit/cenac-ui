@@ -1,7 +1,7 @@
 import { createElement, forwardRef } from "react";
 
 const BASE_CLASS_NAME =
-  "bg-white border border-gray-200 rounded-lg shadow-xl";
+  "bg-white border border-gray-200 rounded-lg shadow-xl absolute z-10";
 
 const FloatingOverlay = forwardRef(function FloatingOverlay(
   { as = "div", className = "", ...props },

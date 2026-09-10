@@ -16,10 +16,12 @@ import {
   Outlet,
   redirect,
   useLoaderData,
+  useNavigate,
   useRouteLoaderData,
 } from "react-router";
 import { getPeriodList, getPeriodStats } from "../../db";
 import { PeriodSelector } from "./PeriodSelector";
+import { logout } from "../../auth";
 
 export async function appLoader({ params, request }) {
   const periodList = await getPeriodList();
@@ -72,6 +74,7 @@ export default function App() {
   const users = authData.users;
   const url = period.url.pathname;
   const rootUrl = `/periodo/${period.periodId}`;
+  const navigate = useNavigate();
 
   const sections = [
     {
@@ -99,8 +102,11 @@ export default function App() {
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
         <UserSelector
           users={users}
-          userId={users.findIndex((u) => u.id === authData.activeUser)}
-          setUserId={() => {}}
+          userId={authData?.activeUser.id}
+          setUserId={async (userId) => {
+            await logout();
+            navigate(`/ingresar?usuario=${encodeURIComponent(userId)}`);
+          }}
         />
         <div
           className={

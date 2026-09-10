@@ -43,7 +43,7 @@ export function PeriodSelector({ currentId, list }) {
         <span>{currentLabel}</span>
       </button>
       {isOpen && (
-        <FloatingOverlay className="absolute right-0 z-10 mt-2 w-48 overflow-hidden">
+        <FloatingOverlay className="mt-2 right-0 w-48 overflow-hidden">
           <div>
             <PeriodOption
               icon={<CalendarDays className="h-4 w-4" aria-hidden="true" />}
