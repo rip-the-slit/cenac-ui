@@ -67,6 +67,7 @@ export default [
         path: "periodo/:periodId",
         element: <App />,
         loader: appLoader,
+        errorElement: <ErrorBoundary />,
         children: [
           {
             index: true,

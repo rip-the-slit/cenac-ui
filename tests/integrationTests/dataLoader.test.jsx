@@ -76,11 +76,16 @@ function renderDataLoader() {
         path: "/periodo/:periodId/cargar",
         loader: dataLoader,
         element: <DataLoader />,
+        action: dataAction,
       },
     ],
     { initialEntries: ["/periodo/actual/cargar"] }
   );
-  render(<RouterProvider router={router} />);
+  render(
+    <ErrorDialogProvider>
+      <RouterProvider router={router} />
+    </ErrorDialogProvider>
+  );
   return router;
 }
 
@@ -95,7 +100,11 @@ function renderSubjectLoader() {
     ],
     { initialEntries: ["/periodo/actual/cargar/materias"] }
   );
-  render(<RouterProvider router={router} />);
+  render(
+    <ErrorDialogProvider>
+      <RouterProvider router={router} />
+    </ErrorDialogProvider>
+  );
   return router;
 }
 
@@ -178,6 +187,16 @@ describe("Data loading pages", () => {
     expect(clearCache).toHaveBeenCalledWith("subjects");
     expect(clearCache).toHaveBeenCalledWith("class_students");
     expect(response.headers.get("Location")).toBe("..");
+  });
+
+  it("shows action failures in the error dialog", async () => {
+    const user = userEvent.setup();
+    loadPeriodData.mockRejectedValueOnce(new Error("No se pudieron cargar los datos"));
+    renderDataLoader();
+
+    await user.click(await screen.findByRole("button", { name: /Confirmar/ }));
+
+    expect(await screen.findByText("No se pudieron cargar los datos")).toBeInTheDocument();
   });
 
   it("loads, changes, and saves subject selections", async () => {

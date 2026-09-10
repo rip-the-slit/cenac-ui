@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   Form,
+  useActionData,
   useFetcher,
   useLoaderData,
   useNavigate,
@@ -16,6 +17,7 @@ import {
   getViewFilters,
   parseGradeEntries,
 } from "./gradesUtils";
+import { useErrorDialog } from "../../../context/ErrorDialogContext";
 
 const MAX_TABLE_ROWS = 20;
 const BULK_ACTION_OPTIONS = [
@@ -63,22 +65,24 @@ export async function gradesLoader({ params, request }) {
 }
 
 export async function gradesAction({ params, request }) {
-  const periodList = await getPeriodList();
-  const periodId =
-    params.periodId === "actual" ? periodList[0].id : params.periodId;
-  const formData = await request.formData();
-
   try {
+    const periodList = await getPeriodList();
+    const periodId =
+      params.periodId === "actual" ? periodList[0].id : params.periodId;
+    const formData = await request.formData();
+
     const payload = parseGradeEntries(formData);
     if (payload.length > 0) return await loadGrades(periodId, payload);
   } catch (error) {
-    console.error(error);
+    return error;
   }
 }
 
 export default function Grades() {
   const loaderData = useLoaderData();
   const filterFetcher = useFetcher();
+  const actionData = useActionData();
+  const { emitError } = useErrorDialog();
   const [isEditing, setIsEditing] = useState(false);
   const [selectedIds, setSelectedIds] = useState({ all: false });
   const navigation = useNavigation()
@@ -124,6 +128,12 @@ export default function Grades() {
       `/periodo/${encodeURIComponent(activeData.periodId)}/reportes?${params}`
     );
   };
+
+  useEffect(() => {
+    if (actionData instanceof Error) {
+      emitError(actionData.message);
+    }
+  }, [actionData, emitError]);
 
   useEffect(() => {
     if (navigation?.state === "submitting") {

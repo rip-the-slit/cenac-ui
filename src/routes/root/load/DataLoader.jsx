@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { Check } from "lucide-react";
-import { Form, Link, redirect, useLoaderData } from "react-router";
+import { Form, Link, redirect, useActionData, useLoaderData } from "react-router";
 import { clearCache, getCache, getPeriodList, loadPeriodData } from "../../../db";
+import { useErrorDialog } from "../../../context/ErrorDialogContext";
 
 function hasData(data) {
   if (Array.isArray(data)) {
@@ -25,20 +27,32 @@ export async function dataLoader() {
 }
 
 export async function dataAction({ params }) {
-  const subjects = getCache("subjects");
-  const classStudents = getCache("class_students");
-  const periodList = await getPeriodList();
-  const periodId =
-    params.periodId === "actual" ? periodList[0].id : params.periodId;
+  try {
+    const subjects = getCache("subjects");
+    const classStudents = getCache("class_students");
+    const periodList = await getPeriodList();
+    const periodId =
+      params.periodId === "actual" ? periodList[0].id : params.periodId;
 
-  await loadPeriodData(periodId, classStudents, subjects);
-  clearCache("subjects");
-  clearCache("class_students");
-  return redirect("..");
+    await loadPeriodData(periodId, classStudents, subjects);
+    clearCache("subjects");
+    clearCache("class_students");
+    return redirect("..");
+  } catch (error) {
+    return error;
+  }
 }
 
 export default function DataLoader() {
   const { subjectsLoaded, classesLoaded, canConfirm } = useLoaderData();
+  const actionData = useActionData();
+  const { emitError } = useErrorDialog();
+
+  useEffect(() => {
+    if (actionData instanceof Error) {
+      emitError(actionData.message);
+    }
+  }, [actionData, emitError]);
 
   return (
     <div className="mx-auto">

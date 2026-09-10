@@ -2,9 +2,11 @@ import {
   Form,
   Link,
   redirect,
+  useActionData,
   useLoaderData,
   useRouteLoaderData,
 } from "react-router";
+import { useEffect } from "react";
 import {
   archivePeriod,
   getClassesByYear,
@@ -14,6 +16,7 @@ import {
 import ClassCard from "./load/ClassCard";
 import CollapsibleSection from "./load/CollapsibleSection";
 import { Archive, Plus } from "lucide-react";
+import { useErrorDialog } from "../../context/ErrorDialogContext";
 
 export async function periodOverviewLoader({ params }) {
   const periodList = await getPeriodList();
@@ -25,15 +28,19 @@ export async function periodOverviewLoader({ params }) {
 }
 
 export async function periodOverviewAction({ params, request }) {
-  const periodList = await getPeriodList();
-  const periodId =
-    params.periodId === "actual" ? periodList[0].id : params.periodId;
-  const formData = await request.formData();
-  const action = formData.get("action");
+  try {
+    const periodList = await getPeriodList();
+    const periodId =
+      params.periodId === "actual" ? periodList[0].id : params.periodId;
+    const formData = await request.formData();
+    const action = formData.get("action");
 
-  if (action === "archive") {
-    const newPeriod = await archivePeriod(periodId, true);
-    return redirect(`/periodo/${newPeriod.id}`);
+    if (action === "archive") {
+      const newPeriod = await archivePeriod(periodId, true);
+      return redirect(`/periodo/${newPeriod.id}`);
+    }
+  } catch (error) {
+    return error;
   }
 }
 
@@ -61,6 +68,8 @@ export default function PeriodOverview() {
   const loaderData = useLoaderData();
   const periodData = useRouteLoaderData("period");
   const periodId = loaderData?.periodId ?? periodData?.periodId ?? "actual";
+  const actionData = useActionData();
+  const { emitError } = useErrorDialog();
   const isAllPeriods = periodId === "all";
   const stats = loaderData?.stats ?? periodData?.data?.stats ?? null;
   const years = loaderData?.years ?? [];
@@ -77,6 +86,12 @@ export default function PeriodOverview() {
   const gradesPercent = clampPercent(
     gradesTotal > 0 ? (gradesLoaded / gradesTotal) * 100 : 0
   );
+
+  useEffect(() => {
+    if (actionData instanceof Error) {
+      emitError(actionData.message);
+    }
+  }, [actionData, emitError]);
 
   return (
     <div className="space-y-5 mt-10">

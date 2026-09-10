@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { Form, redirect, useLoaderData } from "react-router";
+import { Form, redirect, useActionData, useLoaderData } from "react-router";
 import { Plus, Trash2, User } from "lucide-react";
 
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
@@ -36,6 +36,7 @@ const BULK_ACTION_OPTIONS = [
 ];
 
 export async function classAction({ request }) {
+  try {
   const formData = await request.formData();
   const studentsPayload = formData.get("students_payload");
   if (typeof studentsPayload === "string" && studentsPayload.length > 0) {
@@ -46,7 +47,7 @@ export async function classAction({ request }) {
         return redirect("../");
       }
     } catch (error) {
-      console.error(error);
+      return error;
     }
   }
 
@@ -73,6 +74,9 @@ export async function classAction({ request }) {
 
   saveCache("class_students", students);
   return redirect("../");
+  } catch (error) {
+    return error;
+  }
 }
 
 export async function classLoader() {
@@ -806,6 +810,7 @@ function ClassSelector({ yearId }) {
 export default function ClassLoader() {
   const loaderData = useLoaderData();
   const { emitError } = useErrorDialog();
+  const actionData = useActionData();
   const years = loaderData.years;
   const draftsRef = useRef({});
   const nextRowSequenceRef = useRef(loaderData.nextRowSequence);
@@ -813,6 +818,12 @@ export default function ClassLoader() {
   const [state, dispatch] = useReducer(classLoaderReducer, {
     classesByYear: loaderData.classesByYear,
   });
+
+  useEffect(() => {
+    if (actionData instanceof Error) {
+      emitError(actionData.message);
+    }
+  }, [actionData, emitError]);
   const contextValue = {
     years,
     classesByYear: state.classesByYear,

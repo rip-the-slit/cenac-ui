@@ -14,6 +14,7 @@ import Grades, {
   gradesLoader,
 } from "../../src/routes/root/grades/Grades";
 import { getGrades, getPeriodList, loadGrades } from "../../src/db";
+import { ErrorDialogProvider } from "../../src/context/ErrorDialogContext";
 
 const TERM_COUNT = 3;
 const GRADE_SLOTS_PER_TERM = 5;
@@ -111,7 +112,11 @@ function renderGrades(initialEntry = "/periodo/2025/notas") {
     { initialEntries: [initialEntry] }
   );
 
-  render(<RouterProvider router={router} />);
+  render(
+    <ErrorDialogProvider>
+      <RouterProvider router={router} />
+    </ErrorDialogProvider>
+  );
   return { loader, router };
 }
 

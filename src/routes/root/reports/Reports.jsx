@@ -68,6 +68,7 @@ export default function Reports() {
   )?.name;
   const defaultFileName = reportName ? `reporte-${reportName}` : "reporte";
   const [fileName, setFileName] = useState(defaultFileName);
+  const reportTypeRef = useRef(viewFilters.reportType);
 
   const submitFilters = (formData) =>
     filterFetcher.submit(formData, { method: "get" });
@@ -96,8 +97,11 @@ export default function Reports() {
   }, [reportFile]);
 
   useEffect(() => {
+    if (reportTypeRef.current === viewFilters.reportType) return;
+
+    reportTypeRef.current = viewFilters.reportType;
     setFileName(defaultFileName);
-  }, [defaultFileName]);
+  }, [defaultFileName, viewFilters.reportType]);
 
   if (reportTypes.length === 0) {
     return (

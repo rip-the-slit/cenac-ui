@@ -1,5 +1,7 @@
-import { Form, Link, redirect, useLoaderData } from "react-router";
+import { useEffect } from "react";
+import { Form, Link, redirect, useActionData, useLoaderData } from "react-router";
 import { getPeriodList, getStudentById, updateStudent } from "../../../db";
+import { useErrorDialog } from "../../../context/ErrorDialogContext";
 
 export async function studentDetailLoader({ params }) {
   const periodList = await getPeriodList();
@@ -13,27 +15,39 @@ export async function studentDetailLoader({ params }) {
 }
 
 export async function studentDetailAction({ params, request }) {
-  const periodList = await getPeriodList();
-  const periodId =
-    params.periodId === "actual" ? periodList[0].id : params.periodId;
-  const formData = await request.formData();
-  await updateStudent(periodId, params.studentId, {
-    id: String(formData.get("id") || ""),
-    firstName: String(formData.get("firstName") || ""),
-    lastName: String(formData.get("lastName") || ""),
-    birthDate: String(formData.get("birthDate") || ""),
-    birthPlace: String(formData.get("birthPlace") || ""),
-    _class: {
-      year: Number(formData.get("year") || 0),
-      id: String(formData.get("class") || ""),
-    },
-  });
-  const url = new URL(request.url);
-  return redirect(url.pathname + (url.search || ""));
+  try {
+    const periodList = await getPeriodList();
+    const periodId =
+      params.periodId === "actual" ? periodList[0].id : params.periodId;
+    const formData = await request.formData();
+    await updateStudent(periodId, params.studentId, {
+      id: String(formData.get("id") || ""),
+      firstName: String(formData.get("firstName") || ""),
+      lastName: String(formData.get("lastName") || ""),
+      birthDate: String(formData.get("birthDate") || ""),
+      birthPlace: String(formData.get("birthPlace") || ""),
+      _class: {
+        year: Number(formData.get("year") || 0),
+        id: String(formData.get("class") || ""),
+      },
+    });
+    const url = new URL(request.url);
+    return redirect(url.pathname + (url.search || ""));
+  } catch (error) {
+    return error;
+  }
 }
 
 export default function StudentDetail() {
   const { student, studentFieldLabels } = useLoaderData();
+  const actionData = useActionData();
+  const { emitError } = useErrorDialog();
+
+  useEffect(() => {
+    if (actionData instanceof Error) {
+      emitError(actionData.message);
+    }
+  }, [actionData, emitError]);
 
   return (
     <section className="rounded-xl border border-gray-200 bg-white p-4 mt-8">

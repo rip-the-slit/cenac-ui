@@ -1,14 +1,20 @@
-import { Form, useRouteLoaderData, useSearchParams } from "react-router";
+import { Form, useActionData, useRouteLoaderData, useSearchParams } from "react-router";
 import UserSelector from "./UserSelector";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LogIn } from "lucide-react";
 import { login } from "../../auth";
+import { useErrorDialog } from "../../context/ErrorDialogContext";
 
 export async function loginAction({ request }) {
   const formData = await request.formData();
   const userId = formData.get("username");
   const password = formData.get("password");
-  return await login({ id: userId, password });
+
+  try {
+    return await login({ id: userId, password });
+  } catch (error) {
+    return error
+  }
 }
 
 export default function Login() {
@@ -19,7 +25,14 @@ export default function Login() {
   const defaultUserId =
     users.find((user) => String(user.id) === requestedUserId)?.id ?? users[0]?.id;
   const [userId, setUserId] = useState(defaultUserId);
-  const user = users.find((candidate) => candidate.id === userId);
+  const user = users.find((u) => u.id === userId);
+  const actionData = useActionData()
+  const {emitError} = useErrorDialog()
+
+  useEffect(() => {
+    if (actionData instanceof Error) {
+      emitError(actionData.message)}
+  }, [actionData])
 
   return (
     <div className="flex items-center justify-center h-screen bg-gray-100 font-sans">

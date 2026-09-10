@@ -22,6 +22,7 @@ import {
   getStudents,
   updateStudent,
 } from "../../src/db";
+import { ErrorDialogProvider } from "../../src/context/ErrorDialogContext";
 
 vi.mock("../../src/db", () => ({
   getPeriodList: vi.fn(),
@@ -97,7 +98,11 @@ function renderStudents(initialEntry = "/periodo/2025/estudiantes") {
     { initialEntries: [initialEntry] }
   );
 
-  render(<RouterProvider router={router} />);
+  render(
+    <ErrorDialogProvider>
+      <RouterProvider router={router} />
+    </ErrorDialogProvider>
+  );
   return { detailLoader, loader, router };
 }
 

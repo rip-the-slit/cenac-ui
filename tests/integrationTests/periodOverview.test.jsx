@@ -7,6 +7,7 @@ import PeriodOverview, {
   periodOverviewLoader,
 } from "../../src/routes/root/PeriodOverview";
 import { getClassesByYear, getPeriodList, getYears } from "../../src/db";
+import { ErrorDialogProvider } from "../../src/context/ErrorDialogContext";
 
 vi.mock("../../src/db", () => ({
   getClassesByYear: vi.fn(),
@@ -56,7 +57,11 @@ function renderOverview({
     { initialEntries: [entry] }
   );
 
-  render(<RouterProvider router={router} />);
+  render(
+    <ErrorDialogProvider>
+      <RouterProvider router={router} />
+    </ErrorDialogProvider>
+  );
 }
 
 describe("PeriodOverview", () => {

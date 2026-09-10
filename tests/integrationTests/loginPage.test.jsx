@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { login, logout } from "../../src/auth";
 import Login, { loginAction } from "../../src/routes/login/Login";
+import { ErrorDialogProvider } from "../../src/context/ErrorDialogContext";
 import App from "../../src/routes/root/App";
 
 vi.mock("../../src/auth", () => ({
@@ -28,7 +29,11 @@ function createAuthRouter(initialEntry) {
         id: "auth",
         path: "/",
         loader: () => ({ activeUser: users[0], users }),
-        element: <Outlet />,
+        element: (
+          <ErrorDialogProvider>
+            <Outlet />
+          </ErrorDialogProvider>
+        ),
         children: [
           {
             path: "ingresar",

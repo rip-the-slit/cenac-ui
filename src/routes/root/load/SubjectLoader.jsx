@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getCache, getSubjects, getYears, saveCache } from "../../../db";
-import { Form, redirect, useLoaderData } from "react-router";
+import { Form, redirect, useActionData, useLoaderData } from "react-router";
 import CollapsibleSection from "./CollapsibleSection";
+import { useErrorDialog } from "../../../context/ErrorDialogContext";
 
 export async function subjectAction({ request }) {
+  try {
   const formData = await request.formData();
   const subjectsPayload = formData.get("subjects_payload");
   if (typeof subjectsPayload === "string" && subjectsPayload.length > 0) {
@@ -20,7 +22,7 @@ export async function subjectAction({ request }) {
         return redirect("../secciones");
       }
     } catch (error) {
-      console.error(error);
+      return error;
     }
   }
 
@@ -32,6 +34,9 @@ export async function subjectAction({ request }) {
 
   saveCache("subjects", years);
   return redirect("../secciones");
+  } catch (error) {
+    return error;
+  }
 }
 
 export async function subjectLoader() {
@@ -70,9 +75,17 @@ function SubjectSelector({ yearId, options, checkedItems, onToggle }) {
 
 export default function SubjectLoader() {
   const loaderData = useLoaderData();
+  const actionData = useActionData();
+  const { emitError } = useErrorDialog();
   const years = loaderData.years;
   const subjects = loaderData.subjects;
   const [subjectsPerYear, setSubjectsPerYear] = useState(loaderData.subjectsPerYear);
+
+  useEffect(() => {
+    if (actionData instanceof Error) {
+      emitError(actionData.message);
+    }
+  }, [actionData, emitError]);
 
   const handleToggle = (yearId, subjectId) => {
     setSubjectsPerYear((prev) => {
