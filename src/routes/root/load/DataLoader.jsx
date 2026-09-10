@@ -3,6 +3,7 @@ import { Check } from "lucide-react";
 import { Form, Link, redirect, useActionData, useLoaderData } from "react-router";
 import { clearCache, getCache, getPeriodList, loadPeriodData } from "../../../db";
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
+import { getActiveUser } from "../../../auth";
 
 function hasData(data) {
   if (Array.isArray(data)) {
@@ -15,6 +16,13 @@ function hasData(data) {
 }
 
 export async function dataLoader() {
+  const activeUser = getActiveUser();
+  const userLevel = activeUser?.userLevel ?? activeUser?.userlevel;
+
+  if (!["Administrador", "Coordinador"].includes(userLevel)) {
+    throw new Error("No tiene permisos para cargar datos del período.");
+  }
+
   const subjects = getCache("subjects");
   const classStudents = getCache("class_students");
   const subjectsLoaded = hasData(subjects);

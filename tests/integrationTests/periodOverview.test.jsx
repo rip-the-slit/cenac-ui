@@ -34,22 +34,34 @@ const populatedStats = {
 function renderOverview({
   entry = "/periodo/2025",
   stats = populatedStats,
+  userLevel = "Administrador",
 } = {}) {
   const router = createMemoryRouter(
     [
       {
-        id: "period",
-        path: "/periodo/:periodId",
+        id: "auth",
+        path: "/",
+        loader: () => ({ activeUser: { userLevel } }),
         element: <Outlet />,
-        loader: ({ params }) => ({
-          periodId: params.periodId === "actual" ? periods[0].id : params.periodId,
-          data: { stats },
-        }),
         children: [
           {
-            index: true,
-            element: <PeriodOverview />,
-            loader: periodOverviewLoader,
+            id: "period",
+            path: "periodo/:periodId",
+            element: <Outlet />,
+            loader: ({ params }) => ({
+              periodId: params.periodId === "actual" ? periods[0].id : params.periodId,
+              data: {
+                stats,
+                status: params.periodId === "all" ? "archived" : "active",
+              },
+            }),
+            children: [
+              {
+                index: true,
+                element: <PeriodOverview />,
+                loader: periodOverviewLoader,
+              },
+            ],
           },
         ],
       },
@@ -152,6 +164,15 @@ describe("PeriodOverview", () => {
       within(emptyYearContent).getByText("Sin secciones registradas.")
     ).toBeInTheDocument();
   });
+  it("hides period closure from users without a permitted role", async () => {
+    renderOverview({ userLevel: "Docente" });
+
+    await screen.findByRole("heading", { name: "Período 2025" });
+    expect(
+      screen.queryByRole("button", { name: "Cerrar período" })
+    ).not.toBeInTheDocument();
+  });
+
   it("renders button to archive period", async () => {
     renderOverview();
 

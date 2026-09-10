@@ -4,6 +4,7 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ErrorDialogProvider } from "../../src/context/ErrorDialogContext";
+import { getActiveUser } from "../../src/auth";
 import {
   clearCache,
   getCache,
@@ -39,6 +40,10 @@ vi.mock("../../src/db", () => ({
   getYears: vi.fn(),
   loadPeriodData: vi.fn(),
   saveCache: vi.fn(),
+}));
+
+vi.mock("../../src/auth", () => ({
+  getActiveUser: vi.fn(),
 }));
 
 const years = [{ id: 1, name: "Primer año" }];
@@ -161,6 +166,7 @@ describe("Data loading pages", () => {
       rows: [],
       studentFieldLabels,
     });
+    getActiveUser.mockReturnValue({ userLevel: "Administrador" });
     loadPeriodData.mockResolvedValue(undefined);
   });
 
@@ -187,6 +193,14 @@ describe("Data loading pages", () => {
     expect(clearCache).toHaveBeenCalledWith("subjects");
     expect(clearCache).toHaveBeenCalledWith("class_students");
     expect(response.headers.get("Location")).toBe("..");
+  });
+
+  it("rejects data loading for users without a permitted role", async () => {
+    getActiveUser.mockReturnValue({ userLevel: "Docente" });
+
+    await expect(dataLoader()).rejects.toThrow(
+      "No tiene permisos para cargar datos del período."
+    );
   });
 
   it("shows action failures in the error dialog", async () => {

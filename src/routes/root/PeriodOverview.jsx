@@ -17,6 +17,7 @@ import ClassCard from "./load/ClassCard";
 import CollapsibleSection from "./load/CollapsibleSection";
 import { Archive, Plus } from "lucide-react";
 import { useErrorDialog } from "../../context/ErrorDialogContext";
+import RouteAccess from "./components/RouteAccess";
 
 export async function periodOverviewLoader({ params }) {
   const periodList = await getPeriodList();
@@ -159,9 +160,11 @@ export default function PeriodOverview() {
             {gradesPercent.toFixed(1)}%
           </p>
 
-          {!isAllPeriods && (
+          <RouteAccess
+            userLevels={["Administrador", "Coordinador"]}
+            periodStatuses={["active"]}
+          >
             <Form method="post">
-              {periodData?.data?.status !== "archived" && (
               <button
                 type="submit"
                 name="action"
@@ -171,9 +174,8 @@ export default function PeriodOverview() {
                 <Archive />
                 Cerrar período
               </button>
-              )}
             </Form>
-          )}
+          </RouteAccess>
         </article>
       </section>
 

@@ -1,13 +1,24 @@
 import { getCache, request, saveCache } from "./db";
 
-let activeUser = getCache("activeUser");
+const getCookie = (name) => {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  const rawCookieString = match ? decodeURIComponent(match[2]) : null;
+
+  if (rawCookieString === null) return rawCookieString;
+
+  const cleanJsonString = rawCookieString.startsWith('j:') 
+      ? rawCookieString.slice(2) 
+      : rawCookieString;
+
+  return cleanJsonString;
+};
 
 export async function getUsers() {
   return request("/users");
 }
 
 export function getActiveUser() {
-  return activeUser ? { ...activeUser } : null;
+  return JSON.parse(getCookie("activeUser"))
 }
 
 export async function login({ id, password }) {
@@ -15,20 +26,11 @@ export async function login({ id, password }) {
     method: "POST",
     body: JSON.stringify({ id, password }),
   });
-
-  activeUser = res || activeUser;
-  saveCache("activeUser", activeUser);
   return res;
 }
 
 export async function logout() {
   const res = await request("/users/logout", { method: "POST" });
-
-  if (res) {
-    activeUser = null;
-    saveCache("activeUser", null);
-  }
-
   return res;
 }
 

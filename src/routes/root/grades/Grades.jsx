@@ -18,6 +18,7 @@ import {
   parseGradeEntries,
 } from "./gradesUtils";
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
+import RouteAccess from "../components/RouteAccess";
 
 const MAX_TABLE_ROWS = 20;
 const BULK_ACTION_OPTIONS = [
@@ -157,32 +158,37 @@ export default function Grades() {
           studentGradesFieldLabels={studentGradesFieldLabels}
           onSubmit={submitFilters}
         />
-        {activeData.periodId !== "all" && expandedSubject && (
-          <button
-            type={isEditing ? "submit" : "button"}
-            form={isEditing ? "grades-form" : undefined}
-            onClick={(event) => {
-              if (!isEditing) {
-                event.preventDefault();
-                setIsEditing(true);
-              }
-            }}
-            className={`flex items-center gap-2 font-semibold p-3 shadow-sm rounded-lg bg-gradient-to-b border ${
-              isEditing
-                ? "from-emerald-500 to-emerald-600 border-emerald-500 text-white"
-                : "from-gray-50 to-gray-200 border-gray-300 text-gray-700"
-            }`}
+        {expandedSubject && (
+          <RouteAccess
+            userLevels={["Administrador", "Coordinador"]}
+            periodStatuses={["active"]}
           >
-            {isEditing ? (
-              <>
-                Guardar edición <Save className="w-5 h-5" />
-              </>
-            ) : (
-              <>
-                Editar <Pencil className="w-5 h-5" />
-              </>
-            )}
-          </button>
+            <button
+              type={isEditing ? "submit" : "button"}
+              form={isEditing ? "grades-form" : undefined}
+              onClick={(event) => {
+                if (!isEditing) {
+                  event.preventDefault();
+                  setIsEditing(true);
+                }
+              }}
+              className={`flex items-center gap-2 font-semibold p-3 shadow-sm rounded-lg bg-gradient-to-b border ${
+                isEditing
+                  ? "from-emerald-500 to-emerald-600 border-emerald-500 text-white"
+                  : "from-gray-50 to-gray-200 border-gray-300 text-gray-700"
+              }`}
+            >
+              {isEditing ? (
+                <>
+                  Guardar edición <Save className="w-5 h-5" />
+                </>
+              ) : (
+                <>
+                  Editar <Pencil className="w-5 h-5" />
+                </>
+              )}
+            </button>
+          </RouteAccess>
         )}
       </div>
 

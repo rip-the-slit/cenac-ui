@@ -6,7 +6,7 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createMemoryRouter, RouterProvider } from "react-router";
+import { createMemoryRouter, Outlet, RouterProvider } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import Grades, {
@@ -94,19 +94,37 @@ const gradesResponse = {
   ],
 };
 
-function renderGrades(initialEntry = "/periodo/2025/notas") {
+function renderGrades(initialEntry = "/periodo/2025/notas", userLevel = "Administrador") {
   const loader = vi.fn(gradesLoader);
   const router = createMemoryRouter(
     [
       {
-        path: "/periodo/:periodId/notas",
-        element: <Grades />,
-        loader,
-        action: gradesAction,
-      },
-      {
-        path: "/periodo/:periodId/reportes",
-        element: <div>Reportes</div>,
+        id: "auth",
+        path: "/",
+        loader: () => ({ activeUser: { userLevel } }),
+        element: <Outlet />,
+        children: [
+          {
+            id: "period",
+            path: "periodo/:periodId",
+            loader: ({ params }) => ({
+              data: { status: params.periodId === "all" ? "archived" : "active" },
+            }),
+            element: <Outlet />,
+            children: [
+              {
+                path: "notas",
+                element: <Grades />,
+                loader,
+                action: gradesAction,
+              },
+              {
+                path: "reportes",
+                element: <div>Reportes</div>,
+              },
+            ],
+          },
+        ],
       },
     ],
     { initialEntries: [initialEntry] }
@@ -221,6 +239,16 @@ describe("Grades page", () => {
         within(getRecordRow(record.id)).getByText(record.period)
       ).toBeInTheDocument();
     }
+  });
+
+  it("hides editing from users without a permitted role", async () => {
+    renderGrades("/periodo/2025/notas", "Docente");
+
+    await expandSubject(gradesResponse.subjects[0].id);
+
+    expect(
+      screen.queryByRole("button", { name: "Editar" })
+    ).not.toBeInTheDocument();
   });
 
   it("disables editing when viewing grades across all periods", async () => {
