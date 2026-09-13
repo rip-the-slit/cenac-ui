@@ -24,6 +24,13 @@ import StudentDetail, {
 import Reports, {
   reportsLoader,
 } from "./routes/root/reports/Reports";
+import Configuration, {
+  ConfigurationIndex,
+} from "./routes/root/configuration/Configuration";
+import Users, {
+  usersAction,
+  usersLoader,
+} from "./routes/root/configuration/Users";
 
 async function AuthLoader({ request }) {
   const users = await getUsers();
@@ -99,6 +106,22 @@ export default [
             path: "reportes",
             element: <Reports />,
             loader: reportsLoader,
+          },
+          {
+            path: "configuracion",
+            element: <Configuration />,
+            children: [
+              {
+                index: true,
+                element: <ConfigurationIndex />,
+              },
+              {
+                path: "usuarios",
+                element: <Users />,
+                loader: usersLoader,
+                action: usersAction,
+              },
+            ],
           },
           {
             path: "cargar",
