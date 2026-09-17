@@ -1,7 +1,19 @@
 import { useEffect } from "react";
-import { Form, Link, redirect, useActionData, useLoaderData } from "react-router";
+import {
+  Form,
+  redirect,
+  useActionData,
+  useLoaderData,
+} from "react-router";
 import { getPeriodList, getStudentById, updateStudent } from "../../../db";
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
+import {
+  Card,
+  CardHeader,
+  FormField,
+  PageLayout,
+  TextInput,
+} from "../../../components/Layout";
 
 export async function studentDetailLoader({ params }) {
   const periodList = await getPeriodList();
@@ -50,60 +62,40 @@ export default function StudentDetail() {
   }, [actionData, emitError]);
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-4 mt-8">
-      <div className="mb-4 flex items-center justify-between">
-        <Link className="text-sm text-emerald-700 underline" to="..">
-          Regresar
-        </Link>
-        <h2 className="text-lg font-semibold text-center flex-grow">Detalle del Estudiante</h2>
-      </div>
-      <Form method="post" className="grid gap-3 md:grid-cols-2">
-        <label className="grid gap-1 text-sm">
-          {studentFieldLabels.id}
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2"
-            name="id"
-            defaultValue={student.id}
-            required
-          />
-        </label>
-        <label className="grid gap-1 text-sm">
-          {studentFieldLabels.firstName}
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2"
-            name="firstName"
-            defaultValue={student.firstName}
-            required
-          />
-        </label>
-        <label className="grid gap-1 text-sm">
-          {studentFieldLabels.lastName}
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2"
-            name="lastName"
-            defaultValue={student.lastName}
-            required
-          />
-        </label>
-        <label className="grid gap-1 text-sm">
-          {studentFieldLabels.birthDate}
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2"
-            name="birthDate"
-            defaultValue={student.birthDate}
-          />
-        </label>
-        <label className="grid gap-1 text-sm">
-          {studentFieldLabels.birthPlace}
-          <input
-            className="rounded-lg border border-gray-300 px-3 py-2"
-            name="birthPlace"
-            defaultValue={student.birthPlace}
-          />
-        </label>
-        <div className="md:col-span-2">
-        </div>
-      </Form>
-    </section>
+    <PageLayout title="Estudiantes">
+      <Card>
+        <CardHeader
+          title="Detalle del Estudiante"
+          backTo=".."
+          backLabel="Volver a la lista de estudiantes"
+        />
+        <Form method="post" className="grid gap-5 sm:grid-cols-2">
+          <FormField label={studentFieldLabels.id}>
+            <TextInput name="id" defaultValue={student.id} required />
+          </FormField>
+          <FormField label={studentFieldLabels.firstName}>
+            <TextInput
+              name="firstName"
+              defaultValue={student.firstName}
+              required
+            />
+          </FormField>
+          <FormField label={studentFieldLabels.lastName}>
+            <TextInput
+              name="lastName"
+              defaultValue={student.lastName}
+              required
+            />
+          </FormField>
+          <FormField label={studentFieldLabels.birthDate}>
+            <TextInput name="birthDate" defaultValue={student.birthDate} />
+          </FormField>
+          <FormField label={studentFieldLabels.birthPlace}>
+            <TextInput name="birthPlace" defaultValue={student.birthPlace} />
+          </FormField>
+          <div className="md:col-span-2"></div>
+        </Form>
+      </Card>
+    </PageLayout>
   );
 }

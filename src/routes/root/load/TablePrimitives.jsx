@@ -1,17 +1,17 @@
 export function TableContainer({ children, className = "" }) {
   return (
-    <div className={`overflow-x-auto relative border-gray-200 ${className}`}>
+    <div className={`overflow-x-auto relative border-gray-200 outline outline-gray-200 -outline-offset-1 rounded-lg ${className}`}>
       {children}
     </div>
   );
 }
 
 export function DataTable({ children, className = "" }) {
-  return <table className={`w-full table-auto border-collapse rounded-lg ${className}`}>{children}</table>;
+  return <table className={`w-full table-auto border-collapse rounded-lg text-sm ${className}`}>{children}</table>;
 }
 
 export function TableHead({ children, className = "" }) {
-  return <thead className={`text-left ${className}`}>{children}</thead>;
+  return <thead className={`sticky top-0 z-10 bg-gray-100 text-left shadow-md ${className}`}>{children}</thead>;
 }
 
 export function TableBody({ children, className = "" }) {
@@ -20,9 +20,20 @@ export function TableBody({ children, className = "" }) {
 
 export function HeadCell({ children, className = "", ...props }) {
   return (
-    <th className={`p-2 font-semibold border ${className}`} {...props}>
+    <th className={`border bg-gray-100 p-2 font-semibold ${className}`} {...props}>
       {children}
     </th>
+  );
+}
+
+export function BodyRow({ children, className = "", ...props }) {
+  return (
+    <tr
+      className={`odd:bg-white even:bg-gray-50 hover:bg-gray-100 ${className}`}
+      {...props}
+    >
+      {children}
+    </tr>
   );
 }
 

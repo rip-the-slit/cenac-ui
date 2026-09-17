@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { BodyCell } from "../load/TablePrimitives";
+import { BodyCell, BodyRow } from "../load/TablePrimitives";
 
 export default function StudentsTableRow({
   student,
@@ -19,7 +19,7 @@ export default function StudentsTableRow({
 
 
   return (
-    <tr className="odd:bg-white even:bg-gray-50 hover:bg-gray-100">
+    <BodyRow>
       <BodyCell className="text-center">
         <input
           type="checkbox"
@@ -49,6 +49,6 @@ export default function StudentsTableRow({
         </Link>
       </BodyCell>
       <BodyCell>{statusName ?? "—"}</BodyCell>
-    </tr>
+    </BodyRow>
   );
 }

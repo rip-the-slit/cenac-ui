@@ -1,6 +1,7 @@
-import { Link, NavLink, Outlet, useRouteLoaderData } from "react-router";
+import { Link, NavLink, Outlet } from "react-router";
 import RouteAccess from "../components/RouteAccess";
 import { TableOfContents, Users } from "lucide-react";
+import { Card, PageLayout } from "../../../components/Layout";
 
 const tabsData = [
   {
@@ -63,25 +64,26 @@ export function ConfigurationIndex() {
 
 export default function Configuration() {
   return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="mb-6 text-3xl font-bold text-gray-900">Configuración</h1>
-      <nav
-        role="tablist"
-        aria-label="Secciones de configuración"
-        className="flex gap-2 overflow-x-auto"
-      >
-        <Tab
-          content={<TableOfContents className="w-4 text-gray-700" />}
-          to=""
-          allowedUserLevels={["Profesor", "Coordinador", "Administrador"]}
-        />
-        {tabsData.map((tab, i) => (
-          <Tab key={i} {...tab} />
-        ))}
-      </nav>
-      <section className="rounded-b-lg rounded-tr-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <Outlet />
-      </section>
-    </div>
+    <PageLayout title="Configuración">
+      <div>
+        <nav
+          role="tablist"
+          aria-label="Secciones de configuración"
+          className="flex gap-2 overflow-x-auto"
+        >
+          <Tab
+            content={<TableOfContents className="w-4 text-gray-700" />}
+            to=""
+            allowedUserLevels={["Profesor", "Coordinador", "Administrador"]}
+          />
+          {tabsData.map((tab, i) => (
+            <Tab key={i} {...tab} />
+          ))}
+        </nav>
+        <Card className="rounded-tl-none">
+          <Outlet />
+        </Card>
+      </div>
+    </PageLayout>
   );
 }

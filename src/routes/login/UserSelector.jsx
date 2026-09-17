@@ -3,7 +3,7 @@ import { useState } from "react";
 
 import FloatingOverlay from "../root/components/FloatingOverlay";
 
-function UserOption({ name = "Usuario", type = "Personal" }) {
+export function UserOption({ name = "Usuario", type = "Personal" }) {
   return (
     <div className="flex items-center space-x-3 text-left">
       <User className="w-12 h-12 bg-gray-100 rounded-full p-2 text-gray-400" />

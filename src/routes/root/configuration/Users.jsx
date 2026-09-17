@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Check, Pencil, Plus, Save, Trash2 } from "lucide-react";
+import { Check, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import {
   Form,
   useActionData,
@@ -16,6 +16,11 @@ import {
 } from "../../../auth";
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
 import { UserOption } from "../../login/UserSelector";
+import {
+  CardHeader,
+  FormField,
+  TextInput,
+} from "../../../components/Layout";
 
 const userLevels = ["Administrador", "Coordinador", "Profesor"];
 
@@ -110,24 +115,15 @@ function UserForm({ editor, onCancel, onConfirm }) {
         onConfirm(user);
       }}
     >
-      <div className="mb-6 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onCancel}
-          aria-label="Volver a la lista de usuarios"
-          className="rounded-md p-2 text-gray-500 hover:bg-gray-100"
-        >
-          <ArrowLeft aria-hidden="true" className="h-5 w-5" />
-        </button>
-        <h2 className="text-xl font-semibold text-gray-800">
-          {isNew ? "Agregar usuario" : "Editar usuario"}
-        </h2>
-      </div>
+      <CardHeader
+        title={isNew ? "Agregar usuario" : "Editar usuario"}
+        onBack={onCancel}
+        backLabel="Volver a la lista de usuarios"
+      />
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <label className="flex flex-col gap-2 text-sm font-medium text-gray-700">
-          Nombre
-          <input
+        <FormField label="Nombre">
+          <TextInput
             name="name"
             value={user.name}
             placeholder="Nombre del usuario"
@@ -135,12 +131,10 @@ function UserForm({ editor, onCancel, onConfirm }) {
             required
             minLength={4}
             maxLength={20}
-            className="rounded-lg border border-gray-300 px-3 py-2 font-normal"
           />
-        </label>
+        </FormField>
 
-        <label className="flex flex-col gap-2 text-sm font-medium text-gray-700">
-          Nivel de usuario
+        <FormField label="Nivel de usuario">
           <select
             name="userLevel"
             value={user.userLevel}
@@ -154,11 +148,10 @@ function UserForm({ editor, onCancel, onConfirm }) {
               </option>
             ))}
           </select>
-        </label>
+        </FormField>
 
-        <label className="flex flex-col gap-2 text-sm font-medium text-gray-700 sm:col-span-2">
-          Contraseña
-          <input
+        <FormField label="Contraseña" className="sm:col-span-2">
+          <TextInput
             name="password"
             type="password"
             value={user.password}
@@ -171,9 +164,8 @@ function UserForm({ editor, onCancel, onConfirm }) {
                 ? "Ingrese una contraseña"
                 : "Dejar en blanco para conservarla"
             }
-            className="rounded-lg border border-gray-300 px-3 py-2 font-normal"
           />
-        </label>
+        </FormField>
       </div>
 
       <button
@@ -221,6 +213,21 @@ export default function Users() {
     changes.deleted.length > 0;
   const isSubmitting = navigation.state === "submitting";
 
+  const startAddingUser = () => {
+    const clientKey = `new-user-${nextKey.current}`;
+    nextKey.current += 1;
+    setEditor({
+      mode: "add",
+      user: {
+        clientKey,
+        name: "",
+        password: "",
+        userLevel: "Docente",
+        isNew: true,
+      },
+    });
+  };
+
   if (editor) {
     return (
       <UserForm
@@ -244,30 +251,19 @@ export default function Users() {
 
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-semibold text-gray-800">Usuarios</h2>
-        <button
-          type="button"
-          onClick={() => {
-            const clientKey = `new-user-${nextKey.current}`;
-            nextKey.current += 1;
-            setEditor({
-              mode: "add",
-              user: {
-                clientKey,
-                name: "",
-                password: "",
-                userLevel: "Docente",
-                isNew: true,
-              },
-            });
-          }}
-          className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
-        >
-          <Plus aria-hidden="true" className="h-4 w-4" />
-          Agregar usuario
-        </button>
-      </div>
+      <CardHeader
+        title="Usuarios"
+        actions={
+          <button
+            type="button"
+            onClick={startAddingUser}
+            className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+          >
+            <Plus aria-hidden="true" className="h-4 w-4" />
+            Agregar usuario
+          </button>
+        }
+      />
 
       <ul className="divide-y divide-gray-100">
         {draftUsers.map((user) => (

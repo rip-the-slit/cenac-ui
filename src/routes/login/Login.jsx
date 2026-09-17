@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { LogIn } from "lucide-react";
 import { login } from "../../auth";
 import { useErrorDialog } from "../../context/ErrorDialogContext";
+import { Card } from "../../components/Layout";
 
 export async function loginAction({ request }) {
   const formData = await request.formData();
@@ -35,10 +36,10 @@ export default function Login() {
   }, [actionData])
 
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-100 font-sans">
-      <div className="flex items-center flex-col max-w-[25rem] space-y-5 bg-white rounded-lg shadow-md p-5 border border-gray-200">
+    <div className="flex items-center justify-center h-screen bg-gray-100">
+      <Card as="div" className="flex max-w-[25rem] flex-col items-center space-y-5 p-5">
         <h1 className="font-bold text-xl text-center text-gray-800">
-          Iniciar sesión como {user?.name}
+          Ingresar como {user?.name}
         </h1>
         <div className="border rounded-lg w-full">
           <UserSelector users={users} userId={userId} setUserId={setUserId} />
@@ -59,7 +60,7 @@ export default function Login() {
             Ingresar <LogIn className="w-5 h-5" />
           </button>
         </Form>
-      </div>
+      </Card>
     </div>
   );
 }

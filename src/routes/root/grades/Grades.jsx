@@ -19,6 +19,7 @@ import {
 } from "./gradesUtils";
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
 import RouteAccess from "../components/RouteAccess";
+import { PageLayout } from "../../../components/Layout";
 
 const MAX_TABLE_ROWS = 20;
 const BULK_ACTION_OPTIONS = [
@@ -146,7 +147,7 @@ export default function Grades() {
   }, [navigation])
 
   return (
-    <div className="flex flex-col gap-4 pt-10 h-full">
+    <PageLayout title="Notas">
       <div className="flex-0 flex flex-wrap items-end justify-between gap-3">
         <GradesFilters
           FormComponent={filterFetcher.Form}
@@ -253,6 +254,6 @@ export default function Grades() {
           />
         </TableControl>
       </Form>
-    </div>
+    </PageLayout>
   );
 }

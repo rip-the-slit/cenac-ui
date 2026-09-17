@@ -98,7 +98,7 @@ export default function App() {
   ];
 
   return (
-    <div className="flex h-screen bg-gray-50 font-sans">
+    <div className="flex h-screen bg-gray-50">
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
         <UserSelector
           users={users}
@@ -125,13 +125,22 @@ export default function App() {
 
         <div className="p-4 border-t border-gray-100 space-y-2">
           <button className="flex items-center w-full px-4 py-2 text-sm text-gray-500 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors">
-            <HelpCircle className="w-5 h-5 mr-3 text-gray-400" />
+            <HelpCircle className="w-5 h-5 mr-3 text-gray-500" />
             Centro de Ayuda
           </button>
-          <button className="flex items-center w-full px-4 py-2 text-sm text-gray-500 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors">
-            <Settings className="w-5 h-5 mr-3 text-gray-400" />
+          <NavLink
+            to={`${rootUrl}/configuracion`}
+            className={({ isActive }) =>
+              `flex items-center w-full px-4 py-2 text-sm rounded-lg transition-colors ${
+                isActive
+                  ? "bg-gray-100 text-gray-900 font-medium"
+                  : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+              }`
+            }
+          >
+            <Settings className="w-5 h-5 mr-3 text-gray-500" />
             Configuración
-          </button>
+          </NavLink>
         </div>
       </aside>
 

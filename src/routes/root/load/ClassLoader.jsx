@@ -20,8 +20,10 @@ import IdInput, { normalizeId } from "./IdInput";
 import TableControl from "../components/TableControl";
 import CollapsibleSection from "./CollapsibleSection";
 import StudentSuggestions from "./StudentSuggestions";
+import { PageLayout } from "../../../components/Layout";
 import {
   BodyCell,
+  BodyRow,
   DataTable,
   HeadCell,
   TableBody,
@@ -339,7 +341,7 @@ function StudentRow({
   };
 
   return (
-    <tr className="group odd:bg-white even:bg-gray-50 hover:bg-gray-100">
+    <BodyRow className="group">
       <BodyCell className="text-center">
         <input
           type="checkbox"
@@ -454,7 +456,7 @@ function StudentRow({
           </button>
         </div>
       </BodyCell>
-    </tr>
+    </BodyRow>
   );
 }
 
@@ -531,11 +533,11 @@ function StudentTable({ yearId, classId, students }) {
         onBulkAction={handleBulkAction}
         onPageChange={setPage}
       >
-        <TableContainer className="relative max-h-[55vh] overflow-auto">
-          <DataTable className="text-sm">
-            <TableHead className="sticky top-0 z-10 bg-gray-100 shadow-md">
+        <TableContainer className="max-h-[55vh] overflow-auto">
+          <DataTable>
+            <TableHead>
               <tr>
-                <HeadCell className="bg-gray-100 text-center">
+                <HeadCell className="text-center">
                   <input
                     type="checkbox"
                     aria-label="Seleccionar todos"
@@ -548,11 +550,11 @@ function StudentTable({ yearId, classId, students }) {
                   />
                 </HeadCell>
                 {studentAttributes.map((attr) => (
-                  <HeadCell key={attr} className="bg-gray-100">
+                  <HeadCell key={attr}>
                     {studentFieldLabels[attr] || attr}
                   </HeadCell>
                 ))}
-                <HeadCell className="sticky right-0 bg-gray-100">
+                <HeadCell className="sticky right-0">
                   Sección
                 </HeadCell>
               </tr>
@@ -855,11 +857,8 @@ export default function ClassLoader() {
   return (
     <StudentSuggestions>
       <ClassLoaderContext.Provider value={contextValue}>
-      <div className="mx-auto">
-        <h1 className="mb-8 text-center text-3xl font-bold">
-          Carga de Secciones
-        </h1>
-        <p className="mb-6 text-center text-gray-600">
+      <PageLayout title="Carga de Secciones">
+        <p className="mb-6 text-gray-600">
           Cargue las secciones y sus respectivos estudiantes
         </p>
 
@@ -886,7 +885,7 @@ export default function ClassLoader() {
             Continuar
           </button>
         </Form>
-      </div>
+      </PageLayout>
       </ClassLoaderContext.Provider>
     </StudentSuggestions>
   );

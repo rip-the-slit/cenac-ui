@@ -299,7 +299,7 @@ describe("Students page", () => {
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Aplicar" })).toBeNull();
 
-    await user.click(screen.getByRole("link", { name: "Regresar" }));
+    await user.click(screen.getByRole("link", { name: "Volver a la lista de estudiantes" }));
     expect(await screen.findByRole("table")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Aplicar" })).toBeInTheDocument();
   });

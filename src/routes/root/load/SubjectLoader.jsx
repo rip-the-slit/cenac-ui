@@ -3,6 +3,7 @@ import { getCache, getSubjects, getYears, saveCache } from "../../../db";
 import { Form, redirect, useActionData, useLoaderData } from "react-router";
 import CollapsibleSection from "./CollapsibleSection";
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
+import { PageLayout } from "../../../components/Layout";
 
 export async function subjectAction({ request }) {
   try {
@@ -101,8 +102,7 @@ export default function SubjectLoader() {
   };
 
   return (
-    <div className="mx-auto">
-      <h1 className="text-3xl font-bold text-center mb-8">Carga de Materias</h1>
+    <PageLayout title="Carga de Materias">
       <p className="text-gray-600 mb-6 text-center">
         Seleccione las materias correspondientes a cada año.
       </p>
@@ -130,6 +130,6 @@ export default function SubjectLoader() {
           Continuar
         </button>
       </Form>
-    </div>
+    </PageLayout>
   );
 }

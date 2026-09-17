@@ -22,11 +22,11 @@ export default function StudentsTable({
     !Object.values(selectedIds).some((selected) => selected === false);
 
   return (
-    <TableContainer className={"relative " + className}>
-      <DataTable className="text-sm">
-        <TableHead className="bg-gray-100 shadow-md sticky top-0 z-10">
+    <TableContainer className={className}>
+      <DataTable>
+        <TableHead>
           <tr>
-            <HeadCell className="bg-gray-100 text-center">
+            <HeadCell className="text-center">
               <input
                 type="checkbox"
                 aria-label="Seleccionar todos"

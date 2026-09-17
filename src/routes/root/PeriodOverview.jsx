@@ -18,6 +18,7 @@ import CollapsibleSection from "./load/CollapsibleSection";
 import { Archive, Plus } from "lucide-react";
 import { useErrorDialog } from "../../context/ErrorDialogContext";
 import RouteAccess from "./components/RouteAccess";
+import { Card, PageLayout } from "../../components/Layout";
 
 export async function periodOverviewLoader({ params }) {
   const periodList = await getPeriodList();
@@ -95,23 +96,15 @@ export default function PeriodOverview() {
   }, [actionData, emitError]);
 
   return (
-    <div className="space-y-5 mt-10">
-      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-700 via-emerald-600 to-emerald-500 p-6 text-white shadow-lg">
-        <div className="absolute right-0 top-0 h-36 w-36 -translate-y-6 translate-x-8 rounded-full bg-white/15 blur-2xl" />
-        <div className="absolute bottom-0 left-0 h-28 w-28 -translate-x-8 translate-y-8 rounded-full bg-emerald-300/40 blur-2xl" />
-        <p className="text-xs uppercase tracking-[0.2em] text-emerald-100">
-          Resumen del período
-        </p>
-        <h1 className="mt-2 text-2xl font-bold">
-          {isAllPeriods ? "Todos los Períodos" : `Período ${periodId}`}
-        </h1>
-        <p className="mt-1 max-w-2xl text-sm text-emerald-50">
-          Estado general de aprobación estudiantil y progreso de carga de notas.
-        </p>
-      </section>
+    <PageLayout
+      title={isAllPeriods ? "Todos los Períodos" : `Período ${periodId}`}
+    >
+      <p className="max-w-2xl text-sm text-gray-600">
+        Estado general de aprobación estudiantil y progreso de carga de notas.
+      </p>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <article className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <Card as="article">
           <h2 className="text-base font-semibold">Aprobados vs Total</h2>
           <p className="mt-1 text-sm text-emerald-700">
             {studentsPassed} de {studentsTotal} estudiantes (
@@ -143,9 +136,9 @@ export default function PeriodOverview() {
               </text>
             </svg>
           </div>
-        </article>
+        </Card>
 
-        <article className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <Card as="article">
           <h2 className="text-base font-semibold">Notas Cargadas</h2>
           <p className="mt-1 text-sm text-emerald-700">
             {gradesLoaded} de {gradesTotal} registros
@@ -176,13 +169,13 @@ export default function PeriodOverview() {
               </button>
             </Form>
           </RouteAccess>
-        </article>
+        </Card>
       </section>
 
       {!isAllPeriods && (
-        <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-4">
-        <h2 className="text-base font-semibold">Secciones por Año</h2>
-        {years.map((year, i) => {
+        <Card className="space-y-4">
+          <h2 className="text-base font-semibold">Secciones por Año</h2>
+          {years.map((year, i) => {
           const classes = classesByYear[year.id] || [];
           return (
             <CollapsibleSection key={year.id} title={year.name} open={i === 0}>
@@ -205,9 +198,9 @@ export default function PeriodOverview() {
               </div>
             </CollapsibleSection>
           );
-        })}
-        </section>
+          })}
+        </Card>
       )}
-    </div>
+    </PageLayout>
   );
 }

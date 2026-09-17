@@ -1,4 +1,4 @@
-import { BodyCell } from "../load/TablePrimitives";
+import { BodyCell, BodyRow } from "../load/TablePrimitives";
 import { calculateAverage, formatGrade } from "./gradesUtils";
 
 export default function GradesTableRow({
@@ -19,7 +19,7 @@ export default function GradesTableRow({
   )?.name || "";
 
   return (
-    <tr className="odd:bg-white even:bg-gray-50 hover:bg-gray-100">
+    <BodyRow>
       <BodyCell className="text-center">
         <input
           type="checkbox"
@@ -81,6 +81,6 @@ export default function GradesTableRow({
             : calculateAverage(Object.values(row.subjectAverages || {}))
         )}
       </BodyCell>
-    </tr>
+    </BodyRow>
   );
 }

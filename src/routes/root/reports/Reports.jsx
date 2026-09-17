@@ -9,6 +9,7 @@ import {
 } from "../../../db";
 import ReportsFilters from "./ReportsFilters";
 import Filter from "../components/Filter";
+import { PageLayout } from "../../../components/Layout";
 
 export async function reportsLoader({ params, request }) {
   const url = new URL(request.url);
@@ -105,14 +106,16 @@ export default function Reports() {
 
   if (reportTypes.length === 0) {
     return (
-      <div className="pt-10 text-sm text-gray-500">
-        No hay tipos de reporte disponibles
-      </div>
+      <PageLayout title="Reportes">
+        <div className="pt-10 text-sm text-gray-500">
+          No hay tipos de reporte disponibles
+        </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="flex h-full flex-col gap-4 pt-10">
+    <PageLayout title="Reportes">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <ReportsFilters
           FormComponent={filterFetcher.Form}
@@ -156,6 +159,6 @@ export default function Reports() {
         </div>
         <div className="h-[75vh] overflow-auto" ref={docxPreviewRef}></div>
       </div>
-    </div>
+    </PageLayout>
   );
 }

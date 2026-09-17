@@ -2,23 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  font-family: "Figtree Variable", sans-serif;
+}
+
 input:focus {
-    outline: none;
+  outline: none;
+}
+
+input[type="checkbox"] {
+  accent-color: #059669;
 }
 
 @keyframes class-student-count-expand {
-    0% { transform: scale(0.75); }
-    60% { transform: scale(1.12); }
-    100% { transform: scale(1); }
+  0% {
+    transform: scale(0.75);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .animate-class-student-count {
-    animation: class-student-count-expand 300ms ease-out;
-    transform-origin: center;
+  animation: class-student-count-expand 300ms ease-out;
+  transform-origin: center;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .animate-class-student-count {
-        animation: none;
-    }
+  .animate-class-student-count {
+    animation: none;
+  }
 }

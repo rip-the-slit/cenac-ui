@@ -59,7 +59,7 @@ export default function TableControl({
             ref={bulkActionRef}
             id={bulkActionId}
             name={bulkActionId}
-            className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700"
+            className="rounded-md border h-full border-gray-300 bg-white px-3 py-2 text-sm text-gray-700"
             defaultValue={bulkActionOptions[0]?.value ?? ""}
           >
             {bulkActionOptions.map(({ value, label, disabled = false }) => (
@@ -71,7 +71,7 @@ export default function TableControl({
           <button
             type="button"
             onClick={submitBulkAction}
-            className="flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+            className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
           >
             Aplicar
             <span

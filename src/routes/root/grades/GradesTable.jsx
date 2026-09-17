@@ -32,11 +32,11 @@ export default function GradesTable({
     !Object.values(selectedIds).some((selected) => selected === false);
 
   return (
-    <TableContainer className={"relative " + className}>
-      <DataTable className="text-sm">
-        <TableHead className="bg-gray-100 shadow-md sticky top-0 z-10">
+    <TableContainer className={className}>
+      <DataTable>
+        <TableHead>
           <tr>
-            <HeadCell rowSpan={rowSpan} className="bg-gray-100 text-center">
+            <HeadCell rowSpan={rowSpan} className="text-center">
               <input
                 type="checkbox"
                 aria-label="Seleccionar todos"

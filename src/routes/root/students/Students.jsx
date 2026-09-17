@@ -9,6 +9,7 @@ import {
   createFilterSearchParams,
   getViewFilters,
 } from "./studentsUtils";
+import { PageLayout } from "../../../components/Layout";
 
 const MAX_TABLE_ROWS = 20;
 const BULK_ACTION_OPTIONS = [
@@ -81,7 +82,7 @@ export default function Students() {
     fetcher.submit(formData, { method: "get" });
 
   return (
-    <div className="flex flex-col gap-4 pt-10 h-full">
+    <PageLayout title="Estudiantes">
       <StudentsFilters
         FormComponent={fetcher.Form}
         filters={viewFilters}
@@ -138,6 +139,6 @@ export default function Students() {
           />
         </TableControl>
       </div>
-    </div>
+    </PageLayout>
   );
 }

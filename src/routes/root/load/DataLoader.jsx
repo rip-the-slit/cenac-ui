@@ -1,9 +1,21 @@
 import { useEffect } from "react";
 import { Check } from "lucide-react";
-import { Form, Link, redirect, useActionData, useLoaderData } from "react-router";
-import { clearCache, getCache, getPeriodList, loadPeriodData } from "../../../db";
+import {
+  Form,
+  Link,
+  redirect,
+  useActionData,
+  useLoaderData,
+} from "react-router";
+import {
+  clearCache,
+  getCache,
+  getPeriodList,
+  loadPeriodData,
+} from "../../../db";
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
 import { getActiveUser } from "../../../auth";
+import { PageLayout } from "../../../components/Layout";
 
 function hasData(data) {
   if (Array.isArray(data)) {
@@ -63,15 +75,14 @@ export default function DataLoader() {
   }, [actionData, emitError]);
 
   return (
-    <div className="mx-auto">
-      <h1 className="text-3xl font-bold text-center mb-4">Carga de datos</h1>
-      <p className="text-gray-600 mb-8 text-center">
+    <PageLayout title="Carga de datos">
+      <p className="text-gray-600 mb-8">
         Empiece por cargar los datos de este período escolar
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 mb-8 gap-8">
         <Link
           to="materias"
-          className="relative block p-6 bg-white border border-gray-200 rounded-lg shadow-md hover:bg-gray-100 transition-colors"
+          className={"relative block p-6 bg-white border rounded-lg shadow-sm hover:bg-gray-100 transition-colors " + (subjectsLoaded ? "border-emerald-500": "border-gray-200")}
         >
           {subjectsLoaded && (
             <Check className="absolute right-4 top-4 w-5 h-5 text-emerald-600" />
@@ -85,7 +96,7 @@ export default function DataLoader() {
         </Link>
         <Link
           to="secciones"
-          className="relative block p-6 bg-white border border-gray-200 rounded-lg shadow-md hover:bg-gray-100 transition-colors"
+          className={"relative block p-6 bg-white border rounded-lg shadow-sm hover:bg-gray-100 transition-colors " + (classesLoaded ? "border-emerald-500": "border-gray-200")}
         >
           {classesLoaded && (
             <Check className="absolute right-4 top-4 w-5 h-5 text-emerald-600" />
@@ -100,7 +111,7 @@ export default function DataLoader() {
       </div>
       <Form method="post">
         <button
-          className={`mx-auto flex items-center gap-2 font-bold p-3 shadow-sm rounded-lg border text-white ${
+          className={`flex items-center mx-auto gap-2 font-bold p-3 shadow-sm rounded-lg border text-white ${
             canConfirm
               ? "bg-gradient-to-b from-emerald-500 to-emerald-600 border-emerald-500"
               : "bg-gray-300 border-gray-300 cursor-not-allowed"
@@ -111,6 +122,6 @@ export default function DataLoader() {
           Confirmar <Check className="w-5 h-5" />
         </button>
       </Form>
-    </div>
+    </PageLayout>
   );
 }
