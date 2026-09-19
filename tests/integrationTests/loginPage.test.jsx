@@ -71,7 +71,7 @@ describe("login flow", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: "Iniciar sesión como Docente",
+        name: "Ingresar como Docente",
       })
     ).toBeInTheDocument();
 

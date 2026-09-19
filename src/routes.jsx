@@ -8,11 +8,11 @@ import DataLoader, { dataAction, dataLoader } from "./routes/root/load/DataLoade
 import SubjectLoader, {
   subjectAction,
   subjectLoader,
-} from "./routes/root/load/SubjectLoader";
+} from "./routes/root/load/subject/SubjectLoader";
 import ClassLoader, {
   classAction,
   classLoader,
-} from "./routes/root/load/ClassLoader";
+} from "./routes/root/load/class/ClassLoader";
 import { ErrorDialogProvider } from "./context/ErrorDialogContext";
 import PeriodOverview, { periodOverviewAction, periodOverviewLoader } from "./routes/root/PeriodOverview";
 import Grades, { gradesAction, gradesLoader } from "./routes/root/grades/Grades";

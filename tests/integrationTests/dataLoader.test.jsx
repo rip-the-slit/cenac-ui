@@ -23,11 +23,11 @@ import DataLoader, {
 import SubjectLoader, {
   subjectAction,
   subjectLoader,
-} from "../../src/routes/root/load/SubjectLoader";
+} from "../../src/routes/root/load/subject/SubjectLoader";
 import ClassLoader, {
   classAction,
   classLoader,
-} from "../../src/routes/root/load/ClassLoader";
+} from "../../src/routes/root/load/class/ClassLoader";
 import { studentsLoader } from "../../src/routes/root/students/Students";
 
 vi.mock("../../src/db", () => ({
@@ -239,139 +239,208 @@ describe("Data loading pages", () => {
     expect(response.headers.get("Location")).toBe("../secciones");
   });
 
-  it("groups class students once in the loader", async () => {
+  it("groups students by section without adding row-only identity fields", async () => {
     cache.class_students = null;
 
     const result = await classLoader();
-    const firstStudent = result.classesByYear[1].A.students[0];
-    const secondStudent = result.classesByYear[1].B.students[0];
 
     expect(result).toMatchObject({
       years,
-      studentClass,
-      studentAttributes: ["id", "firstName", "lastName"],
-      studentFieldLabels,
-      nextRowSequence: 2,
+      studentSchema: {
+        template: studentClass,
+        attributes: ["id", "firstName", "lastName"],
+        labels: studentFieldLabels,
+      },
     });
-    expect(firstStudent).toMatchObject(students[0]);
-    expect(secondStudent).toMatchObject(students[1]);
-    expect(firstStudent._rowId).toEqual(expect.any(String));
-    expect(secondStudent._rowId).toEqual(expect.any(String));
-    expect(firstStudent._rowId).not.toBe(secondStudent._rowId);
-    expect(students.every((student) => student._rowId === undefined)).toBe(
-      true
-    );
+    expect(result.classesByYear[1].A.students[0]).toMatchObject({
+      ...students[0],
+      _locked: true,
+    });
+    expect(result.classesByYear[1].B.students[0]).toMatchObject({
+      ...students[1],
+      _locked: true,
+    });
+    expect(result.classesByYear[1].A.students[0]._rowId).toBeUndefined();
+    expect(result.studentsById).toMatchObject({
+      "V-100": { ...students[0], _locked: true },
+      "E-101": { ...students[1], _locked: true },
+    });
   });
 
-  it("renders class tabs and switches their student table", async () => {
+  it("renders static student rows and switches class tabs", async () => {
     const user = userEvent.setup();
     cache.class_students = null;
     renderClassLoader();
 
     const tabA = await screen.findByRole("tab", { name: "Sección A" });
     expect(tabA).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByDisplayValue("Ana")).toBeInTheDocument();
+    expect(screen.getByText("Ana")).toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: "Sección B" }));
 
-    expect(screen.getByDisplayValue("Eva")).toBeInTheDocument();
-    expect(screen.queryByDisplayValue("Ana")).not.toBeInTheDocument();
+    expect(screen.getByText("Eva")).toBeInTheDocument();
+    expect(screen.queryByText("Ana")).not.toBeInTheDocument();
   });
 
-  it("edits and saves a unified id without remounting its numeric input", async () => {
+  it("adds a student through the modal and saves the completed record", async () => {
     const user = userEvent.setup();
     cache.class_students = null;
     renderClassLoader();
 
-    const typeInput = await screen.findByRole("combobox", {
-      name: "Documento: tipo",
-    });
-    const numberInput = screen.getByRole("textbox", { name: "Documento" });
+    await screen.findByText("Ana");
+    await user.click(screen.getByRole("button", { name: "Añadir Estudiante" }));
 
-    expect(typeInput).toHaveValue("V-");
-    expect(numberInput).toHaveValue("100");
+    expect(
+      screen.getByRole("heading", { name: "Añadir estudiante" })
+    ).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Documento: tipo" })).toHaveValue(
+      "V-"
+    );
+    expect(screen.getByRole("textbox", { name: "Documento" })).toHaveValue(
+      "30000000"
+    );
 
-    await user.selectOptions(typeInput, "E-");
-    await user.clear(numberInput);
-    await user.type(numberInput, "0a123456789");
+    await user.type(screen.getByRole("textbox", { name: "Nombre" }), "Luis");
+    await user.type(screen.getByRole("textbox", { name: "Apellido" }), "León");
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
-    expect(numberInput).toHaveValue("12345678");
-    expect(document.activeElement).toBe(numberInput);
-    expect(screen.getByRole("textbox", { name: "Documento" })).toBe(numberInput);
+    expect(screen.getByText("Luis")).toBeInTheDocument();
+    expect(screen.getByText("V-30000000")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Continuar" }));
     await waitFor(() =>
       expect(saveCache).toHaveBeenCalledWith(
         "class_students",
-        expect.any(Array)
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "V-30000000",
+            firstName: "Luis",
+            lastName: "León",
+            _class: { year: 1, id: "A" },
+          }),
+        ])
       )
     );
-
-    const savedStudents = saveCache.mock.calls.find(
-      ([key]) => key === "class_students"
-    )[1];
-    expect(savedStudents[0]).toMatchObject({
-      id: "E-12345678",
-      firstName: "Ana",
-      lastName: "Pérez",
-      _class: { year: 1, id: "A" },
-    });
-    expect(savedStudents.every((student) => student._rowId === undefined)).toBe(
-      true
-    );
   });
-  it("treats a legacy numeric id as Venezuelan", async () => {
+
+  it("validates cédula uniqueness locally before committing the modal", async () => {
+    const user = userEvent.setup();
     cache.class_students = null;
-    getClassSuggestions.mockResolvedValue({
-      students: [{ ...students[0], id: "321" }],
-      studentClass,
-      studentFieldLabels,
-    });
     renderClassLoader();
+
+    await screen.findByText("Ana");
+    await user.click(screen.getByRole("button", { name: "Añadir Estudiante" }));
+    const documentInput = screen.getByRole("textbox", { name: "Documento" });
+    await user.clear(documentInput);
+    await user.type(documentInput, "100");
+    await user.type(screen.getByRole("textbox", { name: "Nombre" }), "Otra");
+    await user.type(screen.getByRole("textbox", { name: "Apellido" }), "Persona");
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
     expect(
-      await screen.findByRole("combobox", { name: "Documento: tipo" })
-    ).toHaveValue("V-");
-    expect(screen.getByRole("textbox", { name: "Documento" })).toHaveValue(
-      "321"
-    );
+      screen.getByText("Ya existe un estudiante con esta cédula.")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Añadir estudiante" })
+    ).toBeInTheDocument();
   });
 
-  it("creates students with a canonical Venezuelan id", async () => {
+  it("opens loader students as locked from either edit control", async () => {
     const user = userEvent.setup();
     cache.class_students = null;
     renderClassLoader();
 
-    await screen.findByDisplayValue("Ana");
-    await user.click(screen.getByRole("button", { name: "Añadir Estudiante" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Editar cédula de Ana Pérez" })
+    );
+    expect(screen.getByRole("textbox", { name: "Nombre" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
 
-    const typeInputs = screen.getAllByRole("combobox", {
-      name: "Documento: tipo",
-    });
-    const numberInputs = screen.getAllByRole("textbox", { name: "Documento" });
-    expect(typeInputs.at(-1)).toHaveValue("V-");
-    expect(numberInputs.at(-1)).toHaveValue("30000000");
+    await user.click(
+      screen.getByRole("button", { name: "Editar estudiante Ana Pérez" })
+    );
+    expect(screen.getByRole("textbox", { name: "Nombre" })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "Sección de inscripción" })).toBeEnabled();
   });
 
-  it("keeps stale suggestions while loading and populates the selected student", async () => {
+  it("auto-selects an exact historical match and locks identity data while the ids still match", async () => {
     const user = userEvent.setup();
-    const firstMatches = Array.from({ length: 6 }, (_, index) => ({
-      id: `V-1${index}`,
-      firstName: index === 0 ? "Sofía" : `Nombre ${index}`,
-      lastName: index === 0 ? "Salas" : `Apellido ${index}`,
-      _class: { year: 2, id: "Z" },
-    }));
-    const currentMatch = {
-      id: "E-12",
-      firstName: "María",
-      lastName: "Mora",
-      _class: { year: 2, id: "Z" },
-    };
+    getStudents.mockResolvedValue({
+      recordsAmount: 1,
+      filters: { id: "V-777" },
+      rows: [
+        {
+          id: "V-777",
+          firstName: "Sara",
+          lastName: "Sol",
+          _class: { year: 9, id: "Z" },
+        },
+      ],
+    });
+    cache.class_students = null;
+    renderClassLoader();
+
+    await screen.findByText("Ana");
+    await user.click(screen.getByRole("button", { name: "Añadir Estudiante" }));
+    const documentInput = screen.getByRole("textbox", { name: "Documento" });
+    await user.clear(documentInput);
+    await user.type(documentInput, "777");
+
+    await waitFor(() =>
+      expect(screen.getByRole("textbox", { name: "Nombre" })).toHaveValue("Sara")
+    );
+    expect(documentInput).not.toBeDisabled();
+    expect(screen.getByRole("textbox", { name: "Nombre" })).toBeDisabled();
+    expect(screen.getByRole("textbox", { name: "Apellido" })).toBeDisabled();
+    expect(
+      screen.getByText(/únicamente puede cambiar su inscripción/i)
+    ).toBeInTheDocument();
+
+    await user.selectOptions(screen.getByRole("combobox", { name: "Sección de inscripción" }), "1:B");
+
+    await user.clear(documentInput);
+
+    expect(screen.getByRole("textbox", { name: "Nombre" })).not.toBeDisabled();
+    expect(screen.getByRole("textbox", { name: "Apellido" })).not.toBeDisabled();
+
+    await user.type(documentInput, "778");
+
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    await user.click(screen.getByRole("tab", { name: "Sección B" }));
+
+    expect(screen.getByText("Sara")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await waitFor(() =>
+      expect(saveCache).toHaveBeenCalledWith(
+        "class_students",
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "V-778",
+            firstName: "Sara",
+            lastName: "Sol",
+            _class: { year: 1, id: "B" },
+          }),
+        ])
+      )
+    );
+    const saved = saveCache.mock.calls.find(
+      ([key]) => key === "class_students"
+    )[1];
+    expect(saved.find((student) => student.id === "V-778")._locked).toBeUndefined();
+  });
+
+  it("keeps stale suggestions visible until the current query resolves", async () => {
+    const user = userEvent.setup();
     let resolveCurrentRequest;
     getStudents
       .mockResolvedValueOnce({
-        recordsAmount: firstMatches.length,
-        rows: firstMatches,
+        recordsAmount: 2,
+        filters: { id: "V-7" },
+        rows: [
+          { id: "V-70", firstName: "Sara", lastName: "Sol" },
+          { id: "V-71", firstName: "Sofía", lastName: "Salas" },
+        ],
       })
       .mockReturnValueOnce(
         new Promise((resolve) => {
@@ -381,145 +450,28 @@ describe("Data loading pages", () => {
     cache.class_students = null;
     renderClassLoader();
 
-    const numberInput = await screen.findByRole("textbox", {
-      name: "Documento",
-    });
-    await user.clear(numberInput);
-    await user.type(numberInput, "1");
+    await screen.findByText("Ana");
+    await user.click(screen.getByRole("button", { name: "Añadir Estudiante" }));
+    const documentInput = screen.getByRole("textbox", { name: "Documento" });
+    await user.clear(documentInput);
+    await user.type(documentInput, "7");
 
-    const staleOption = await screen.findByRole("option", {
-      name: /Sofía Salas/,
-    });
-    const overlay = screen.getByRole("listbox", {
-      name: "Sugerencias de estudiantes",
-    });
-    expect(within(overlay).getAllByRole("option")).toHaveLength(5);
-    expect(getStudents).toHaveBeenLastCalledWith(
-      "all",
-      expect.objectContaining({
-        id: "V-1",
-        page: 1,
-        limit: 5,
-      })
-    );
+    expect(
+      await screen.findByRole("option", { name: /Sara Sol/ })
+    ).toBeInTheDocument();
 
-    await user.type(numberInput, "2");
+    await user.type(documentInput, "2");
     await waitFor(() => expect(getStudents).toHaveBeenCalledTimes(2));
-
-    expect(staleOption).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Sara Sol/ })).toBeInTheDocument();
 
     resolveCurrentRequest({
-      recordsAmount: 1,
-      rows: [currentMatch],
+      recordsAmount: 0,
+      filters: { id: "V-72" },
+      rows: [],
     });
-
-    const currentOption = await screen.findByRole("option", {
-      name: /María Mora/,
-    });
-    expect(within(currentOption).getByText("E-12")).toBeInTheDocument();
-    expect(
-      screen.queryByRole("option", { name: /Sofía Salas/ })
-    ).not.toBeInTheDocument();
-
-    await user.click(currentOption);
-
-    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("combobox", { name: "Documento: tipo" })
-    ).toHaveValue("E-");
-    expect(numberInput).toHaveValue("12");
-    expect(screen.getByRole("textbox", { name: "Nombre" })).toHaveValue(
-      "María"
-    );
-    expect(screen.getByRole("textbox", { name: "Apellido" })).toHaveValue(
-      "Mora"
-    );
-
-    await user.click(screen.getByRole("button", { name: "Continuar" }));
     await waitFor(() =>
-      expect(saveCache).toHaveBeenCalledWith(
-        "class_students",
-        expect.any(Array)
-      )
+      expect(screen.queryByRole("listbox")).not.toBeInTheDocument()
     );
-    const savedStudents = saveCache.mock.calls.find(
-      ([key]) => key === "class_students"
-    )[1];
-    expect(savedStudents[0]).toMatchObject({
-      id: "E-12",
-      firstName: "María",
-      lastName: "Mora",
-      _class: { year: 1, id: "A" },
-    });
-    expect(savedStudents[0]._rowId).toBeUndefined();
-  });
-
-  it("hides suggestions when no students match the current id", async () => {
-    const user = userEvent.setup();
-    let resolveRequest;
-    getStudents.mockReturnValueOnce(
-      new Promise((resolve) => {
-        resolveRequest = resolve;
-      })
-    );
-    cache.class_students = null;
-    renderClassLoader();
-
-    const numberInput = await screen.findByRole("textbox", {
-      name: "Documento",
-    });
-    await user.clear(numberInput);
-    await user.type(numberInput, "9");
-
-    resolveRequest({ recordsAmount: 0, rows: [] });
-
-    await waitFor(() =>
-      expect(
-        screen.queryByRole("listbox", {
-          name: "Sugerencias de estudiantes",
-        })
-      ).not.toBeInTheDocument()
-    );
-  });
-
-  it("closes suggestions for empty input, Escape, and outside interaction", async () => {
-    const user = userEvent.setup();
-    getStudents.mockResolvedValue({
-      recordsAmount: 1,
-      rows: [{ id: "V-7", firstName: "Sara", lastName: "Sol" }],
-    });
-    cache.class_students = null;
-    renderClassLoader();
-
-    const numberInput = await screen.findByRole("textbox", {
-      name: "Documento",
-    });
-    await user.clear(numberInput);
-    expect(getStudents).not.toHaveBeenCalled();
-    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
-
-    await user.type(numberInput, "7");
-    expect(
-      await screen.findByRole("listbox", {
-        name: "Sugerencias de estudiantes",
-      })
-    ).toBeInTheDocument();
-
-    await user.keyboard("{Escape}");
-    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
-    expect(numberInput).toHaveFocus();
-
-    await user.type(numberInput, "8");
-    expect(
-      await screen.findByRole("listbox", {
-        name: "Sugerencias de estudiantes",
-      })
-    ).toBeInTheDocument();
-
-    await user.click(
-      screen.getByRole("heading", { name: "Carga de Secciones" })
-    );
-    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
   it("paginates locally and bulk deletes selected students", async () => {
@@ -539,11 +491,11 @@ describe("Data loading pages", () => {
     renderClassLoader();
 
     expect(await screen.findByLabelText("Página")).toHaveValue("1");
-    expect(screen.queryByDisplayValue("Nombre 11")).not.toBeInTheDocument();
+    expect(screen.queryByText("Nombre 11")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Siguiente" }));
     expect(screen.getByLabelText("Página")).toHaveValue("2");
-    expect(screen.getByDisplayValue("Nombre 11")).toBeInTheDocument();
+    expect(screen.getByText("Nombre 11")).toBeInTheDocument();
 
     await user.click(
       screen.getByRole("checkbox", {
@@ -557,29 +509,24 @@ describe("Data loading pages", () => {
     await user.click(screen.getByRole("button", { name: /Aplicar/ }));
 
     expect(screen.getByLabelText("Página")).toHaveValue("1");
-    expect(screen.queryByDisplayValue("Nombre 11")).not.toBeInTheDocument();
+    expect(screen.queryByText("Nombre 11")).not.toBeInTheDocument();
     expect(screen.getByLabelText("10 estudiantes en la sección A")).toHaveClass(
       "animate-class-student-count"
     );
   });
 
-  it("updates class counts when a student is reassigned", async () => {
+  it("reassigns students only among sections in their current year", async () => {
     const user = userEvent.setup();
     cache.class_students = null;
     renderClassLoader();
 
-    const anaRow = (await screen.findByDisplayValue("Ana")).closest("tr");
-    await user.click(
-      within(anaRow).getByRole("button", {
-        name: "Cambiar sección de Ana Pérez",
-      })
-    );
-    await user.selectOptions(
-      within(anaRow).getByRole("combobox", {
-        name: "Cambiar sección de Ana Pérez",
-      }),
-      "1-B"
-    );
+    const anaRow = (await screen.findByText("Ana")).closest("tr");
+    const sectionSelect = within(anaRow).getByRole("combobox", {
+      name: "Cambiar sección de Ana Pérez",
+    });
+    expect(within(sectionSelect).getAllByRole("option")).toHaveLength(2);
+
+    await user.selectOptions(sectionSelect, "B");
 
     expect(screen.getByLabelText("0 estudiantes en la sección A")).toHaveClass(
       "animate-class-student-count"
