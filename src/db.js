@@ -139,3 +139,19 @@ export function clearCache(key) {
     console.error(e);
   }
 }
+
+export async function getGuardians(filters = {}) {
+  const params = new URLSearchParams();
+  if (filters.id) params.set("id", filters.id);
+  if (filters.page) params.set("page", filters.page);
+  if (filters.limit) params.set("limit", filters.limit);
+  const qs = params.toString();
+  return request(`/guardians${qs ? `?${qs}` : ""}`);
+}
+
+export async function createGuardian(guardian) {
+  return request("/guardians", {
+    method: "POST",
+    body: JSON.stringify(guardian),
+  });
+}

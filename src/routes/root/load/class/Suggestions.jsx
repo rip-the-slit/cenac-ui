@@ -2,15 +2,18 @@ import { createPortal } from "react-dom";
 import { RefreshCw } from "lucide-react";
 
 import FloatingOverlay from "../../components/FloatingOverlay";
-import useStudentSuggestions from "./useStudentSuggestions";
+import useSuggestions from "./useSuggestions";
 
-export default function StudentSuggestions({
+export default function Suggestions({
   anchorRef,
+  endpoint,
+  label = "Sugerencias",
   query,
   onSelect,
 }) {
-  const suggestions = useStudentSuggestions({
+  const suggestions = useSuggestions({
     anchorRef,
+    endpoint,
     query,
     onSelect,
   });
@@ -23,7 +26,7 @@ export default function StudentSuggestions({
     <FloatingOverlay
       ref={suggestions.overlayRef}
       role="listbox"
-      aria-label="Sugerencias de estudiantes"
+      aria-label={label}
       aria-busy={suggestions.isPending ? "true" : "false"}
       className="fixed z-50 max-h-74 overflow-y-auto"
       style={{
@@ -42,21 +45,21 @@ export default function StudentSuggestions({
         )}
       </div>
       <div className={suggestions.isPending ? "opacity-60" : ""}>
-        {suggestions.results.map((student) => {
+        {suggestions.results.map((record) => {
           const fullName =
-            `${student.firstName ?? ""} ${student.lastName ?? ""}`.trim() ||
-            String(student.id);
+            `${record.firstName ?? ""} ${record.lastName ?? ""}`.trim() ||
+            String(record.id);
 
           return (
             <button
-              key={student.id}
+              key={record.id}
               type="button"
               role="option"
               aria-selected="false"
-              className="block w-full px-4 py-2 text-left hover:bg-emerald-50 focus:bg-emerald-50 focus:outline-none"
+              className="block w-full px-4 py-2 text-left bg-white hover:brightness-[0.95] focus:brightness-[0.95] focus:outline-none"
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => {
-                onSelect(student);
+                onSelect(record);
                 suggestions.close();
               }}
             >
@@ -64,7 +67,7 @@ export default function StudentSuggestions({
                 {fullName}
               </span>
               <span className="block text-xs text-gray-500">
-                {student.id}
+                {record.id}
               </span>
             </button>
           );

@@ -1,16 +1,18 @@
 import { createContext, useContext, useState } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { BookOpenCheck, ChevronRight, UserRound, X } from "lucide-react";
 
+import { Button, PrimaryButton } from "../../../../components/Button";
 import {
   Card,
   CardHeader,
   FormField,
   TextInput,
 } from "../../../../components/Layout";
+import EnrollmentEditor from "./EnrollmentEditor";
+import GuardianEditor from "./GuardianEditor";
 import IdInput from "./IdInput";
 import { normalizeId } from "./studentIdUtils";
-import { Button, PrimaryButton } from "../../../../components/Button";
 
 const StudentEditorContext = createContext(null);
 
@@ -22,21 +24,58 @@ export function useStudentEditor() {
   return context;
 }
 
+function SectionLink({ description, icon, label, onClick }) {
+  return (
+    <Button
+      type="button"
+      className="w-full justify-between text-left"
+      onClick={onClick}
+    >
+      <span className="flex items-center gap-3">
+        {icon}
+        <span>
+          <span className="block font-semibold">{label}</span>
+          <span className="block text-sm font-normal text-gray-500">
+            {description}
+          </span>
+        </span>
+      </span>
+      <ChevronRight aria-hidden="true" className="h-5 w-5 text-gray-400" />
+    </Button>
+  );
+}
+
 function StudentEditorModal({ editor, config, onClose }) {
-  const { studentSchema, enrollment, onCommit } = config;
-  const [draft, setDraft] = useState(editor.student);
+  const {
+    emitError,
+    enrollment,
+    guardianSchema,
+    onCommit,
+    onCreateGuardian,
+    studentSchema,
+  } = config;
+  const [draft, setDraft] = useState({
+    ...editor.student,
+    _class: { ...editor.student._class },
+    pendingSubjects: [...(editor.student.pendingSubjects || [])],
+    assignedGuardians: (editor.student.assignedGuardians || []).map(
+      (guardian) => ({ ...guardian })
+    ),
+  });
   const [lockedIdentity, setLockedIdentity] = useState(
     editor.student._locked === true ? editor.student : null
   );
+  const [page, setPage] = useState(editor.initialPage || "details");
   const locked = lockedIdentity !== null;
+  const directSection = Boolean(
+    editor.initialPage && editor.initialPage !== "details"
+  );
   const studentName =
     `${draft.firstName ?? ""} ${draft.lastName ?? ""}`.trim();
   const editorTitle =
     editor.mode === "create"
       ? "Añadir estudiante"
-      : `Editar estudiante${studentName ? ` - ${studentName}` : ""}`;
-  const selectedClass =
-    `${draft._class?.year ?? ""}:${draft._class?.id ?? ""}`;
+      : (<>Editar estudiante <span className="text-gray-500 font-normal">{studentName ? `${studentName}` : ""}</span></>);
 
   function updateField(field, value) {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -50,7 +89,19 @@ function StudentEditorModal({ editor, config, onClose }) {
   }
 
   function populateHistoricalStudent(student) {
-    const nextStudent = { ...draft };
+    const nextStudent = {
+      ...draft,
+      pendingSubjects: Array.isArray(student.pendingSubjects)
+        ? student.pendingSubjects.map(String)
+        : [],
+      assignedGuardians: Array.isArray(student.assignedGuardians)
+        ? student.assignedGuardians.map((guardian) => ({
+            ...guardian,
+            id: normalizeId(guardian.id),
+            _locked: true,
+          }))
+        : [],
+    };
 
     for (const field of studentSchema.attributes) {
       nextStudent[field] =
@@ -64,16 +115,16 @@ function StudentEditorModal({ editor, config, onClose }) {
     setDraft(nextStudent);
   }
 
-  function handleEnrollmentChange(event) {
-    const [year, id] = event.target.value.split(":");
-    updateField("_class", { year: Number(year), id });
-  }
-
-  function buildStudent() {
-    const identity = lockedIdentity ?? draft;
+  function buildStudent(source) {
+    const identity = lockedIdentity ?? source;
     const student = {
+      ...source,
       ...identity,
-      _class: draft._class,
+      _class: { ...source._class },
+      pendingSubjects: [...(source.pendingSubjects || [])],
+      assignedGuardians: (source.assignedGuardians || []).map(
+        (guardian) => ({ ...guardian })
+      ),
       id: normalizeId(identity.id),
       _locked: locked,
     };
@@ -87,18 +138,42 @@ function StudentEditorModal({ editor, config, onClose }) {
     return student;
   }
 
-  function handleSubmit(event) {
-    event.preventDefault();
+  function commitStudent(source) {
     const committed = onCommit({
       mode: editor.mode,
       originalId: editor.originalId,
-      student: buildStudent(),
+      student: buildStudent(source),
     });
 
     if (committed !== false) {
       editor.onCommitted?.();
       onClose();
     }
+  }
+
+  function handleDetailsSubmit(event) {
+    event.preventDefault();
+    commitStudent(draft);
+  }
+
+  function confirmEnrollment(enrollmentValues) {
+    const nextDraft = { ...draft, ...enrollmentValues };
+    if (directSection) {
+      commitStudent(nextDraft);
+      return;
+    }
+    setDraft(nextDraft);
+    setPage("details");
+  }
+
+  function confirmGuardians(assignedGuardians) {
+    const nextDraft = { ...draft, assignedGuardians };
+    if (directSection) {
+      commitStudent(nextDraft);
+      return;
+    }
+    setDraft(nextDraft);
+    setPage("details");
   }
 
   function handleKeyDown(event) {
@@ -113,6 +188,120 @@ function StudentEditorModal({ editor, config, onClose }) {
     }
   }
 
+  let content;
+  if (page === "enrollment") {
+    content = (
+      <EnrollmentEditor
+        enrollment={enrollment}
+        student={draft}
+        onBack={directSection ? onClose : () => setPage("details")}
+        onConfirm={confirmEnrollment}
+      />
+    );
+  } else if (page === "guardians") {
+    content = (
+      <GuardianEditor
+        emitError={emitError}
+        guardianSchema={guardianSchema}
+        guardians={draft.assignedGuardians}
+        onBack={directSection ? onClose : () => setPage("details")}
+        onConfirm={confirmGuardians}
+        onCreateGuardian={onCreateGuardian}
+      />
+    );
+  } else {
+    content = (
+      <form className="space-y-6" onSubmit={handleDetailsSubmit}>
+        <CardHeader
+          title={editorTitle}
+          actions={
+            <button
+              type="button"
+              aria-label="Cerrar"
+              className="rounded-md p-2 text-gray-500 hover:bg-gray-100"
+              onClick={onClose}
+            >
+              <X aria-hidden="true" className="h-5 w-5" />
+            </button>
+          }
+        />
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {studentSchema.attributes.map((field) => (
+            <FormField
+              key={field}
+              label={studentSchema.labels[field] || field}
+            >
+              {field === "id" ? (
+                <div className="rounded-lg border border-gray-300 px-2 py-2">
+                  <IdInput
+                    value={draft.id}
+                    label={studentSchema.labels[field] || field}
+                    onChange={handleIdChange}
+                    onSuggestionSelect={populateHistoricalStudent}
+                  />
+                </div>
+              ) : (
+                <TextInput
+                  type={field === "birthDate" ? "date" : "text"}
+                  value={draft[field] ?? ""}
+                  disabled={locked}
+                  required
+                  onChange={(event) =>
+                    updateField(field, event.target.value)
+                  }
+                />
+              )}
+            </FormField>
+          ))}
+        </div>
+
+        <nav
+          aria-label="Secciones del formulario del estudiante"
+          className="grid gap-3 sm:grid-cols-2"
+        >
+          <SectionLink
+            icon={
+              <BookOpenCheck
+                aria-hidden="true"
+                className="h-6 w-6 text-emerald-600"
+              />
+            }
+            label="Inscripción"
+            description="Sección y materias pendientes"
+            onClick={() => setPage("enrollment")}
+          />
+          <SectionLink
+            icon={
+              <UserRound
+                aria-hidden="true"
+                className="h-6 w-6 text-emerald-600"
+              />
+            }
+            label="Representantes"
+            description={`${draft.assignedGuardians.length} asignados`}
+            onClick={() => setPage("guardians")}
+          />
+        </nav>
+
+        {locked && (
+          <p className="text-sm text-gray-600">
+            Los datos de un estudiante preexistente no se pueden modificar;
+            únicamente puede cambiar su inscripción, sus representantes o
+            cambiar la cédula para desbloquearlos.
+          </p>
+        )}
+
+        <div className="flex justify-end gap-3">
+          <Button type="button" onClick={onClose}>
+            Cancelar
+          </Button>
+          <PrimaryButton type="submit">Aceptar</PrimaryButton>
+        </div>
+      </form>
+    );
+  }
+
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4"
@@ -125,103 +314,7 @@ function StudentEditorModal({ editor, config, onClose }) {
         className="max-h-[90vh] w-full max-w-2xl overflow-y-auto"
       >
         <div role="dialog" aria-modal="true" aria-label={editorTitle}>
-          <CardHeader
-            title={editorTitle}
-            actions={
-              <button
-                type="button"
-                aria-label="Cerrar"
-                className="rounded-md p-2 text-gray-500 hover:bg-gray-100"
-                onClick={onClose}
-              >
-                <X aria-hidden="true" className="h-5 w-5" />
-              </button>
-            }
-          />
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {studentSchema.attributes.map((field) => (
-                <FormField
-                  key={field}
-                  label={studentSchema.labels[field] || field}
-                >
-                  {field === "id" ? (
-                    <div className="rounded-lg border border-gray-300 px-2 py-2">
-                      <IdInput
-                        value={draft.id}
-                        label={studentSchema.labels[field] || field}
-                        onChange={handleIdChange}
-                        onStudentSelect={populateHistoricalStudent}
-                      />
-                    </div>
-                  ) : (
-                    <TextInput
-                      value={draft[field] ?? ""}
-                      disabled={locked}
-                      required
-                      minLength={3}
-                      onChange={(event) =>
-                        updateField(field, event.target.value)
-                      }
-                    />
-                  )}
-                </FormField>
-              ))}
-            </div>
-
-            <fieldset className="rounded-lg border border-gray-200 p-4">
-              <legend className="px-2 font-semibold text-gray-800">
-                Inscripción
-              </legend>
-              <FormField label="Sección">
-                <select
-                  aria-label="Sección de inscripción"
-                  className="rounded-lg border border-gray-300 px-3 py-2 font-normal"
-                  value={selectedClass}
-                  required
-                  onChange={handleEnrollmentChange}
-                >
-                  {enrollment.years.map((year) => (
-                    <optgroup label={year.name} key={year.id}>
-                      {Object.values(
-                        enrollment.classesByYear[year.id] || {}
-                      ).map((classGroup) => (
-                        <option
-                          key={classGroup.className}
-                          value={`${year.id}:${classGroup.className}`}
-                        >
-                          {classGroup.className}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </FormField>
-            </fieldset>
-
-            {locked && (
-              <p className="text-sm text-gray-600">
-                Los datos de un estudiante preexistente no se pueden modificar;
-                únicamente puede cambiar su inscripción o cambiar la cédula
-                para desbloquearlos.
-              </p>
-            )}
-
-            <div className="flex justify-end gap-3">
-              <Button
-                type="button"
-                className="rounded-lg border border-gray-300 px-4 py-2"
-                onClick={onClose}
-              >
-                Cancelar
-              </Button>
-              <PrimaryButton
-                type="submit"
-              >
-                Aceptar
-              </PrimaryButton>
-            </div>
-          </form>
+          {content}
         </div>
       </Card>
     </div>,
@@ -244,28 +337,45 @@ export default function StudentEditorProvider({
         ...editorConfig.studentSchema.template,
         id: editorConfig.getNextStudentId(),
         _class: { year: yearId, id: classId },
+        pendingSubjects: [],
+        assignedGuardians: [],
       },
     });
   }
 
-  function openEdit(student) {
-    setEditor({
+  function createEditState(student, initialPage = "details") {
+    return {
       mode: "edit",
+      initialPage,
       originalId: normalizeId(student.id),
       student: {
         ...student,
         id: normalizeId(student.id),
         _class: { ...student._class },
+        pendingSubjects: [...(student.pendingSubjects || [])],
+        assignedGuardians: (student.assignedGuardians || []).map(
+          (guardian) => ({ ...guardian })
+        ),
       },
-    });
+    };
+  }
+
+  function openEdit(student) {
+    setEditor(createEditState(student));
+  }
+
+  function openSection(student, section) {
+    setEditor(createEditState(student, section));
   }
 
   return (
-    <StudentEditorContext.Provider value={{ openCreate, openEdit }}>
+    <StudentEditorContext.Provider
+      value={{ openCreate, openEdit, openSection }}
+    >
       {children}
       {editor && (
         <StudentEditorModal
-          key={`${editor.mode}:${editor.originalId ?? editor.student.id}`}
+          key={`${editor.mode}:${editor.originalId ?? editor.student.id}:${editor.initialPage ?? "details"}`}
           editor={editor}
           config={editorConfig}
           onClose={() => setEditor(null)}

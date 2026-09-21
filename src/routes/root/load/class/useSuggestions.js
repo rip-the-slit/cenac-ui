@@ -24,8 +24,9 @@ function getPosition(anchor) {
   };
 }
 
-export default function useStudentSuggestions({
+export default function useSuggestions({
   anchorRef,
+  endpoint,
   query,
   onSelect,
 }) {
@@ -61,11 +62,11 @@ export default function useStudentSuggestions({
       page: "1",
       limit: String(MAX_SUGGESTIONS),
     });
-    load(`/periodo/all/estudiantes?${params}`);
-  }, [deferredQuery, load]);
+    load(`${endpoint}?${params}`);
+  }, [deferredQuery, endpoint, load]);
 
   useEffect(() => {
-    const responseQuery = data?.filters?.id;
+    const responseQuery = query;
     if (responseQuery !== deferredQuery || !Array.isArray(data?.rows)) {
       autoSelectedRef.current = "";
       return;

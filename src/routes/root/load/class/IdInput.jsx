@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 
-import StudentSuggestions from "./StudentSuggestions";
+import Suggestions from "./Suggestions";
 import {
   normalizeId,
   sanitizeIdNumber,
@@ -14,16 +14,18 @@ export default function IdInput({
   disabled = false,
   label = "Documento",
   onChange,
-  onStudentSelect,
+  onSuggestionSelect,
+  suggestionsEndpoint = "/periodo/all/estudiantes",
+  suggestionsLabel = "Sugerencias de estudiantes",
 }) {
   const containerRef = useRef(null);
   const [suggestionsEnabled, setSuggestionsEnabled] = useState(false);
   const { prefix, number } = splitId(value);
 
-  const emitValue = (nextPrefix, nextNumber) => {
+  function emitValue(nextPrefix, nextNumber) {
     setSuggestionsEnabled(true);
     onChange?.(`${nextPrefix}${nextNumber}`);
-  };
+  }
 
   return (
     <div ref={containerRef} className="flex w-full bg-transparent">
@@ -45,7 +47,7 @@ export default function IdInput({
         disabled={disabled}
         title={
           disabled
-            ? "No es posible modificar un estudiante preexistente."
+            ? "No es posible modificar un registro preexistente."
             : undefined
         }
         inputMode="numeric"
@@ -56,11 +58,13 @@ export default function IdInput({
           emitValue(prefix, sanitizeIdNumber(event.target.value))
         }
       />
-      {!disabled && suggestionsEnabled && onStudentSelect && (
-        <StudentSuggestions
+      {!disabled && suggestionsEnabled && onSuggestionSelect && (
+        <Suggestions
           anchorRef={containerRef}
+          endpoint={suggestionsEndpoint}
+          label={suggestionsLabel}
           query={normalizeId(value)}
-          onSelect={onStudentSelect}
+          onSelect={onSuggestionSelect}
         />
       )}
     </div>

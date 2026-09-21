@@ -1,13 +1,14 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, UserRound } from "lucide-react";
 
 import { BodyCell, BodyRow } from "../TablePrimitives";
 import { useClassLoader } from "./ClassLoaderContext";
 import { useStudentEditor } from "./StudentEditor";
 import { normalizeId } from "./studentIdUtils";
+import { DeleteButton, EditButton } from "../../../../components/Button";
 
 export default function StudentRow({ student, selected, actions }) {
-  const { classesByYear, studentSchema } = useClassLoader();
-  const { openEdit } = useStudentEditor();
+  const { classesByYear, studentSchema, subjectsById } = useClassLoader();
+  const { openEdit, openSection } = useStudentEditor();
   const studentId = normalizeId(student.id);
   const studentName =
     `${student.firstName ?? ""} ${student.lastName ?? ""}`.trim() ||
@@ -15,6 +16,13 @@ export default function StudentRow({ student, selected, actions }) {
   const yearClasses = Object.values(
     classesByYear[student._class.year] || {}
   );
+  const pendingSubjectLabels = (student.pendingSubjects || []).map(
+    (subjectId) => {
+      const subject = subjectsById[String(subjectId)];
+      return subject?.abbr || subject?.name || String(subjectId);
+    }
+  );
+  const guardians = student.assignedGuardians || [];
 
   function handleSectionChange(event) {
     actions.move(event.target.value);
@@ -47,6 +55,38 @@ export default function StudentRow({ student, selected, actions }) {
         </BodyCell>
       ))}
       <BodyCell>
+        <button
+          type="button"
+          className="min-w-16 text-left"
+          aria-label={`Editar materias pendientes de ${studentName}`}
+          onClick={() => openSection(student, "enrollment")}
+        >
+          {pendingSubjectLabels.length > 0
+            ? pendingSubjectLabels.join(", ")
+            : "—"}
+        </button>
+      </BodyCell>
+      <BodyCell>
+        <button
+          type="button"
+          className="flex min-w-12 items-center gap-1"
+          aria-label={`Editar representantes de ${studentName}`}
+          onClick={() => openSection(student, "guardians")}
+        >
+          {guardians.length > 0 ? (
+            guardians.map((guardian) => (
+              <UserRound
+                key={normalizeId(guardian.id)}
+                aria-hidden="true"
+                className="h-5 w-5 rounded-full bg-gray-200 text-gray-500 p-0.5"
+              />
+            ))
+          ) : (
+            <span>—</span>
+          )}
+        </button>
+      </BodyCell>
+      <BodyCell>
         <select
           aria-label={`Cambiar sección de ${studentName}`}
           className="w-[15ch] rounded border border-gray-200 bg-white px-2 py-1"
@@ -65,22 +105,16 @@ export default function StudentRow({ student, selected, actions }) {
       </BodyCell>
       <BodyCell>
         <div className="flex justify-center gap-2">
-          <button
+          <EditButton
             type="button"
             onClick={() => openEdit(student)}
-            className="rounded border border-gray-200 p-1 text-gray-600 shadow hover:bg-gray-50"
             aria-label={`Editar estudiante ${studentName}`}
-          >
-            <Pencil aria-hidden="true" className="h-4 w-4" />
-          </button>
-          <button
+          />
+          <DeleteButton
             type="button"
             onClick={actions.delete}
-            className="rounded border border-gray-200 p-1 text-red-500 shadow hover:bg-red-50"
             aria-label={`Eliminar estudiante ${studentName}`}
-          >
-            <Trash2 aria-hidden="true" className="h-4 w-4" />
-          </button>
+          />
         </div>
       </BodyCell>
     </BodyRow>

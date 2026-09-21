@@ -202,6 +202,14 @@ export function classLoaderReducer(state, action) {
 export function serializeStudents(studentsById) {
   return Object.values(studentsById).map((student) => {
     const { _locked, ...persistedStudent } = student;
-    return persistedStudent;
+    return {
+      ...persistedStudent,
+      assignedGuardians: (persistedStudent.assignedGuardians || []).map(
+        (guardian) =>
+          Object.fromEntries(
+            Object.entries(guardian).filter(([key]) => key !== "_locked")
+          )
+      ),
+    };
   });
 }

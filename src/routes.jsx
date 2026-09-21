@@ -12,6 +12,7 @@ import SubjectLoader, {
 import ClassLoader, {
   classAction,
   classLoader,
+  guardianSuggestionsLoader,
 } from "./routes/root/load/class/ClassLoader";
 import { ErrorDialogProvider } from "./context/ErrorDialogContext";
 import PeriodOverview, { periodOverviewAction, periodOverviewLoader } from "./routes/root/PeriodOverview";
@@ -64,6 +65,10 @@ export default [
     ),
     errorElement: <ErrorBoundary />,
     children: [
+      {
+        path: "api/guardians",
+        loader: guardianSuggestionsLoader,
+      },
       {
         path: "ingresar",
         element: <Login />,

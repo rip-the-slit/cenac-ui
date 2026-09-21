@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Form, redirect, useActionData, useLoaderData } from "react-router";
 
 import { PageLayout } from "../../../../components/Layout";
+import {PrimaryButton} from "../../../../components/Button"
 import { useErrorDialog } from "../../../../context/ErrorDialogContext";
 import {
   getCache,
@@ -100,7 +101,7 @@ export default function SubjectLoader() {
 
   return (
     <PageLayout title="Carga de Materias">
-      <p className="mb-6 text-center text-gray-600">
+      <p className="mb-6 text-gray-600">
         Seleccione las materias correspondientes a cada año.
       </p>
 
@@ -124,12 +125,11 @@ export default function SubjectLoader() {
             />
           </CollapsibleSection>
         ))}
-        <button
+        <PrimaryButton
           type="submit"
-          className="text-emerald-600 underline decoration-wavy"
         >
           Continuar
-        </button>
+        </PrimaryButton>
       </Form>
     </PageLayout>
   );

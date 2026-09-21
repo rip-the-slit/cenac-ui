@@ -21,6 +21,7 @@ import {
   FormField,
   TextInput,
 } from "../../../components/Layout";
+import { DeleteButton, EditButton } from "../../../components/Button";
 
 const userLevels = ["Administrador", "Coordinador", "Profesor"];
 
@@ -273,16 +274,11 @@ export default function Users() {
           >
             <UserOption name={user.name} type={user.userLevel} />
             <div className="flex items-center gap-1">
-              <button
-                type="button"
+              <EditButton
                 onClick={() => setEditor({ mode: "edit", user: { ...user } })}
                 aria-label={`Editar usuario ${user.name}`}
-                className="rounded-md p-2 text-gray-500 hover:bg-gray-100"
-              >
-                <Pencil aria-hidden="true" className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
+              />
+              <DeleteButton
                 onClick={() => {
                   setDraftUsers((current) =>
                     current.filter(
@@ -298,10 +294,7 @@ export default function Users() {
                   }
                 }}
                 aria-label={`Eliminar usuario ${user.name}`}
-                className="rounded-md p-2 text-red-500 hover:bg-red-50"
-              >
-                <Trash2 aria-hidden="true" className="h-4 w-4" />
-              </button>
+              />
             </div>
           </li>
         ))}

@@ -5,6 +5,7 @@ import { LogIn } from "lucide-react";
 import { login } from "../../auth";
 import { useErrorDialog } from "../../context/ErrorDialogContext";
 import { Card } from "../../components/Layout";
+import { PrimaryButton } from "../../components/Button";
 
 export async function loginAction({ request }) {
   const formData = await request.formData();
@@ -53,12 +54,12 @@ export default function Login() {
             required="true"
             placeholder="Ingrese su contraseña"
           />
-          <button
+          <PrimaryButton
             className="flex items-center gap-2 font-bold p-3 shadow-sm rounded-lg bg-gradient-to-b from-emerald-500 to-emerald-600 border border-emerald-500 text-white"
             type="submit"
           >
             Ingresar <LogIn className="w-5 h-5" />
-          </button>
+          </PrimaryButton>
         </Form>
       </Card>
     </div>

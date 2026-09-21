@@ -1,11 +1,15 @@
 import { useEffect, useReducer, useRef } from "react";
 import { Form, redirect, useActionData, useLoaderData } from "react-router";
 
+import { PrimaryButton } from "../../../../components/Button";
 import { PageLayout } from "../../../../components/Layout";
 import { useErrorDialog } from "../../../../context/ErrorDialogContext";
 import {
+  createGuardian,
   getCache,
   getClassSuggestions,
+  getGuardians,
+  getSubjects,
   getYears,
   saveCache,
 } from "../../../../db";
@@ -19,6 +23,23 @@ import {
 } from "./classLoaderModel";
 import StudentEditorProvider from "./StudentEditor";
 import { normalizeId } from "./studentIdUtils";
+
+const MAX_GUARDIAN_SUGGESTIONS = 5;
+
+export async function guardianSuggestionsLoader({ request }) {
+  const url = new URL(request.url);
+  const requestedLimit = Number.parseInt(url.searchParams.get("limit"), 10);
+  const limit =
+    Number.isInteger(requestedLimit) && requestedLimit > 0
+      ? Math.min(requestedLimit, MAX_GUARDIAN_SUGGESTIONS)
+      : MAX_GUARDIAN_SUGGESTIONS;
+
+  return getGuardians({
+    id: url.searchParams.get("id") || "",
+    page: 1,
+    limit,
+  });
+}
 
 export async function classAction({ request }) {
   try {
@@ -67,14 +88,29 @@ export async function classAction({ request }) {
   }
 }
 
+function normalizeGuardian(guardian) {
+  return {
+    ...guardian,
+    id: normalizeId(guardian.id),
+    _locked: true,
+  };
+}
+
 export async function classLoader() {
-  const years = await getYears();
   const cachedStudents = getCache("class_students");
+  const cachedSubjectIds = getCache("subjects");
+  const [years, subjects, suggestions] = await Promise.all([
+    getYears(),
+    getSubjects(),
+    getClassSuggestions(),
+  ]);
   const {
     students: suggestedStudents,
     studentClass,
     studentFieldLabels,
-  } = await getClassSuggestions();
+    guardianClass = {},
+    guardianFieldLabels = {},
+  } = suggestions;
   const students =
     Array.isArray(cachedStudents) && cachedStudents.length > 0
       ? cachedStudents
@@ -83,6 +119,22 @@ export async function classLoader() {
     years.map((year) => [year.id, {}])
   );
   const studentsById = {};
+  const subjectsById = Object.fromEntries(
+    subjects.map((subject) => [String(subject.id), subject])
+  );
+  const subjectsByYear = {};
+
+  for (const year of years) {
+    const selectedSubjectIds =
+      cachedSubjectIds?.[year.id] ??
+      cachedSubjectIds?.[String(year.id)] ??
+      [];
+    subjectsByYear[year.id] = (
+      Array.isArray(selectedSubjectIds) ? selectedSubjectIds : []
+    )
+      .map((subjectId) => subjectsById[String(subjectId)])
+      .filter(Boolean);
+  }
 
   for (const student of students) {
     const yearId = student?._class?.year;
@@ -99,6 +151,14 @@ export async function classLoader() {
     const normalizedStudent = {
       ...student,
       id: normalizeId(student.id),
+      pendingSubjects: Array.isArray(student.pendingSubjects)
+        ? student.pendingSubjects.map(String)
+        : [],
+      assignedGuardians: Array.isArray(student.assignedGuardians)
+        ? student.assignedGuardians
+            .filter((guardian) => guardian && typeof guardian === "object")
+            .map(normalizeGuardian)
+        : [],
       _locked: true,
     };
     studentsById[normalizedStudent.id] = normalizedStudent;
@@ -117,6 +177,8 @@ export async function classLoader() {
     years,
     classesByYear,
     studentsById,
+    subjectsById,
+    subjectsByYear,
     studentSchema: {
       template: studentClass,
       attributes: Object.keys(studentClass).filter(
@@ -124,7 +186,33 @@ export async function classLoader() {
       ),
       labels: studentFieldLabels,
     },
+    guardianSchema: {
+      template: guardianClass,
+      attributes: Object.keys(guardianClass).filter(
+        (field) => !field.startsWith("_")
+      ),
+      labels: guardianFieldLabels,
+    },
   };
+}
+
+function getAllowedPendingSubjectIds(
+  selectedYearId,
+  years,
+  subjectsByYear
+) {
+  const yearIndex = years.findIndex(
+    (year) => String(year.id) === String(selectedYearId)
+  );
+  if (yearIndex <= 0) {
+    return new Set();
+  }
+
+  return new Set(
+    (subjectsByYear[years[yearIndex - 1].id] || []).map((subject) =>
+      String(subject.id)
+    )
+  );
 }
 
 function validateStudentChange({
@@ -132,6 +220,8 @@ function validateStudentChange({
   classesByYear,
   studentsById,
   studentSchema,
+  years,
+  subjectsByYear,
 }) {
   const { mode, originalId, student } = change;
   const studentId = normalizeId(student.id);
@@ -156,6 +246,34 @@ function validateStudentChange({
 
   if (!classesByYear[student._class?.year]?.[student._class?.id]) {
     return "Seleccione una sección válida.";
+  }
+
+  const pendingSubjects = Array.isArray(student.pendingSubjects)
+    ? student.pendingSubjects.map(String)
+    : [];
+  if (pendingSubjects.length > 2) {
+    return "Solo puede inscribir un máximo de dos materias pendientes.";
+  }
+  const allowedPendingSubjects = getAllowedPendingSubjectIds(
+    student._class.year,
+    years,
+    subjectsByYear
+  );
+  if (
+    pendingSubjects.some(
+      (subjectId) => !allowedPendingSubjects.has(subjectId)
+    )
+  ) {
+    return "Las materias pendientes deben pertenecer al año anterior.";
+  }
+
+  const guardianIds = new Set();
+  for (const guardian of student.assignedGuardians || []) {
+    const guardianId = normalizeId(guardian.id);
+    if (guardianIds.has(guardianId)) {
+      return "Un representante no puede asignarse más de una vez.";
+    }
+    guardianIds.add(guardianId);
   }
 
   if (mode === "edit" && !studentsById[originalId]) {
@@ -191,6 +309,8 @@ export default function ClassLoader() {
       classesByYear: state.classesByYear,
       studentsById: studentsRef.current,
       studentSchema: loaderData.studentSchema,
+      years: loaderData.years,
+      subjectsByYear: loaderData.subjectsByYear,
     });
 
     if (error) {
@@ -225,6 +345,11 @@ export default function ClassLoader() {
     return true;
   }
 
+  async function handleGuardianCreate(guardian) {
+    const { _locked, ...payload } = guardian;
+    return createGuardian(payload);
+  }
+
   function handleSerializeStudents() {
     payloadRef.current.value = JSON.stringify(
       serializeStudents(studentsRef.current)
@@ -235,17 +360,22 @@ export default function ClassLoader() {
     classesByYear: state.classesByYear,
     studentSchema: loaderData.studentSchema,
     studentsRef,
+    subjectsById: loaderData.subjectsById,
     dispatch,
     emitError,
   };
   const editorConfig = {
+    emitError,
     studentSchema: loaderData.studentSchema,
+    guardianSchema: loaderData.guardianSchema,
     enrollment: {
       years: loaderData.years,
       classesByYear: state.classesByYear,
+      subjectsByYear: loaderData.subjectsByYear,
     },
     getNextStudentId: () => getNextStudentId(studentsRef.current),
     onCommit: handleStudentCommit,
+    onCreateGuardian: handleGuardianCreate,
   };
 
   return (
@@ -272,12 +402,7 @@ export default function ClassLoader() {
                 <ClassSelector yearId={year.id} />
               </CollapsibleSection>
             ))}
-            <button
-              type="submit"
-              className="text-emerald-600 underline decoration-wavy"
-            >
-              Continuar
-            </button>
+            <PrimaryButton type="submit">Continuar</PrimaryButton>
           </Form>
         </PageLayout>
       </StudentEditorProvider>

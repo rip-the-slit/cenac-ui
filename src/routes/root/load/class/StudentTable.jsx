@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus } from "lucide-react";
 
+import { Button } from "../../../../components/Button";
 import TableControl from "../../components/TableControl";
 import {
   DataTable,
@@ -175,6 +176,8 @@ export default function StudentTable({ yearId, classId, students }) {
                     {studentSchema.labels[attribute] || attribute}
                   </HeadCell>
                 ))}
+                <HeadCell>Materias pendientes</HeadCell>
+                <HeadCell>Representantes</HeadCell>
                 <HeadCell>Sección</HeadCell>
                 <HeadCell>Acciones</HeadCell>
               </tr>

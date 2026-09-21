@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
+import { Button } from "../../../components/Button";
 
 const BUTTON_CLASS_NAME =
   "rounded-md border p-2 transition-colors enabled:border-gray-300 enabled:bg-white enabled:text-gray-700 enabled:hover:bg-gray-100 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-300";
@@ -68,7 +69,7 @@ export default function TableControl({
               </option>
             ))}
           </select>
-          <button
+          <Button
             type="button"
             onClick={submitBulkAction}
             className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
@@ -80,7 +81,7 @@ export default function TableControl({
             >
               {selectedLabel}
             </span>
-          </button>
+          </Button>
         </div>
         <div className="flex items-center gap-2">
           <button

@@ -7,8 +7,10 @@ import { ErrorDialogProvider } from "../../src/context/ErrorDialogContext";
 import { getActiveUser } from "../../src/auth";
 import {
   clearCache,
+  createGuardian,
   getCache,
   getClassSuggestions,
+  getGuardians,
   getPeriodList,
   getStudents,
   getSubjects,
@@ -27,13 +29,16 @@ import SubjectLoader, {
 import ClassLoader, {
   classAction,
   classLoader,
+  guardianSuggestionsLoader,
 } from "../../src/routes/root/load/class/ClassLoader";
 import { studentsLoader } from "../../src/routes/root/students/Students";
 
 vi.mock("../../src/db", () => ({
   clearCache: vi.fn(),
+  createGuardian: vi.fn(),
   getCache: vi.fn(),
   getClassSuggestions: vi.fn(),
+  getGuardians: vi.fn(),
   getPeriodList: vi.fn(),
   getStudents: vi.fn(),
   getSubjects: vi.fn(),
@@ -48,8 +53,9 @@ vi.mock("../../src/auth", () => ({
 
 const years = [{ id: 1, name: "Primer año" }];
 const subjects = [
-  { id: "math", name: "Matemática" },
-  { id: "language", name: "Lengua" },
+  { id: "math", name: "Matemática", abbr: "MAT" },
+  { id: "language", name: "Lengua", abbr: "LEN" },
+  { id: "science", name: "Ciencias", abbr: "CIE" },
 ];
 const studentClass = { id: "", firstName: "", lastName: "", _class: {} };
 const studentFieldLabels = {
@@ -57,6 +63,34 @@ const studentFieldLabels = {
   firstName: "Nombre",
   lastName: "Apellido",
 };
+const guardianClass = {
+  id: "",
+  firstName: "",
+  lastName: "",
+  birthDate: "",
+  legalRole: "",
+  phone: "",
+  address: "",
+};
+const guardianFieldLabels = {
+  id: "Cédula",
+  firstName: "Nombres",
+  lastName: "Apellidos",
+  birthDate: "Fecha de Nacimiento",
+  legalRole: "Rol Legal",
+  phone: "Teléfono",
+  address: "Dirección",
+};
+const guardian = {
+  id: "V-900",
+  firstName: "María",
+  lastName: "Rojas",
+  birthDate: "1980-01-02",
+  legalRole: "Madre",
+  phone: "04121234567",
+  address: "Calle Principal",
+};
+
 const students = [
   {
     id: "V-100",
@@ -130,6 +164,10 @@ function renderClassLoader() {
         ),
       },
       {
+        path: "/api/guardians",
+        loader: guardianSuggestionsLoader,
+      },
+      {
         path: "/periodo/:periodId/estudiantes",
         loader: studentsLoader,
         element: <div />,
@@ -159,7 +197,19 @@ describe("Data loading pages", () => {
       students,
       studentClass,
       studentFieldLabels,
+      guardianClass,
+      guardianFieldLabels,
     });
+    getGuardians.mockImplementation(({ id }) =>
+      Promise.resolve({
+        filters: { id },
+        rows: [],
+        recordsAmount: 0,
+      })
+    );
+    createGuardian.mockImplementation((guardian) =>
+      Promise.resolve(guardian)
+    );
     getPeriodList.mockResolvedValue([{ id: "2025" }]);
     getStudents.mockResolvedValue({
       recordsAmount: 0,
@@ -250,6 +300,14 @@ describe("Data loading pages", () => {
         template: studentClass,
         attributes: ["id", "firstName", "lastName"],
         labels: studentFieldLabels,
+      },
+      guardianSchema: {
+        template: guardianClass,
+        attributes: Object.keys(guardianClass),
+        labels: guardianFieldLabels,
+      },
+      subjectsByYear: {
+        1: [subjects[0]],
       },
     });
     expect(result.classesByYear[1].A.students[0]).toMatchObject({
@@ -360,7 +418,12 @@ describe("Data loading pages", () => {
       screen.getByRole("button", { name: "Editar estudiante Ana Pérez" })
     );
     expect(screen.getByRole("textbox", { name: "Nombre" })).toBeDisabled();
-    expect(screen.getByRole("combobox", { name: "Sección de inscripción" })).toBeEnabled();
+    await user.click(
+      screen.getByRole("button", { name: /^Inscripción/ })
+    );
+    expect(
+      screen.getByRole("combobox", { name: "Sección de inscripción" })
+    ).toBeEnabled();
   });
 
   it("auto-selects an exact historical match and locks identity data while the ids still match", async () => {
@@ -396,14 +459,24 @@ describe("Data loading pages", () => {
       screen.getByText(/únicamente puede cambiar su inscripción/i)
     ).toBeInTheDocument();
 
-    await user.selectOptions(screen.getByRole("combobox", { name: "Sección de inscripción" }), "1:B");
+    await user.click(
+      screen.getByRole("button", { name: /^Inscripción/ })
+    );
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Sección de inscripción" }),
+      "1:B"
+    );
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
-    await user.clear(documentInput);
+    const unlockedDocumentInput = screen.getByRole("textbox", {
+      name: "Documento",
+    });
+    await user.clear(unlockedDocumentInput);
 
     expect(screen.getByRole("textbox", { name: "Nombre" })).not.toBeDisabled();
     expect(screen.getByRole("textbox", { name: "Apellido" })).not.toBeDisabled();
 
-    await user.type(documentInput, "778");
+    await user.type(unlockedDocumentInput, "778");
 
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
     await user.click(screen.getByRole("tab", { name: "Sección B" }));
@@ -428,6 +501,260 @@ describe("Data loading pages", () => {
       ([key]) => key === "class_students"
     )[1];
     expect(saved.find((student) => student.id === "V-778")._locked).toBeUndefined();
+  });
+
+  it("edits pending subjects from the previous year and limits them to two", async () => {
+    const user = userEvent.setup();
+    const twoYears = [
+      { id: 1, name: "Primer año" },
+      { id: 2, name: "Segundo año" },
+    ];
+    const enrolledStudent = {
+      ...students[0],
+      _class: { year: 2, id: "A" },
+      pendingSubjects: ["math"],
+    };
+    cache.class_students = null;
+    cache.subjects = {
+      1: ["math", "language", "science"],
+      2: [],
+    };
+    getYears.mockResolvedValue(twoYears);
+    getClassSuggestions.mockResolvedValue({
+      students: [enrolledStudent],
+      studentClass,
+      studentFieldLabels,
+      guardianClass,
+      guardianFieldLabels,
+    });
+    renderClassLoader();
+
+    expect(
+      await screen.findByRole("columnheader", {
+        name: "Materias pendientes",
+      })
+    ).toBeInTheDocument();
+    expect(screen.getByText("MAT")).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Editar materias pendientes de Ana Pérez",
+      })
+    );
+
+    const mathematics = screen.getByRole("checkbox", {
+      name: "Matemática",
+    });
+    const language = screen.getByRole("checkbox", { name: "Lengua" });
+    const science = screen.getByRole("checkbox", { name: "Ciencias" });
+    expect(mathematics).toBeChecked();
+
+    await user.click(language);
+    expect(science).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+
+    expect(screen.getByText("MAT, LEN")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await waitFor(() =>
+      expect(saveCache).toHaveBeenCalledWith(
+        "class_students",
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "V-100",
+            pendingSubjects: ["math", "language"],
+          }),
+        ])
+      )
+    );
+  });
+
+  it("removes incompatible pending subjects when enrollment year changes", async () => {
+    const user = userEvent.setup();
+    const twoYears = [
+      { id: 1, name: "Primer año" },
+      { id: 2, name: "Segundo año" },
+    ];
+    cache.class_students = null;
+    cache.subjects = { 1: ["math"], 2: [] };
+    getYears.mockResolvedValue(twoYears);
+    getClassSuggestions.mockResolvedValue({
+      students: [
+        {
+          ...students[0],
+          _class: { year: 2, id: "A" },
+          pendingSubjects: ["math"],
+        },
+        {
+          ...students[1],
+          _class: { year: 1, id: "A" },
+        },
+      ],
+      studentClass,
+      studentFieldLabels,
+      guardianClass,
+      guardianFieldLabels,
+    });
+    renderClassLoader();
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Editar materias pendientes de Ana Pérez",
+      })
+    );
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Sección de inscripción" }),
+      "1:A"
+    );
+    expect(
+      screen.queryByRole("checkbox", { name: "Matemática" })
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+
+    const firstYearTabs = screen.getAllByRole("tab", {
+      name: "Sección A",
+    });
+    await user.click(firstYearTabs[0]);
+    const anaRow = screen.getByText("Ana").closest("tr");
+    expect(
+      within(anaRow).getByRole("button", {
+        name: "Editar materias pendientes de Ana Pérez",
+      })
+    ).toHaveTextContent("—");
+  });
+
+  it("manages assigned guardians and registers new guardian records", async () => {
+    const user = userEvent.setup();
+    cache.class_students = null;
+    getClassSuggestions.mockResolvedValue({
+      students: [
+        {
+          ...students[0],
+          assignedGuardians: [guardian],
+        },
+      ],
+      studentClass,
+      studentFieldLabels,
+      guardianClass,
+      guardianFieldLabels,
+    });
+    createGuardian.mockImplementation(async (record) => ({
+      ...record,
+      id: "V-901",
+    }));
+    renderClassLoader();
+
+    expect(
+      await screen.findByRole("columnheader", { name: "Representantes" })
+    ).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", {
+        name: "Editar representantes de Ana Pérez",
+      })
+    );
+    expect(screen.getByText("María Rojas")).toBeInTheDocument();
+    await user.click(
+      screen.getByRole("button", {
+        name: "Quitar representante María Rojas",
+      })
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Agregar representante" })
+    );
+
+    const guardianId = screen.getByRole("textbox", { name: "Cédula" });
+    await user.clear(guardianId);
+    await user.type(guardianId, "901");
+    await user.type(
+      screen.getByRole("textbox", { name: "Nombres" }),
+      "Mario"
+    );
+    await user.type(
+      screen.getByRole("textbox", { name: "Apellidos" }),
+      "Mora"
+    );
+    await user.type(
+      screen.getByLabelText("Fecha de Nacimiento"),
+      "1985-03-04"
+    );
+    await user.type(
+      screen.getByRole("textbox", { name: "Rol Legal" }),
+      "Padre"
+    );
+    await user.type(
+      screen.getByRole("textbox", { name: "Teléfono" }),
+      "04141234567"
+    );
+    await user.type(
+      screen.getByRole("textbox", { name: "Dirección" }),
+      "Avenida Central"
+    );
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+
+    await waitFor(() => expect(createGuardian).toHaveBeenCalledOnce());
+    expect(await screen.findByText("Mario Mora")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await waitFor(() =>
+      expect(saveCache).toHaveBeenCalledWith(
+        "class_students",
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "V-100",
+            assignedGuardians: [
+              expect.objectContaining({
+                id: "V-901",
+                firstName: "Mario",
+                lastName: "Mora",
+              }),
+            ],
+          }),
+        ])
+      )
+    );
+    const savedStudents = saveCache.mock.calls.find(
+      ([key]) => key === "class_students"
+    )[1];
+    expect(savedStudents[0].assignedGuardians[0]._locked).toBeUndefined();
+  });
+
+  it("uses an exact guardian match without registering a duplicate record", async () => {
+    const user = userEvent.setup();
+    cache.class_students = null;
+    getGuardians.mockImplementation(({ id }) =>
+      Promise.resolve({
+        filters: { id },
+        rows: id === guardian.id ? [guardian] : [],
+        recordsAmount: id === guardian.id ? 1 : 0,
+      })
+    );
+    renderClassLoader();
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Editar representantes de Ana Pérez",
+      })
+    );
+    await user.click(
+      screen.getByRole("button", { name: "Agregar representante" })
+    );
+    const guardianId = screen.getByRole("textbox", { name: "Cédula" });
+    await user.clear(guardianId);
+    await user.type(guardianId, "900");
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("textbox", { name: "Nombres" })
+      ).toHaveValue("María")
+    );
+    expect(
+      screen.getByRole("textbox", { name: "Nombres" })
+    ).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+
+    expect(await screen.findByText("María Rojas")).toBeInTheDocument();
+    expect(createGuardian).not.toHaveBeenCalled();
   });
 
   it("keeps stale suggestions visible until the current query resolves", async () => {
