@@ -65,7 +65,7 @@ describe("formatGrade", () => {
 
   it("shows a missing-grade marker for other values", () => {
     for (const value of [undefined, null, "12", NaN, Infinity]) {
-      expect(formatGrade(value)).toBe("—");
+      expect(formatGrade(value)).toBe(0);
     }
   });
 });
@@ -114,11 +114,11 @@ describe("pickClasses", () => {
 
 describe("parseGradeEntries", () => {
   const entries = [
-    ["grade::student-b::science::2::3", "19.5"],
-    ["grade::student-a::math::1::2", "14"],
-    ["grade::student-a::language::0::1", "16.25"],
-    ["grade::student-a::math::0::0", "10"],
-    ["grade::student-b::science::0::0", "8"],
+    ["changed::grade::year-1::student-b::science::2::3", "19.5"],
+    ["changed::grade::year-1::student-a::math::1::2", "14"],
+    ["changed::grade::year-1::student-a::language::0::1", "16.25"],
+    ["changed::grade::year-1::student-a::math::0::0", "10"],
+    ["changed::grade::year-1::student-b::science::0::0", "8"],
   ];
 
   const expectedGrades = [
@@ -129,8 +129,11 @@ describe("parseGradeEntries", () => {
     ["student-b", "science", 2, 3, 19.5],
   ];
 
-  it("returns an empty payload when there are no grade fields", () => {
+  it("returns an empty payload when there are no flagged grade fields", () => {
     expect(parseGradeEntries(formDataFrom())).toEqual([]);
+    expect(
+      parseGradeEntries(formDataFrom([["grade::year-1::student::math::0::0", "10"]]))
+    ).toEqual([]);
     expect(
       parseGradeEntries(
         formDataFrom([
@@ -156,14 +159,24 @@ describe("parseGradeEntries", () => {
     }
   });
 
+  it("keeps the same student separated across school years", () => {
+    const payload = parseGradeEntries(formDataFrom([
+      ["changed::grade::year-1::student::math::0::0", "10"],
+      ["changed::grade::year-2::student::math::0::0", "15"],
+    ]));
+
+    expect(payload.map(({ yearId }) => yearId)).toEqual(["year-1", "year-2"]);
+    expect(payload.map(({ subjects }) => subjects.math[0][0])).toEqual([10, 15]);
+  });
+
   it("keeps grades in their indexed slots, including gaps", () => {
     const payload = parseGradeEntries(
       formDataFrom([
-        ["grade::student::subject::1::3", "13"],
-        ["grade::student::subject::1::0", "10"],
-        ["grade::student::subject::1::2", "12"],
-        ["grade::student::subject::1::1", "11"],
-        ["grade::student::subject::0::2", "7"],
+        ["changed::grade::year-1::student::subject::1::3", "13"],
+        ["changed::grade::year-1::student::subject::1::0", "10"],
+        ["changed::grade::year-1::student::subject::1::2", "12"],
+        ["changed::grade::year-1::student::subject::1::1", "11"],
+        ["changed::grade::year-1::student::subject::0::2", "7"],
       ])
     );
     const terms = payload[0].subjects.subject;
@@ -178,11 +191,11 @@ describe("parseGradeEntries", () => {
   it("accepts the numeric formats supported by safeNumber", () => {
     const payload = parseGradeEntries(
       formDataFrom([
-        ["grade::student::subject::0::0", "0"],
-        ["grade::student::subject::0::1", "-2.5"],
-        ["grade::student::subject::0::2", " 12.5 "],
-        ["grade::student::subject::0::3", "1e1"],
-        ["grade::student::subject::0::4", ".5"],
+        ["changed::grade::year-1::student::subject::0::0", "0"],
+        ["changed::grade::year-1::student::subject::0::1", "-2.5"],
+        ["changed::grade::year-1::student::subject::0::2", " 12.5 "],
+        ["changed::grade::year-1::student::subject::0::3", "1e1"],
+        ["changed::grade::year-1::student::subject::0::4", ".5"],
       ])
     );
 
@@ -193,7 +206,7 @@ describe("parseGradeEntries", () => {
     const payload = parseGradeEntries(
       formDataFrom([
         ["q", "search"],
-        ["grade::student::subject::0::0", "17"],
+        ["changed::grade::year-1::student::subject::0::0", "17"],
         ["year", "1"],
         ["class", "1-A"],
         ["future_control", "future value"],
@@ -203,38 +216,38 @@ describe("parseGradeEntries", () => {
     );
 
     expect(payload).toEqual([
-      { id: "student", subjects: { subject: [[17]] } },
+      { id: "student", yearId: "year-1", subjects: { subject: [[17]] } },
     ]);
   });
 
   it("ignores malformed fields and invalid grade values", () => {
     const invalidEntries = [
-      ["grade::::subject::0::0", "10"],
-      ["grade::student::::0::0", "10"],
-      ["grade::student::subject", "10"],
-      ["grade::student::subject::term::0", "10"],
-      ["grade::student::subject::1.5::0", "10"],
-      ["grade::student::subject::0::slot", "10"],
-      ["grade::student::subject::0::1.5", "10"],
-      ["grade::student::subject::0::0", ""],
-      ["grade::student::subject::0::1", "invalid"],
-      ["grade::student::subject::0::2", "Infinity"],
+      ["changed::grade::year-1::::subject::0::0", "10"],
+      ["changed::grade::year-1::student::::0::0", "10"],
+      ["changed::grade::year-1::student::subject", "10"],
+      ["changed::grade::year-1::student::subject::term::0", "10"],
+      ["changed::grade::year-1::student::subject::1.5::0", "10"],
+      ["changed::grade::year-1::student::subject::0::slot", "10"],
+      ["changed::grade::year-1::student::subject::0::1.5", "10"],
+      ["changed::grade::year-1::student::subject::0::0", ""],
+      ["changed::grade::year-1::student::subject::0::1", "invalid"],
+      ["changed::grade::year-1::student::subject::0::2", "Infinity"],
     ];
 
     const payload = parseGradeEntries(
       formDataFrom([
         ...invalidEntries,
-        ["grade::accepted::math::0::0", "15"],
+        ["changed::grade::year-1::accepted::math::0::0", "15"],
       ])
     );
 
     expect(payload).toEqual([
-      { id: "accepted", subjects: { math: [[15]] } },
+      { id: "accepted", yearId: "year-1", subjects: { math: [[15]] } },
     ]);
   });
 
   it("uses the last value for duplicate grade fields", () => {
-    const field = "grade::student::subject::0::0";
+    const field = "changed::grade::year-1::student::subject::0::0";
     const payload = parseGradeEntries(
       formDataFrom([
         [field, "11"],

@@ -13,14 +13,12 @@ import Students, {
   studentsLoader,
 } from "../../src/routes/root/students/Students";
 import StudentDetail, {
-  studentDetailAction,
   studentDetailLoader,
 } from "../../src/routes/root/students/StudentDetail";
 import {
   getPeriodList,
   getStudentById,
   getStudents,
-  updateStudent,
 } from "../../src/db";
 import { ErrorDialogProvider } from "../../src/context/ErrorDialogContext";
 
@@ -28,7 +26,6 @@ vi.mock("../../src/db", () => ({
   getPeriodList: vi.fn(),
   getStudentById: vi.fn(),
   getStudents: vi.fn(),
-  updateStudent: vi.fn(),
 }));
 
 const studentFieldLabels = {
@@ -39,6 +36,7 @@ const studentFieldLabels = {
   birthPlace: "Lugar de nacimiento",
   status: "Estatus del Periodo",
   class: "Sección",
+  guardians: "Representantes",
 };
 
 const studentsResponse = {
@@ -63,6 +61,9 @@ const studentsResponse = {
       birthPlace: "Caracas",
       status: "pending",
       _class: { year: "1", id: "1-A" },
+      assignedGuardians: [
+        { id: "V-9001", firstName: "María", lastName: "Rojas" },
+      ],
     },
     {
       id: "V-1002",
@@ -72,6 +73,7 @@ const studentsResponse = {
       birthPlace: "Valencia",
       status: "passed",
       _class: { year: "2", id: "2-A" },
+      assignedGuardians: [],
     },
   ],
 };
@@ -90,7 +92,6 @@ function renderStudents(initialEntry = "/periodo/2025/estudiantes") {
             path: ":studentId",
             element: <StudentDetail />,
             loader: detailLoader,
-            action: studentDetailAction,
           },
         ],
       },
@@ -135,7 +136,6 @@ describe("Students page", () => {
         studentsResponse.rows[0],
       studentFieldLabels,
     }));
-    updateStudent.mockResolvedValue(undefined);
   });
 
   it("renders student headers, records, class names, and detail links", async () => {
@@ -167,6 +167,10 @@ describe("Students page", () => {
     }
     expect(within(table).getByText("Primer año 1-A")).toBeInTheDocument();
     expect(within(table).getByText("Segundo año 2-A")).toBeInTheDocument();
+    expect(within(table).getByRole("link", { name: "María Rojas" })).toHaveAttribute(
+      "href",
+      "/periodo/2025/representantes/V-9001"
+    );
   });
 
   it("submits all filters, resets pagination, and limits classes by year", async () => {
@@ -179,6 +183,7 @@ describe("Students page", () => {
     const birthPlaceFilter = screen.getByLabelText(
       studentFieldLabels.birthPlace
     );
+    const guardianFilter = screen.getByLabelText("Representantes");
     const yearFilter = getSelectByOption("Todos los años");
     const classFilter = getSelectByOption("Todas las secciones");
     const statusFilter = getSelectByOption("Todos los estatus");
@@ -199,6 +204,7 @@ describe("Students page", () => {
     fireEvent.change(lastNameFilter, { target: { value: "Pérez" } });
     fireEvent.change(birthDateFilter, { target: { value: "2010-01-01" } });
     fireEvent.change(birthPlaceFilter, { target: { value: "Caracas" } });
+    fireEvent.change(guardianFilter, { target: { value: "María" } });
     const selectedStatus = studentsResponse.statuses[1];
     expect(
       within(statusFilter).getByRole("option", { name: selectedStatus.name })
@@ -213,6 +219,7 @@ describe("Students page", () => {
         lastName: "Pérez",
         birthDate: "2010-01-01",
         birthPlace: "Caracas",
+        guardianQ: "María",
         year: "1",
         class: "1-A",
         status: selectedStatus.value,

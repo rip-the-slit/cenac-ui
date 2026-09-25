@@ -36,6 +36,7 @@ export async function studentsLoader({ params, request }) {
     lastName: url.searchParams.get("lastName") || "",
     birthDate: url.searchParams.get("birthDate") || "",
     birthPlace: url.searchParams.get("birthPlace") || "",
+    guardianQ: url.searchParams.get("guardianQ") || "",
     year: url.searchParams.get("year") || "",
     classId: url.searchParams.get("class") || "",
     status: url.searchParams.get("status") || "",
@@ -89,6 +90,7 @@ export default function Students() {
         years={years}
         classesByYear={classesByYear}
         studentFieldLabels={studentFieldLabels}
+        guardianLabel={studentFieldLabels.guardians || "Representantes"}
         statuses={statuses || []}
         onSubmit={submitFilters}
       />
@@ -119,6 +121,7 @@ export default function Students() {
             rows={rows}
             years={years}
             studentFieldLabels={studentFieldLabels}
+        guardianLabel={studentFieldLabels.guardians || "Representantes"}
             statuses={statuses || []}
             selectedIds={selectedIds}
             className={

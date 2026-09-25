@@ -8,6 +8,7 @@ import {
   generateReport,
   getPeriodList,
   getReportOptionData,
+  getReportUrl,
 } from "../../src/db";
 
 vi.mock("docx-preview", () => ({
@@ -18,6 +19,7 @@ vi.mock("../../src/db", () => ({
   generateReport: vi.fn(),
   getPeriodList: vi.fn(),
   getReportOptionData: vi.fn(),
+  getReportUrl: vi.fn(),
 }));
 
 const reportOptionData = {
@@ -83,6 +85,7 @@ describe("Reports page", () => {
     vi.clearAllMocks();
     getPeriodList.mockResolvedValue([{ id: "2025" }]);
     getReportOptionData.mockResolvedValue(reportOptionData);
+    getReportUrl.mockReturnValue("/api/reports/grades?periodId=2025");
     generateReport.mockResolvedValue(new Blob());
   });
 
@@ -110,40 +113,17 @@ describe("Reports page", () => {
     ).toHaveTextContent("Todos los estudiantes");
   });
 
-  it("downloads the generated report as a DOCX file", async () => {
+  it("links to the non-preview report using the selected filename", async () => {
     const user = userEvent.setup();
-    const reportFile = new Blob(["report"]);
-    const createObjectURL = vi.fn(() => "blob:report");
-    const revokeObjectURL = vi.fn();
-    Object.defineProperty(URL, "createObjectURL", {
-      configurable: true,
-      value: createObjectURL,
-    });
-    Object.defineProperty(URL, "revokeObjectURL", {
-      configurable: true,
-      value: revokeObjectURL,
-    });
-    const click = vi
-      .spyOn(HTMLAnchorElement.prototype, "click")
-      .mockImplementation(() => {});
-    generateReport.mockResolvedValue(reportFile);
     renderReports("/periodo/2025/reportes?type=grades");
 
     const fileName = await screen.findByLabelText("Nombre del archivo");
     await user.clear(fileName);
     await user.type(fileName, "notas-del-grupo");
 
-    await user.click(
-      await screen.findByRole("button", { name: "Descargar reporte" })
-    );
-
-    expect(createObjectURL).toHaveBeenCalledWith(reportFile);
-    expect(click).toHaveBeenCalledOnce();
-    expect(click.mock.instances[0]).toMatchObject({
-      download: "notas-del-grupo.docx",
-      href: "blob:report",
-    });
-    expect(revokeObjectURL).toHaveBeenCalledWith("blob:report");
+    const download = screen.getByRole("link", { name: "Descargar reporte" });
+    expect(download).toHaveAttribute("href", "/api/reports/grades?periodId=2025");
+    expect(download).toHaveAttribute("download", "notas-del-grupo.docx");
   });
 
   it("resets the filename when the report type changes", async () => {
@@ -240,6 +220,11 @@ describe("Reports page", () => {
 
     await screen.findByLabelText("Año");
     expect(generateReport).toHaveBeenCalledWith("2025", "enrollment", {
+      q: "V-10 OR E-20",
+      year: "1",
+      preview: "true",
+    });
+    expect(getReportUrl).toHaveBeenCalledWith("2025", "enrollment", {
       q: "V-10 OR E-20",
       year: "1",
     });

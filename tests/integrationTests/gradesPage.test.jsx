@@ -38,7 +38,7 @@ const gradesResponse = {
     { id: "2", name: "Segundo año" },
   ],
   subjectsByYear: { 1: ["math"], 2: ["math", "language"] },
-  classesByYear: { 1: ["1-A", "1-B"], 2: ["2-A"] },
+  classesByYear: { 1: ["1-A", "z"], 2: ["2-A"] },
   statuses: [
     { value: "pending", name: "Pendiente" },
     { value: "passed", name: "Aprobado" },
@@ -52,9 +52,11 @@ const gradesResponse = {
   rows: [
     {
       id: "V-1001",
+      yearId: "1",
       period: "2024 - 2025",
       fullName: "Ana Pérez",
       class: "1-A",
+      className: "z",
       status: "passed",
       subjectAverages: { math: 15.5, language: 17 },
       subjectDetails: {
@@ -63,6 +65,7 @@ const gradesResponse = {
             [10, 11, 12, 13, 14],
             [14, 15, 16, 17, 18],
             [18, 19, 20, 9, 10],
+            [16],
           ],
         },
         language: {
@@ -70,23 +73,27 @@ const gradesResponse = {
             [11, 12, 13, 14, 15],
             [15, 16, 17, 18, 19],
             [19, 20, 10, 11, 12],
+            [17],
           ],
         },
       },
     },
     {
       id: "V-1002",
+      yearId: "1",
       period: "2023 - 2024",
       fullName: "Luis Gómez",
-      class: "1-B",
+      class: "z",
+      className: "z",
       status: "pending",
       subjectAverages: { math: 12, language: 13.5 },
       subjectDetails: {
         math: {
           terms: [
-            [8, 9, 10, 11, 12],
-            [12, 13, 14, 15, 16],
-            [16, 17, 18, 19, 20],
+            [8],
+            [12],
+            [16],
+            [13],
           ],
         },
       },
@@ -206,7 +213,7 @@ describe("Grades page", () => {
       const expectedValues = [
         record.id,
         record.fullName,
-        record.class,
+        record.class === "z" ? "Flotante" : record.class,
         gradesResponse.statuses.find(
           (status) => status.value === record.status
         ).name,
@@ -277,6 +284,10 @@ describe("Grades page", () => {
         name: `E${GRADE_SLOTS_PER_TERM}`,
       })
     ).toHaveLength(TERM_COUNT);
+    expect(screen.getByRole("columnheader", { name: "Revisión" })).toHaveAttribute(
+      "rowspan",
+      "2"
+    );
     for (const collapsedSubject of gradesResponse.subjects.filter(
       (candidate) => candidate.id !== subject.id
     )) {
@@ -300,6 +311,18 @@ describe("Grades page", () => {
       .map((cell) => cell.textContent);
 
     expect(cells.slice(-expectedGrades.length)).toEqual(expectedGrades);
+  });
+
+  it("pads floating enrollments without creating extra grades", async () => {
+    renderGrades();
+    await expandSubject(gradesResponse.subjects[0].id);
+
+    const row = within(getRecordRow("V-1002"));
+    expect(row.getByText("Flotante")).toBeInTheDocument();
+    expect(row.getAllByLabelText("Sin estrategia")).toHaveLength(12);
+    for (const grade of ["8.0", "12.0", "16.0", "13.0"]) {
+      expect(row.getAllByText(grade, { exact: true }).length).toBeGreaterThan(0);
+    }
   });
 
   it("closes subject detail view", async () => {
@@ -342,7 +365,7 @@ describe("Grades page", () => {
       screen.getByRole("button", { name: "Guardar edición" })
     ).toBeInTheDocument();
     expect(screen.getAllByRole("spinbutton")).toHaveLength(
-      gradesResponse.rows.length * TERM_COUNT * GRADE_SLOTS_PER_TERM
+      TERM_COUNT * GRADE_SLOTS_PER_TERM + 1 + TERM_COUNT + 1
     );
 
     const gradeInputs = within(getRecordRow(record.id)).getAllByRole(
@@ -350,7 +373,21 @@ describe("Grades page", () => {
     );
     expect(gradeInputs[0]).toHaveAttribute(
       "name",
-      `grade::${record.id}::${subject.id}::0::0`
+      "grade::" + record.yearId + "::" + record.id + "::" + subject.id + "::0::0"
+    );
+
+    await userEvent.clear(gradeInputs[0]);
+    await userEvent.type(gradeInputs[0], "19");
+    await userEvent.tab();
+    expect(gradeInputs[0]).toHaveAttribute(
+      "name",
+      "changed::grade::" + record.yearId + "::" + record.id + "::" + subject.id + "::0::0"
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Guardar edición" }));
+    await waitFor(() =>
+      expect(loadGrades).toHaveBeenCalledWith("2025", [
+        { id: record.id, yearId: record.yearId, subjects: { [subject.id]: [[19]] } },
+      ])
     );
   });
 
@@ -375,6 +412,7 @@ describe("Grades page", () => {
     expect(searchFilter).toBeInTheDocument();
     expect(yearFilter).toBeInTheDocument();
     expect(classFilter).toBeInTheDocument();
+    expect(within(classFilter).getByRole("option", { name: "Flotante" })).toHaveValue("z");
     expect(statusFilter).toBeInTheDocument();
     expect(subjectFilter).toBeInTheDocument();
 
@@ -464,9 +502,7 @@ describe("Grades page", () => {
       gradesResponse.rows.reduce(
         (total, r) => total + (r.subjectDetails[subject.id] ? 1 : 0),
         0
-      ) *
-        TERM_COUNT *
-        GRADE_SLOTS_PER_TERM
+      ) * (TERM_COUNT * GRADE_SLOTS_PER_TERM + 1)
     );
   });
   it("renders pagination input", async () => {

@@ -1,13 +1,20 @@
-import { Pencil, Trash2, UserRound } from "lucide-react";
+import { UserRound } from "lucide-react";
 
 import { BodyCell, BodyRow } from "../TablePrimitives";
 import { useClassLoader } from "./ClassLoaderContext";
+import { getPreviousYearSubjects } from "./EnrollmentEditor";
 import { useStudentEditor } from "./StudentEditor";
 import { normalizeId } from "./studentIdUtils";
 import { DeleteButton, EditButton } from "../../../../components/Button";
 
 export default function StudentRow({ student, selected, actions }) {
-  const { classesByYear, studentSchema, subjectsById } = useClassLoader();
+  const {
+    classesByYear,
+    studentSchema,
+    subjectsById,
+    subjectsByYear,
+    years,
+  } = useClassLoader();
   const { openEdit, openSection } = useStudentEditor();
   const studentId = normalizeId(student.id);
   const studentName =
@@ -16,12 +23,17 @@ export default function StudentRow({ student, selected, actions }) {
   const yearClasses = Object.values(
     classesByYear[student._class.year] || {}
   );
-  const pendingSubjectLabels = (student.pendingSubjects || []).map(
-    (subjectId) => {
+  const availablePendingSubjectIds = new Set(
+    getPreviousYearSubjects(student._class.year, years, subjectsByYear).map(
+      (subject) => String(subject.id)
+    )
+  );
+  const pendingSubjectLabels = (student.pendingSubjects || [])
+    .filter((subjectId) => availablePendingSubjectIds.has(String(subjectId)))
+    .map((subjectId) => {
       const subject = subjectsById[String(subjectId)];
       return subject?.abbr || subject?.name || String(subjectId);
-    }
-  );
+    });
   const guardians = student.assignedGuardians || [];
 
   function handleSectionChange(event) {

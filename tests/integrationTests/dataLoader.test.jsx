@@ -10,6 +10,7 @@ import {
   createGuardian,
   getCache,
   getClassSuggestions,
+  getSubjectSuggestions,
   getGuardians,
   getPeriodList,
   getStudents,
@@ -38,6 +39,7 @@ vi.mock("../../src/db", () => ({
   createGuardian: vi.fn(),
   getCache: vi.fn(),
   getClassSuggestions: vi.fn(),
+  getSubjectSuggestions: vi.fn(),
   getGuardians: vi.fn(),
   getPeriodList: vi.fn(),
   getStudents: vi.fn(),
@@ -57,6 +59,9 @@ const subjects = [
   { id: "language", name: "Lengua", abbr: "LEN" },
   { id: "science", name: "Ciencias", abbr: "CIE" },
 ];
+const subjectsByYear = {
+  1: subjects.map(s => s.id)
+}
 const studentClass = { id: "", firstName: "", lastName: "", _class: {} };
 const studentFieldLabels = {
   id: "Documento",
@@ -200,6 +205,7 @@ describe("Data loading pages", () => {
       guardianClass,
       guardianFieldLabels,
     });
+    getSubjectSuggestions.mockResolvedValue({subjectsByYear})
     getGuardians.mockImplementation(({ id }) =>
       Promise.resolve({
         filters: { id },
@@ -288,6 +294,17 @@ describe("Data loading pages", () => {
     });
     expect(response.headers.get("Location")).toBe("../secciones");
   });
+
+  it("falls back to server suggestions when the subject cache is empty", async () => {
+    cache.subjects = null;
+    renderSubjectLoader();
+
+    for (const subject of subjects) {
+      expect(
+        await screen.findByRole("checkbox", { name:subject.name })
+      ).toBeChecked();
+    }
+  })
 
   it("groups students by section without adding row-only identity fields", async () => {
     cache.class_students = null;
@@ -567,6 +584,36 @@ describe("Data loading pages", () => {
         ])
       )
     );
+  });
+
+  it("only displays pending subjects available in the student's previous year", async () => {
+    cache.class_students = null;
+    cache.subjects = { 1: ["math"], 2: ["language"] };
+    getYears.mockResolvedValue([
+      { id: 1, name: "Primer año" },
+      { id: 2, name: "Segundo año" },
+    ]);
+    getClassSuggestions.mockResolvedValue({
+      students: [
+        {
+          ...students[0],
+          _class: { year: 2, id: "A" },
+          pendingSubjects: ["math", "language"],
+        },
+      ],
+      studentClass,
+      studentFieldLabels,
+      guardianClass,
+      guardianFieldLabels,
+    });
+
+    renderClassLoader();
+
+    const pendingSubjects = await screen.findByRole("button", {
+      name: "Editar materias pendientes de Ana Pérez",
+    });
+    expect(pendingSubjects).toHaveTextContent("MAT");
+    expect(pendingSubjects).not.toHaveTextContent("LEN");
   });
 
   it("removes incompatible pending subjects when enrollment year changes", async () => {

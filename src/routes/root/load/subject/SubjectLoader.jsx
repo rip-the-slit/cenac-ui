@@ -2,11 +2,12 @@ import { useEffect, useState } from "react";
 import { Form, redirect, useActionData, useLoaderData } from "react-router";
 
 import { PageLayout } from "../../../../components/Layout";
-import {PrimaryButton} from "../../../../components/Button"
+import { PrimaryButton } from "../../../../components/Button";
 import { useErrorDialog } from "../../../../context/ErrorDialogContext";
 import {
   getCache,
   getSubjects,
+  getSubjectSuggestions,
   getYears,
   saveCache,
 } from "../../../../db";
@@ -49,23 +50,33 @@ export async function subjectAction({ request }) {
 }
 
 export async function subjectLoader() {
-  const years = await getYears();
-  const subjects = await getSubjects();
   const cachedSubjects = getCache("subjects");
-  const subjectsPerYear = {};
+  const [years, subjects, suggestions] = await Promise.all([
+    getYears(),
+    getSubjects(),
+    getSubjectSuggestions(),
+  ]);
+  const {subjectsByYear: suggestedSubjects} = suggestions
 
-  for (const year of years) {
-    const cached =
-      cachedSubjects?.[year.id] ??
-      cachedSubjects?.[String(year.id)] ??
-      [];
-    subjectsPerYear[year.id] = Object.fromEntries(
-      (Array.isArray(cached) ? cached : []).map((subjectId) => [
-        String(subjectId),
-        true,
-      ])
+  const subjectsPerYear =
+    Object.prototype.toString.call(cachedSubjects) === "[object Object]" &&
+    Object.entries(cachedSubjects).length
+      ? cachedSubjects
+      : suggestedSubjects ||
+        years.reduce((acc, year) => {
+          acc[year.id] = [];
+          return acc;
+        }, {});
+
+  years.forEach((year) => {
+    subjectsPerYear[year.id] = (subjectsPerYear[year.id] || []).reduce(
+      (acc, s) => {
+        acc[s] = true;
+        return acc;
+      },
+      {}
     );
-  }
+  });
 
   return { years, subjects, subjectsPerYear };
 }
@@ -125,11 +136,7 @@ export default function SubjectLoader() {
             />
           </CollapsibleSection>
         ))}
-        <PrimaryButton
-          type="submit"
-        >
-          Continuar
-        </PrimaryButton>
+        <PrimaryButton type="submit">Continuar</PrimaryButton>
       </Form>
     </PageLayout>
   );

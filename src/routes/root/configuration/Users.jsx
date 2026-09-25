@@ -16,11 +16,7 @@ import {
 } from "../../../auth";
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
 import { UserOption } from "../../login/UserSelector";
-import {
-  CardHeader,
-  FormField,
-  TextInput,
-} from "../../../components/Layout";
+import { CardHeader, FormField, TextInput } from "../../../components/Layout";
 import { DeleteButton, EditButton } from "../../../components/Button";
 
 const userLevels = ["Administrador", "Coordinador", "Profesor"];
@@ -254,6 +250,7 @@ export default function Users() {
     <>
       <CardHeader
         title="Usuarios"
+        description="Modifique la lista de usuarios y guarde para aplicar los cambios."
         actions={
           <button
             type="button"

@@ -16,7 +16,7 @@ import {
   createFilterSearchParams,
   getViewFilters,
   parseGradeEntries,
-} from "./gradesUtils";
+} from "./gradesUtils.jsx";
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
 import RouteAccess from "../components/RouteAccess";
 import { PageLayout } from "../../../components/Layout";
@@ -25,6 +25,13 @@ const MAX_TABLE_ROWS = 20;
 const BULK_ACTION_OPTIONS = [
   { value: "grades", label: "Generar boletín" },
 ];
+
+function markChangedGrade(event) {
+  const target = event.target;
+  if (typeof target.name === "string" && target.name.startsWith("grade::")) {
+    target.setAttribute("name", "changed::" + target.name);
+  }
+}
 
 export async function gradesLoader({ params, request }) {
   const url = new URL(request.url);
@@ -90,6 +97,7 @@ export default function Grades() {
   const navigation = useNavigation()
   const navigate = useNavigate();
   const navigationRef = useRef(null)
+  const gradesFormRef = useRef(null)
 
   const activeData = filterFetcher.data ?? loaderData;
   let {
@@ -130,6 +138,12 @@ export default function Grades() {
       `/periodo/${encodeURIComponent(activeData.periodId)}/reportes?${params}`
     );
   };
+
+  useEffect(() => {
+    const form = gradesFormRef.current;
+    form?.addEventListener("change", markChangedGrade);
+    return () => form?.removeEventListener("change", markChangedGrade);
+  }, []);
 
   useEffect(() => {
     if (actionData instanceof Error) {
@@ -193,7 +207,12 @@ export default function Grades() {
         )}
       </div>
 
-      <Form id="grades-form" method="post" className="relative">
+      <Form
+        id="grades-form"
+        method="post"
+        className="relative"
+        ref={gradesFormRef}
+      >
         <input
           type="hidden"
           name="return_search"
@@ -224,6 +243,7 @@ export default function Grades() {
           <GradesTable
             rows={rows}
             subjects={subjects}
+            years={years}
             studentGradesFieldLabels={studentGradesFieldLabels}
             statuses={statuses || []}
             expandedSubject={expandedSubject}

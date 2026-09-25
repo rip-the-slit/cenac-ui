@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import Filter from "../components/Filter";
+import { formatClassName } from "../classDisplay";
 
 const CONTROL_CLASS_NAME =
   "rounded-lg border border-gray-300 px-3 py-2 font-normal text-gray-900 overflow-hidden w-full";
@@ -75,7 +76,7 @@ export default function ReportsFilters({
           >
             {(filter.options || []).map((option) => (
               <option key={option.value} value={option.value}>
-                {option.name}
+                {filter.value === "class" ? formatClassName(option.value) : option.name}
               </option>
             ))}
           </select>

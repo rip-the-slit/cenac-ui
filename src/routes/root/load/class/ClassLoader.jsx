@@ -122,6 +122,7 @@ export async function classLoader() {
   const subjectsById = Object.fromEntries(
     subjects.map((subject) => [String(subject.id), subject])
   );
+
   const subjectsByYear = {};
 
   for (const year of years) {
@@ -361,6 +362,8 @@ export default function ClassLoader() {
     studentSchema: loaderData.studentSchema,
     studentsRef,
     subjectsById: loaderData.subjectsById,
+    subjectsByYear: loaderData.subjectsByYear,
+    years: loaderData.years,
     dispatch,
     emitError,
   };

@@ -1,5 +1,6 @@
 import Filter from "../components/Filter";
-import { pickClasses } from "./gradesUtils";
+import { pickClasses } from "./gradesUtils.jsx";
+import { formatClassName } from "../classDisplay";
 
 const CONTROL_CLASS_NAME =
   "rounded-lg border border-gray-300 px-3 py-2 font-normal text-gray-900 overflow-hidden w-full";
@@ -61,7 +62,7 @@ export default function GradesFilters({
         >
           <option value="">Todas las secciones</option>
           {pickClasses(classesByYear, filters.year).map((classId) => (
-            <option key={classId} value={classId}>{classId}</option>
+            <option key={classId} value={classId}>{formatClassName(classId)}</option>
           ))}
         </select>
       </Filter>

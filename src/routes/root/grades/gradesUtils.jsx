@@ -5,7 +5,7 @@ export function safeNumber(value) {
 }
 
 export function formatGrade(value) {
-  return Number.isFinite(value) ? value.toFixed(1) : "—";
+  return Number.isFinite(value) ? value.toFixed(1) : <span className="text-gray-500">—</span>;
 }
 
 export function calculateAverage(values) {
@@ -29,10 +29,12 @@ export function parseGradeEntries(formData) {
   const students = new Map();
 
   for (const [key, value] of formData.entries()) {
-    if (!key.startsWith("grade::")) continue;
+    if (!key.startsWith("changed::grade::")) continue;
 
-    const [, studentId, subjectId, termIndexRaw, gradeIndexRaw] = key.split("::");
-    if (!studentId || !subjectId) continue;
+    const parts = key.split("::");
+    if (parts.length !== 7) continue;
+    const [, , yearId, studentId, subjectId, termIndexRaw, gradeIndexRaw] = parts;
+    if (!yearId || !studentId || !subjectId) continue;
 
     const termIndex = Number(termIndexRaw);
     const gradeIndex = Number(gradeIndexRaw);
@@ -41,11 +43,12 @@ export function parseGradeEntries(formData) {
     const numericValue = safeNumber(value);
     if (numericValue === null) continue;
 
-    if (!students.has(studentId)) {
-      students.set(studentId, { id: studentId, subjects: {} });
+    const studentKey = yearId + "\u0000" + studentId;
+    if (!students.has(studentKey)) {
+      students.set(studentKey, { id: studentId, yearId, subjects: {} });
     }
 
-    const student = students.get(studentId);
+    const student = students.get(studentKey);
     if (!student.subjects[subjectId]) student.subjects[subjectId] = [];
     if (!student.subjects[subjectId][termIndex]) {
       student.subjects[subjectId][termIndex] = [];

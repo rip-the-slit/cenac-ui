@@ -8,6 +8,7 @@ import {
   MoreHorizontal,
   GraduationCap,
   FileText,
+  UsersRound,
 } from "lucide-react";
 import UserSelector from "../login/UserSelector";
 import {
@@ -86,6 +87,11 @@ export default function App() {
           icon: GraduationCap,
           label: "Estudiantes",
           path: `${rootUrl}/estudiantes`,
+        },
+        {
+          icon: UsersRound,
+          label: "Representantes",
+          path: `${rootUrl}/representantes`,
         },
         {
           icon: FileText,

@@ -6,6 +6,7 @@ import {
   generateReport,
   getPeriodList,
   getReportOptionData,
+  getReportUrl,
 } from "../../../db";
 import ReportsFilters from "./ReportsFilters";
 import Filter from "../components/Filter";
@@ -23,10 +24,7 @@ export async function reportsLoader({ params, request }) {
       (report) => report.value === requestedReportType
     ) || reportOptionData.reportTypes[0];
   const reportType = activeReport?.value || "";
-  const filters = {
-    reportType,
-    q: url.searchParams.get("q") || "",
-  };
+  const filters = { reportType, q: url.searchParams.get("q") || "" };
   const reportFilters = { q: filters.q };
 
   for (const option of activeReport?.options || []) {
@@ -37,12 +35,19 @@ export async function reportsLoader({ params, request }) {
   }
 
   const reportFile = reportType
-    ? await generateReport(periodId, reportType, reportFilters)
+    ? await generateReport(periodId, reportType, {
+        ...reportFilters,
+        preview: "true",
+      })
     : null;
+  const downloadUrl = reportType
+    ? getReportUrl(periodId, reportType, reportFilters)
+    : "";
 
   return {
     ...reportOptionData,
     reportFile,
+    downloadUrl,
     periodId,
     filters,
   };
@@ -52,15 +57,17 @@ export default function Reports() {
   const loaderData = useRouteLoaderData("reports");
   const filterFetcher = useFetcher();
   const activeData = filterFetcher.data ?? loaderData;
-  const { reportTypes = [], reportFile, filters = {} } = activeData || {};
+  const {
+    reportTypes = [],
+    reportFile,
+    downloadUrl = "",
+    filters = {},
+  } = activeData || {};
   const pendingFilters = filterFetcher.formData
     ? Object.fromEntries(filterFetcher.formData)
     : null;
   const viewFilters = pendingFilters
-    ? {
-        ...pendingFilters,
-        reportType: pendingFilters.type || filters.reportType,
-      }
+    ? { ...pendingFilters, reportType: pendingFilters.type || filters.reportType }
     : filters;
   const docxPreviewRef = useRef(null);
   const spinnerRef = useRef(null);
@@ -70,36 +77,24 @@ export default function Reports() {
   const defaultFileName = reportName ? `reporte-${reportName}` : "reporte";
   const [fileName, setFileName] = useState(defaultFileName);
   const reportTypeRef = useRef(viewFilters.reportType);
-
   const submitFilters = (formData) =>
     filterFetcher.submit(formData, { method: "get" });
 
-  const downloadReport = () => {
-    if (!reportFile) return;
-    const objectUrl = URL.createObjectURL(reportFile);
-    const link = document.createElement("a");
-    link.href = objectUrl;
-    link.download = `${fileName}.docx`;
-    link.click();
-    URL.revokeObjectURL(objectUrl);
-  };
-
   useEffect(() => {
-    if (filterFetcher.state !== "loading") return
-    spinnerRef.current.classList.remove("hidden")
-  }, [filterFetcher.state])
+    if (filterFetcher.state !== "loading") return;
+    spinnerRef.current?.classList.remove("hidden");
+  }, [filterFetcher.state]);
 
   useEffect(() => {
     if (!reportFile || !docxPreviewRef.current) return;
     docxPreviewRef.current.replaceChildren();
     renderAsync(reportFile, docxPreviewRef.current).then(() =>
-      spinnerRef.current.classList.add("hidden")
+      spinnerRef.current?.classList.add("hidden")
     );
   }, [reportFile]);
 
   useEffect(() => {
     if (reportTypeRef.current === viewFilters.reportType) return;
-
     reportTypeRef.current = viewFilters.reportType;
     setFileName(defaultFileName);
   }, [defaultFileName, viewFilters.reportType]);
@@ -114,6 +109,7 @@ export default function Reports() {
     );
   }
 
+  const downloadDisabled = !downloadUrl || filterFetcher.state !== "idle";
   return (
     <PageLayout title="Reportes">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -123,9 +119,9 @@ export default function Reports() {
           reportTypes={reportTypes}
           onSubmit={submitFilters}
         />
-        <div className="flex gap-5 items-center">
+        <div className="flex items-center gap-5">
           <Filter label="Nombre del archivo" htmlFor="report-file-name">
-            <div className="rounded-lg border border-gray-300 px-3 py-2 font-normal text-gray-900 overflow-hidden w-full">
+            <div className="w-full overflow-hidden rounded-lg border border-gray-300 px-3 py-2 font-normal text-gray-900">
               <input
                 id="report-file-name"
                 value={fileName}
@@ -140,17 +136,19 @@ export default function Reports() {
               <span>.docx</span>
             </div>
           </Filter>
-          <button
-            type="button"
-            disabled={!reportFile || filterFetcher.state !== "idle"}
-            onClick={downloadReport}
-            className="flex items-center gap-2 rounded-lg border border-emerald-500 bg-gradient-to-b from-emerald-500 to-emerald-600 p-3 font-semibold text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
+          <a
+            href={downloadDisabled ? undefined : downloadUrl}
+            download={`${fileName}.docx`}
+            aria-disabled={downloadDisabled}
+            className={`flex items-center gap-2 rounded-lg border border-emerald-500 bg-gradient-to-b from-emerald-500 to-emerald-600 p-3 font-semibold text-white shadow-sm ${
+              downloadDisabled ? "pointer-events-none cursor-not-allowed opacity-50" : ""
+            }`}
           >
             Descargar reporte <Download className="h-5 w-5" />
-          </button>
+          </a>
         </div>
       </div>
-      <div className="relative rounded-xl border border-gray-200 overflow-hidden">
+      <div className="relative overflow-hidden rounded-xl border border-gray-200">
         <div
           ref={spinnerRef}
           className="absolute inset-0 z-10 flex items-center justify-center bg-gray-200/60 hidden"

@@ -19,9 +19,10 @@ import PeriodOverview, { periodOverviewAction, periodOverviewLoader } from "./ro
 import Grades, { gradesAction, gradesLoader } from "./routes/root/grades/Grades";
 import Students, { studentsLoader } from "./routes/root/students/Students";
 import StudentDetail, {
-  studentDetailAction,
   studentDetailLoader,
 } from "./routes/root/students/StudentDetail";
+import Guardians, { guardiansLoader } from "./routes/root/guardians/Guardians";
+import GuardianDetail, { guardianDetailLoader } from "./routes/root/guardians/GuardianDetail";
 import Reports, {
   reportsLoader,
 } from "./routes/root/reports/Reports";
@@ -102,7 +103,18 @@ export default [
                 path: ":studentId",
                 element: <StudentDetail />,
                 loader: studentDetailLoader,
-                action: studentDetailAction,
+              },
+            ],
+          },
+          {
+            path: "representantes",
+            element: <Guardians />,
+            loader: guardiansLoader,
+            children: [
+              {
+                path: ":guardianId",
+                element: <GuardianDetail />,
+                loader: guardianDetailLoader,
               },
             ],
           },

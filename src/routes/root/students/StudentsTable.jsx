@@ -41,6 +41,7 @@ export default function StudentsTable({
             <HeadCell>{studentFieldLabels.birthPlace}</HeadCell>
             <HeadCell>{studentFieldLabels.class}</HeadCell>
             <HeadCell>{studentFieldLabels.status}</HeadCell>
+            <HeadCell>{studentFieldLabels.guardians || "Representantes"}</HeadCell>
           </tr>
         </TableHead>
         <TableBody>

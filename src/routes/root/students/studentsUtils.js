@@ -20,6 +20,7 @@ export function getViewFilters(filters, pendingFormData) {
     lastName: pendingValue("lastName", filters.lastName),
     birthDate: pendingValue("birthDate", filters.birthDate),
     birthPlace: pendingValue("birthPlace", filters.birthPlace),
+    guardianQ: pendingValue("guardianQ", filters.guardianQ),
     year: pendingValue("year", filters.year),
     classId: pendingValue("class", filters.classId),
     status: pendingValue("status", filters.status),
@@ -33,6 +34,7 @@ export function createFilterSearchParams({
   lastName,
   birthDate,
   birthPlace,
+  guardianQ,
   year,
   classId,
   status,
@@ -44,6 +46,7 @@ export function createFilterSearchParams({
   if (lastName) params.set("lastName", lastName);
   if (birthDate) params.set("birthDate", birthDate);
   if (birthPlace) params.set("birthPlace", birthPlace);
+  if (guardianQ) params.set("guardianQ", guardianQ);
   if (year) params.set("year", year);
   if (year && classId) params.set("class", classId);
   if (status) params.set("status", status);

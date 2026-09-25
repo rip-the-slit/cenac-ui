@@ -30,6 +30,7 @@ describe("student filter utilities", () => {
       lastName: "Pérez",
       birthDate: "2010-01-01",
       birthPlace: "Caracas",
+      guardianQ: "",
       year: "1",
       classId: "1-A",
       status: "Activo",

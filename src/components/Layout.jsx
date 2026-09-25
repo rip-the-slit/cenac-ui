@@ -32,6 +32,7 @@ export function Card({ as = "section", children, className = "" }) {
 
 export function CardHeader({
   title,
+  description,
   backTo,
   onBack,
   backLabel = "Volver",
@@ -60,7 +61,16 @@ export function CardHeader({
             {backContent}
           </button>
         ) : null}
-        <h2 className="text-2xl font-semibold text-gray-800">{title}</h2>
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-800">{title}</h2>
+          <p
+            className={
+              "max-w-2xl text-sm text-gray-600 " + (description && "mt-2")
+            }
+          >
+            {description}
+          </p>
+        </div>
       </div>
       {actions}
     </header>

@@ -1,5 +1,6 @@
 import Filter from "../components/Filter";
 import { pickClasses } from "./studentsUtils";
+import { formatClassName } from "../classDisplay";
 
 const CONTROL_CLASS_NAME =
   "rounded-lg border border-gray-300 px-3 py-2 font-normal text-gray-900 overflow-hidden w-full";
@@ -11,6 +12,7 @@ export default function StudentsFilters({
   classesByYear,
   studentFieldLabels,
   statuses,
+  guardianLabel = "Representantes",
   onSubmit,
 }) {
   const FilterForm = FormComponent;
@@ -22,6 +24,7 @@ export default function StudentsFilters({
       onChange={(event) => {
         const formData = new FormData(event.currentTarget);
         if (!formData.get("year")) formData.delete("class");
+        if (!formData.get("guardianQ")) formData.delete("guardianQ");
         formData.set("page", "1");
         onSubmit(formData);
       }}
@@ -76,6 +79,16 @@ export default function StudentsFilters({
           onChange={() => {}}
         />
       </Filter>
+      <Filter label={guardianLabel}>
+        <input
+          name="guardianQ"
+          className={CONTROL_CLASS_NAME}
+          placeholder="Buscar representante"
+          size="1"
+          defaultValue={filters.guardianQ}
+          onChange={() => {}}
+        />
+      </Filter>
       <Filter label="Año">
         <select
           name="year"
@@ -103,7 +116,7 @@ export default function StudentsFilters({
           <option value="">Todas las secciones</option>
           {pickClasses(classesByYear, filters.year).map((classId) => (
             <option key={classId} value={classId}>
-              {classId}
+              {formatClassName(classId)}
             </option>
           ))}
         </select>

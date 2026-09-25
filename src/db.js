@@ -20,11 +20,12 @@ export async function getClassSuggestions() {
   return request("/periods/suggestions");
 }
 
-export async function getStudentById(periodId, studentId) {
-  return request(`/periods/${periodId}/students/${studentId}`);
+export async function getSubjectSuggestions() {
+  return request("/subjects/suggestions")
 }
 
-export async function updateStudent(periodId, studentId, data) {
+export async function getStudentById(periodId, studentId) {
+  return request(`/periods/${periodId}/students/${studentId}`);
 }
 
 export async function getStudents(periodId, filters = {}) {
@@ -34,6 +35,7 @@ export async function getStudents(periodId, filters = {}) {
   if (filters.lastName)    params.set("lastName",     filters.lastName);
   if (filters.birthDate)   params.set("dateOfBirth",  filters.birthDate);
   if (filters.birthPlace)  params.set("birthPlace",   filters.birthPlace);
+  if (filters.guardianQ)   params.set("guardianQ",    filters.guardianQ);
   if (filters.year)        params.set("year",         filters.year);
   if (filters.classId)     params.set("class",        filters.classId);
   if (filters.status)      params.set("status",       filters.status);
@@ -99,19 +101,25 @@ export async function getReportOptionData() {
   return request("/reports/");
 }
 
-export async function generateReport(periodId, reportType, filters) {
-  const params = new URLSearchParams({periodId});
+export function getReportUrl(periodId, reportType, filters = {}) {
+  const params = new URLSearchParams({ periodId });
   for (const [key, value] of Object.entries(filters)) {
-    if (value) params.set(key, value);
+    if (value !== undefined && value !== null && value !== "") {
+      params.set(key, String(value));
+    }
   }
-  const res = await fetch(`${BASE_URL}/reports/${reportType}?${params.toString()}`, {
+  return BASE_URL + "/reports/" + reportType + "?" + params.toString();
+}
+
+export async function generateReport(periodId, reportType, filters) {
+  const res = await fetch(getReportUrl(periodId, reportType, filters), {
     headers: { "Content-Type": "application/json" },
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || res.statusText);
   }
-  return await res.blob()
+  return res.blob();
 }
 
 export function saveCache(key, data) {
@@ -142,7 +150,18 @@ export function clearCache(key) {
 
 export async function getGuardians(filters = {}) {
   const params = new URLSearchParams();
-  if (filters.id) params.set("id", filters.id);
+  for (const field of [
+    "id",
+    "firstName",
+    "lastName",
+    "birthDate",
+    "legalRole",
+    "phone",
+    "address",
+    "studentQ",
+  ]) {
+    if (filters[field]) params.set(field, filters[field]);
+  }
   if (filters.page) params.set("page", filters.page);
   if (filters.limit) params.set("limit", filters.limit);
   const qs = params.toString();
@@ -154,4 +173,8 @@ export async function createGuardian(guardian) {
     method: "POST",
     body: JSON.stringify(guardian),
   });
+}
+
+export async function getGuardianById(guardianId) {
+  return request(`/guardians/${guardianId}`);
 }

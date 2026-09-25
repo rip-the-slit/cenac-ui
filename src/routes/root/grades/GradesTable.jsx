@@ -14,6 +14,7 @@ const GRADE_SLOTS_PER_TERM = 5;
 export default function GradesTable({
   rows,
   subjects,
+  years,
   studentGradesFieldLabels,
   statuses,
   expandedSubject,
@@ -65,7 +66,7 @@ export default function GradesTable({
               <HeadCell
                 key={subject.id}
                 className="text-center relative"
-                colSpan={expandedSubject ? TERM_COUNT * GRADE_SLOTS_PER_TERM : 1}
+                colSpan={expandedSubject ? TERM_COUNT * GRADE_SLOTS_PER_TERM + 1 : 1}
                 title={expandedSubject ? "Volver" : subject.name}
               >
                 {expandedSubject ? (
@@ -108,6 +109,9 @@ export default function GradesTable({
                  L{termIndex + 1}
                 </HeadCell>
               ))}
+              <HeadCell className="text-center" rowSpan={2}>
+                Revisión
+              </HeadCell>
             </tr>
           )}
           {expandedSubject && (
@@ -130,8 +134,9 @@ export default function GradesTable({
             <GradesTableRow
               key={row.id}
               row={row}
-          statuses={statuses}
+              statuses={statuses}
               subjects={subjects}
+              years={years}
               expandedSubject={expandedSubject}
               isEditing={
                 isEditing &&
