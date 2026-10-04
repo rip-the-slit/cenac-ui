@@ -56,7 +56,8 @@ const gradesResponse = {
       period: "2024 - 2025",
       fullName: "Ana Pérez",
       class: "1-A",
-      className: "z",
+      className: "A",
+      floating: false,
       status: "passed",
       subjectAverages: { math: 15.5, language: 17 },
       subjectDetails: {
@@ -85,6 +86,7 @@ const gradesResponse = {
       fullName: "Luis Gómez",
       class: "z",
       className: "z",
+      floating: true,
       status: "pending",
       subjectAverages: { math: 12, language: 13.5 },
       subjectDetails: {
@@ -213,7 +215,7 @@ describe("Grades page", () => {
       const expectedValues = [
         record.id,
         record.fullName,
-        record.class === "z" ? "Flotante" : record.class,
+        `${gradesResponse.years.find((year) => String(year.id) === String(record.yearId)).name} ${record.className === "z" ? "Sección Flotante" : record.className}`,
         gradesResponse.statuses.find(
           (status) => status.value === record.status
         ).name,
@@ -318,7 +320,7 @@ describe("Grades page", () => {
     await expandSubject(gradesResponse.subjects[0].id);
 
     const row = within(getRecordRow("V-1002"));
-    expect(row.getByText("Flotante")).toBeInTheDocument();
+    expect(row.getByText("Primer año Sección Flotante")).toBeInTheDocument();
     expect(row.getAllByLabelText("Sin estrategia")).toHaveLength(12);
     for (const grade of ["8.0", "12.0", "16.0", "13.0"]) {
       expect(row.getAllByText(grade, { exact: true }).length).toBeGreaterThan(0);
@@ -412,7 +414,7 @@ describe("Grades page", () => {
     expect(searchFilter).toBeInTheDocument();
     expect(yearFilter).toBeInTheDocument();
     expect(classFilter).toBeInTheDocument();
-    expect(within(classFilter).getByRole("option", { name: "Flotante" })).toHaveValue("z");
+    expect(within(classFilter).getByRole("option", { name: "Sección Flotante" })).toHaveValue("z");
     expect(statusFilter).toBeInTheDocument();
     expect(subjectFilter).toBeInTheDocument();
 

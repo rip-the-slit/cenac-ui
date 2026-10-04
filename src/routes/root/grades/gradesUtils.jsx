@@ -5,7 +5,7 @@ export function safeNumber(value) {
 }
 
 export function formatGrade(value) {
-  return Number.isFinite(value) ? value.toFixed(1) : <span className="text-gray-500">—</span>;
+  return Number.isFinite(value) ? value.toFixed(1) : "—";
 }
 
 export function calculateAverage(values) {

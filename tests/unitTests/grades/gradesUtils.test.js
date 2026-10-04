@@ -65,7 +65,7 @@ describe("formatGrade", () => {
 
   it("shows a missing-grade marker for other values", () => {
     for (const value of [undefined, null, "12", NaN, Infinity]) {
-      expect(formatGrade(value)).toBe(0);
+      expect(formatGrade(value)).toBe("—");
     }
   });
 });

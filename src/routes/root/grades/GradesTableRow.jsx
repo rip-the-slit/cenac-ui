@@ -1,6 +1,7 @@
 import { BodyCell, BodyRow } from "../load/TablePrimitives";
 import { formatClassName } from "../classDisplay";
-import { calculateAverage, formatGrade } from "./gradesUtils.jsx";
+import { calculateAverage } from "./gradesUtils.jsx";
+import Grade from "./Grade";
 
 function GradeCell({ grade, inputName, isEditing }) {
   return (
@@ -14,9 +15,10 @@ function GradeCell({ grade, inputName, isEditing }) {
           name={inputName}
           className="w-[6ch] bg-transparent text-center"
           defaultValue={grade ?? "0"}
+          required
         />
       ) : (
-        formatGrade(grade)
+        <Grade value={grade} />
       )}
     </BodyCell>
   );
@@ -56,7 +58,7 @@ export default function GradesTableRow({
       </BodyCell>
       <BodyCell>{row.id}</BodyCell>
       <BodyCell>{row.fullName}</BodyCell>
-      <BodyCell>{`${yearName} ${formatClassName(row.className)}`}</BodyCell>
+      <BodyCell>{`${yearName} ${formatClassName(row.className)}`.trim()}</BodyCell>
       {showPeriod && <BodyCell>{row.period ?? "—"}</BodyCell>}
       <BodyCell>{statusName}</BodyCell>
       {visibleSubjects?.length > 0 ? visibleSubjects.map((subject) => {
@@ -64,7 +66,7 @@ export default function GradesTableRow({
         if (!expandedSubject) {
           return (
             <BodyCell key={`${row.id}-${subjectId}`} className="text-center">
-              {formatGrade(row.subjectAverages[subjectId])}
+              <Grade value={row.subjectAverages?.[subjectId]} />
             </BodyCell>
           );
         }
@@ -91,7 +93,9 @@ export default function GradesTableRow({
                   key={`${row.id}-${subjectId}-${termIndex}-padding-${index}`}
                   aria-label="Sin estrategia"
                   className="text-center"
-                >{formatGrade(null)}</BodyCell>
+                >
+                  <Grade value={null} />
+                </BodyCell>
               );
             }
           }
@@ -108,14 +112,18 @@ export default function GradesTableRow({
         );
         return gradeCells;
       }) : (
-        <BodyCell className="text-center">{formatGrade(null)}</BodyCell>
+        <BodyCell className="text-center">
+          <Grade value={null} />
+        </BodyCell>
       )}
       <BodyCell className="text-center">
-        {formatGrade(
-          expandedSubject
-            ? row.subjectAverages?.[String(expandedSubject.id)]
-            : calculateAverage(Object.values(row.subjectAverages || {}))
-        )}
+        <Grade
+          value={
+            expandedSubject
+              ? row.subjectAverages?.[String(expandedSubject.id)]
+              : calculateAverage(Object.values(row.subjectAverages || {}))
+          }
+        />
       </BodyCell>
     </BodyRow>
   );
