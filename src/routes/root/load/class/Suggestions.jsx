@@ -46,10 +46,6 @@ export default function Suggestions({
       </div>
       <div className={suggestions.isPending ? "opacity-60" : ""}>
         {suggestions.results.map((record) => {
-          const fullName =
-            `${record.firstName ?? ""} ${record.lastName ?? ""}`.trim() ||
-            String(record.id);
-
           return (
             <button
               key={record.id}
@@ -64,9 +60,6 @@ export default function Suggestions({
               }}
             >
               <span className="block font-medium text-gray-800">
-                {fullName}
-              </span>
-              <span className="block text-xs text-gray-500">
                 {record.id}
               </span>
             </button>
