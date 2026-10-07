@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { formatClassName } from "../../classDisplay";
+import { getEnrollmentSubjects } from "./classLoaderUtils";
 
 import { Button, PrimaryButton } from "../../../../components/Button";
 import {
@@ -8,24 +10,10 @@ import {
 
 const MAX_PENDING_SUBJECTS = 2;
 
-export function getPreviousYearSubjects(
-  selectedYearId,
-  years,
-  subjectsByYear
-) {
-  const yearIndex = years.findIndex(
-    (year) => String(year.id) === String(selectedYearId)
-  );
-  if (yearIndex <= 0) {
-    return [];
-  }
-
-  return subjectsByYear[years[yearIndex - 1].id] || [];
-}
-
 export default function EnrollmentEditor({
   enrollment,
   student,
+  locked,
   onBack,
   onConfirm,
 }) {
@@ -37,8 +25,8 @@ export default function EnrollmentEditor({
       ? student.pendingSubjects.map(String)
       : []
   );
-  const availableSubjects = getPreviousYearSubjects(
-    studentClass.year,
+  const availableSubjects = getEnrollmentSubjects(
+    studentClass,
     enrollment.years,
     enrollment.subjectsByYear
   );
@@ -46,12 +34,15 @@ export default function EnrollmentEditor({
     availableSubjects.map((subject) => String(subject.id))
   );
   const selectedClass = `${studentClass.year ?? ""}:${studentClass.id ?? ""}`;
+  const pendingSubjectNames = availableSubjects
+    .filter((subject) => pendingSubjects.includes(String(subject.id)))
+    .map((subject) => subject.name);
 
   function handleClassChange(event) {
     const [year, id] = event.target.value.split(":");
     const yearId = Number(year);
-    const nextSubjects = getPreviousYearSubjects(
-      yearId,
+    const nextSubjects = getEnrollmentSubjects(
+      { year: yearId, id },
       enrollment.years,
       enrollment.subjectsByYear
     );
@@ -101,21 +92,25 @@ export default function EnrollmentEditor({
           aria-label="Sección de inscripción"
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 font-normal"
           value={selectedClass}
+          disabled={student._class.id === "z"}
           required
           onChange={handleClassChange}
         >
+          <option value="" disabled>
+            Seleccione una sección
+          </option>
           {enrollment.years.map((year) => (
             <optgroup label={year.name} key={year.id}>
-              {Object.values(
-                enrollment.classesByYear[year.id] || {}
-              ).map((classGroup) => (
-                <option
-                  key={classGroup.className}
-                  value={`${year.id}:${classGroup.className}`}
-                >
-                  {classGroup.className}
-                </option>
-              ))}
+              {Object.values(enrollment.classesByYear[year.id] || {})
+                .map((classGroup) => (
+                  <option
+                    key={classGroup.className}
+                    value={`${year.id}:${classGroup.className}`}
+                    disabled={classGroup.className === "z"}
+                  >
+                    {formatClassName(classGroup.className)}
+                  </option>
+                ))}
             </optgroup>
           ))}
         </select>
@@ -125,39 +120,50 @@ export default function EnrollmentEditor({
         <legend className="px-2 font-semibold text-gray-800">
           Materias pendientes
         </legend>
-        <p className="mb-4 text-sm text-gray-500">
-          Puede inscribir un máximo de {MAX_PENDING_SUBJECTS} materias del año
-          anterior.
-        </p>
-
-        {availableSubjects.length > 0 ? (
-          <div className="grid gap-3 sm:grid-cols-2">
-            {availableSubjects.map((subject) => {
-              const subjectId = String(subject.id);
-              const checked = pendingSubjects.includes(subjectId);
-              return (
-                <label
-                  key={subjectId}
-                  className="flex items-center gap-3 text-sm text-gray-700"
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    disabled={
-                      !checked &&
-                      pendingSubjects.length >= MAX_PENDING_SUBJECTS
-                    }
-                    onChange={() => togglePendingSubject(subjectId)}
-                  />
-                  <span>{subject.name}</span>
-                </label>
-              );
-            })}
-          </div>
-        ) : (
+        {locked ? (
           <p className="text-sm text-gray-500">
-            No hay materias del año anterior disponibles para esta inscripción.
+            {pendingSubjectNames.length > 0
+              ? `Este estudiante lleva pendiente ${pendingSubjectNames.join(", ")}.`
+              : "Este estudiante no lleva materias pendientes."}
           </p>
+        ) : (
+          <>
+            <p className="mb-4 text-sm text-gray-500">
+              Puede inscribir un máximo de {MAX_PENDING_SUBJECTS} materias pendientes.
+            </p>
+
+            {availableSubjects.length > 0 ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {availableSubjects.map((subject) => {
+                  const subjectId = String(subject.id);
+                  const checked = pendingSubjects.includes(subjectId);
+                  return (
+                    <label
+                      key={subjectId}
+                      className="flex items-center gap-3 text-sm text-gray-700"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={
+                          !checked &&
+                          pendingSubjects.length >= MAX_PENDING_SUBJECTS
+                        }
+                        onChange={() => togglePendingSubject(subjectId)}
+                      />
+                      <span>{subject.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                {studentClass.id === "z"
+                  ? "No hay materias del último año disponibles para esta inscripción."
+                  : "No hay materias del año anterior disponibles para esta inscripción."}
+              </p>
+            )}
+          </>
         )}
       </fieldset>
 

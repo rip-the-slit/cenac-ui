@@ -19,3 +19,15 @@ export function normalizeId(value) {
   const { prefix, number } = splitId(value);
   return `${prefix}${number}`;
 }
+
+export function getEnrollmentSubjects(studentClass, years, subjectsByYear) {
+  const yearIndex = years.findIndex(
+    (year) => String(year.id) === String(studentClass.year)
+  );
+
+  if (studentClass.id === "z") {
+    return yearIndex >= 0 ? subjectsByYear[years[yearIndex].id] || [] : [];
+  }
+
+  return yearIndex > 0 ? subjectsByYear[years[yearIndex - 1].id] || [] : [];
+}

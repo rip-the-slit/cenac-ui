@@ -1,4 +1,5 @@
 import { Plus, Trash2 } from "lucide-react";
+import { formatClassName } from "../../classDisplay";
 
 import StudentCountBadge from "./StudentCountBadge";
 
@@ -33,14 +34,14 @@ export default function ClassTabs({
                 type="button"
                 id={`class-tab-${yearId}-${classId}`}
                 role="tab"
-                aria-label={`Sección ${classId}`}
+                aria-label={formatClassName(classId)}
                 aria-selected={isSelected}
                 aria-controls={`class-panel-${yearId}-${classId}`}
                 tabIndex={isSelected ? 0 : -1}
                 onClick={() => actions.select(classId)}
                 className="flex items-center gap-2 px-3 py-2 text-sm font-semibold"
               >
-                <span>Sección {classId}</span>
+                <span>{formatClassName(classId)}</span>
                 <StudentCountBadge
                   classId={classId}
                   count={classGroup.students.length}
@@ -50,7 +51,7 @@ export default function ClassTabs({
                 type="button"
                 onClick={() => actions.delete(classId)}
                 className="mr-1 rounded p-1 text-red-500 transition-opacity hover:bg-red-50"
-                aria-label={`Eliminar sección ${classId}`}
+                aria-label={`Eliminar ${formatClassName(classId).toLowerCase()}`}
               >
                 <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
               </button>

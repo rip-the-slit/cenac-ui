@@ -1,10 +1,10 @@
 import { UserRound } from "lucide-react";
+import { formatClassName } from "../../classDisplay";
 
 import { BodyCell, BodyRow } from "../TablePrimitives";
 import { useClassLoader } from "./ClassLoaderContext";
-import { getPreviousYearSubjects } from "./EnrollmentEditor";
+import { getEnrollmentSubjects, normalizeId } from "./classLoaderUtils";
 import { useStudentEditor } from "./StudentEditor";
-import { normalizeId } from "./studentIdUtils";
 import { DeleteButton, EditButton } from "../../../../components/Button";
 
 export default function StudentRow({ student, selected, actions }) {
@@ -24,7 +24,7 @@ export default function StudentRow({ student, selected, actions }) {
     classesByYear[student._class.year] || {}
   );
   const availablePendingSubjectIds = new Set(
-    getPreviousYearSubjects(student._class.year, years, subjectsByYear).map(
+    getEnrollmentSubjects(student._class, years, subjectsByYear).map(
       (subject) => String(subject.id)
     )
   );
@@ -103,14 +103,16 @@ export default function StudentRow({ student, selected, actions }) {
           aria-label={`Cambiar sección de ${studentName}`}
           className="w-[15ch] rounded border border-gray-200 bg-white px-2 py-1"
           value={student._class.id}
+          disabled={student._class.id === "z"}
           onChange={handleSectionChange}
         >
           {yearClasses.map((classGroup) => (
             <option
               key={classGroup.className}
               value={classGroup.className}
+              disabled={classGroup.className === "z"}
             >
-              {classGroup.className}
+              {formatClassName(classGroup.className)}
             </option>
           ))}
         </select>

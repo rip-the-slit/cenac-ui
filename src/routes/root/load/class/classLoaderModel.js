@@ -1,4 +1,4 @@
-import { normalizeId } from "./studentIdUtils";
+import { normalizeId } from "./classLoaderUtils";
 
 const STUDENT_ID_BASE = 30000000;
 
