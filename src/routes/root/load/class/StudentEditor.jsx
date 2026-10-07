@@ -12,7 +12,7 @@ import {
 import EnrollmentEditor from "./EnrollmentEditor";
 import GuardianEditor from "./GuardianEditor";
 import IdInput from "./IdInput";
-import { normalizeId } from "./studentIdUtils";
+import { normalizeId } from "./classLoaderUtils";
 
 const StudentEditorContext = createContext(null);
 
@@ -142,6 +142,7 @@ function StudentEditorModal({ editor, config, onClose }) {
     const committed = onCommit({
       mode: editor.mode,
       originalId: editor.originalId,
+      initialClass: editor.student._class,
       student: buildStudent(source),
     });
 
@@ -194,6 +195,7 @@ function StudentEditorModal({ editor, config, onClose }) {
       <EnrollmentEditor
         enrollment={enrollment}
         student={draft}
+        locked={locked}
         onBack={directSection ? onClose : () => setPage("details")}
         onConfirm={confirmEnrollment}
       />

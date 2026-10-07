@@ -7,7 +7,7 @@ import {
 } from "react";
 import { useFetcher } from "react-router";
 
-import { normalizeId } from "./studentIdUtils";
+import { normalizeId } from "./classLoaderUtils";
 
 const MAX_SUGGESTIONS = 5;
 const MIN_OVERLAY_WIDTH = 256;

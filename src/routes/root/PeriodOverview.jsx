@@ -14,7 +14,6 @@ import {
   getYears,
 } from "../../db";
 import ClassCard from "./load/ClassCard";
-import { formatClassName } from "./classDisplay";
 import CollapsibleSection from "./load/CollapsibleSection";
 import { Archive, Plus } from "lucide-react";
 import { useErrorDialog } from "../../context/ErrorDialogContext";
@@ -192,7 +191,7 @@ export default function PeriodOverview() {
                       to={`notas?year=${year.id}&class=${classId}`}
                       className="block"
                     >
-                      <ClassCard className={formatClassName(classId)} />
+                      <ClassCard className={classId} />
                     </Link>
                   ))
                 )}

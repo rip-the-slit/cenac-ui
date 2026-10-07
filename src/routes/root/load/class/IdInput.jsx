@@ -5,9 +5,9 @@ import {
   normalizeId,
   sanitizeIdNumber,
   splitId,
-} from "./studentIdUtils";
+} from "./classLoaderUtils";
 
-export { normalizeId } from "./studentIdUtils";
+export { normalizeId } from "./classLoaderUtils";
 
 export default function IdInput({
   value = "",

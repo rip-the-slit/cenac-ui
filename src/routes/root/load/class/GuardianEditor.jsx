@@ -8,7 +8,7 @@ import {
   TextInput,
 } from "../../../../components/Layout";
 import IdInput from "./IdInput";
-import { normalizeId } from "./studentIdUtils";
+import { normalizeId } from "./classLoaderUtils";
 
 function guardianName(guardian) {
   return (

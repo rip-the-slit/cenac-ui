@@ -147,7 +147,7 @@ describe("PeriodOverview", () => {
     const user = userEvent.setup();
     renderOverview();
 
-    const firstClass = await screen.findByText("1-A");
+    const firstClass = await screen.findByText("Sección 1-A");
     expect(firstClass.closest("a")).toHaveAttribute(
       "href",
       "/periodo/2025/notas?year=1&class=1-A"

@@ -215,7 +215,7 @@ describe("Grades page", () => {
       const expectedValues = [
         record.id,
         record.fullName,
-        `${gradesResponse.years.find((year) => String(year.id) === String(record.yearId)).name} ${record.className === "z" ? "Sección Flotante" : record.className}`,
+        `${gradesResponse.years.find((year) => String(year.id) === String(record.yearId)).name} ${record.className === "z" ? "Sección Flotante" : `Sección ${record.className}`}`,
         gradesResponse.statuses.find(
           (status) => status.value === record.status
         ).name,

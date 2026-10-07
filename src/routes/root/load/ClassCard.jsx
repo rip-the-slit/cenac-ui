@@ -1,4 +1,5 @@
 import { Trash2 } from "lucide-react";
+import { formatClassName } from "../classDisplay";
 
 export default function ClassCard({
   className,
@@ -16,13 +17,15 @@ export default function ClassCard({
           onClick={onClick}
           className="w-full rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer"
         >
-          <span className="text-2xl font-bold text-gray-700">{className}</span>
-          <span className="text-sm text-gray-500">Sección</span>
+          <span className="text-2xl font-bold text-gray-700">
+            {formatClassName(className)}
+          </span>
         </button>
       ) : (
         <div className="w-full rounded-lg p-4 flex flex-col items-center justify-center">
-          <span className="text-2xl font-bold text-gray-700">{className}</span>
-          <span className="text-sm text-gray-500">Sección</span>
+          <span className="text-2xl font-bold text-gray-700">
+            {formatClassName(className)}
+          </span>
         </div>
       )}
       {showDelete && (
@@ -30,7 +33,7 @@ export default function ClassCard({
           type="button"
           onClick={onDelete}
           className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity rounded border border-gray-200 bg-white p-1 text-red-500"
-          aria-label={`Eliminar sección ${className}`}
+          aria-label={`Eliminar ${formatClassName(className).toLowerCase()}`}
         >
           <Trash2 className="h-4 w-4" />
         </button>

@@ -13,7 +13,7 @@ import {
 import { useClassLoader } from "./ClassLoaderContext";
 import StudentRow from "./StudentRow";
 import { useStudentEditor } from "./StudentEditor";
-import { normalizeId } from "./studentIdUtils";
+import { normalizeId } from "./classLoaderUtils";
 
 const MAX_TABLE_ROWS = 10;
 const BULK_ACTION_OPTIONS = [
@@ -21,7 +21,13 @@ const BULK_ACTION_OPTIONS = [
 ];
 
 export default function StudentTable({ yearId, classId, students }) {
-  const { studentSchema, dispatch, studentsRef } = useClassLoader();
+  const {
+    studentSchema,
+    dispatch,
+    studentsRef,
+    classesByYear,
+    emitError,
+  } = useClassLoader();
   const { openCreate } = useStudentEditor();
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState({ all: false });
@@ -103,6 +109,15 @@ export default function StudentTable({ yearId, classId, students }) {
 
   function moveStudent(student, targetClassId) {
     if (targetClassId === classId) {
+      return;
+    }
+
+    if (
+      !classesByYear[yearId]?.[targetClassId] ||
+      classId === "z" ||
+      targetClassId === "z"
+    ) {
+      emitError("Seleccione una sección válida.");
       return;
     }
 

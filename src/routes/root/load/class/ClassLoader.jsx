@@ -22,7 +22,7 @@ import {
   serializeStudents,
 } from "./classLoaderModel";
 import StudentEditorProvider from "./StudentEditor";
-import { normalizeId } from "./studentIdUtils";
+import { getEnrollmentSubjects, normalizeId } from "./classLoaderUtils";
 
 const MAX_GUARDIAN_SUGGESTIONS = 5;
 
@@ -197,25 +197,6 @@ export async function classLoader() {
   };
 }
 
-function getAllowedPendingSubjectIds(
-  selectedYearId,
-  years,
-  subjectsByYear
-) {
-  const yearIndex = years.findIndex(
-    (year) => String(year.id) === String(selectedYearId)
-  );
-  if (yearIndex <= 0) {
-    return new Set();
-  }
-
-  return new Set(
-    (subjectsByYear[years[yearIndex - 1].id] || []).map((subject) =>
-      String(subject.id)
-    )
-  );
-}
-
 function validateStudentChange({
   change,
   classesByYear,
@@ -224,7 +205,7 @@ function validateStudentChange({
   years,
   subjectsByYear,
 }) {
-  const { mode, originalId, student } = change;
+  const { mode, originalId, initialClass, student } = change;
   const studentId = normalizeId(student.id);
 
   if (!/^[VE]-[1-9]\d{0,7}$/.test(studentId)) {
@@ -249,23 +230,33 @@ function validateStudentChange({
     return "Seleccione una sección válida.";
   }
 
+  if (
+    (initialClass?.id === "z" || student._class.id === "z") &&
+    (initialClass?.id !== student._class.id ||
+      String(initialClass?.year) !== String(student._class.year))
+  ) {
+    return "La inscripción en sección flotante debe realizarse desde esa sección.";
+  }
+
   const pendingSubjects = Array.isArray(student.pendingSubjects)
     ? student.pendingSubjects.map(String)
     : [];
   if (pendingSubjects.length > 2) {
     return "Solo puede inscribir un máximo de dos materias pendientes.";
   }
-  const allowedPendingSubjects = getAllowedPendingSubjectIds(
-    student._class.year,
-    years,
-    subjectsByYear
+  const allowedPendingSubjects = new Set(
+    getEnrollmentSubjects(student._class, years, subjectsByYear).map(
+      (subject) => String(subject.id)
+    )
   );
   if (
     pendingSubjects.some(
       (subjectId) => !allowedPendingSubjects.has(subjectId)
     )
   ) {
-    return "Las materias pendientes deben pertenecer al año anterior.";
+    return student._class.id === "z"
+      ? "Las materias pendientes deben pertenecer al último año."
+      : "Las materias pendientes deben pertenecer al año anterior.";
   }
 
   const guardianIds = new Set();
