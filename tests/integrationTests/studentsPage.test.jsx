@@ -165,8 +165,8 @@ describe("Students page", () => {
         )
       ).toBeInTheDocument();
     }
-    expect(within(table).getByText("Primer año 1-A")).toBeInTheDocument();
-    expect(within(table).getByText("Segundo año 2-A")).toBeInTheDocument();
+    expect(within(table).getByText("Primer año Sección 1-A")).toBeInTheDocument();
+    expect(within(table).getByText("Segundo año Sección 2-A")).toBeInTheDocument();
     expect(within(table).getByRole("link", { name: "María Rojas" })).toHaveAttribute(
       "href",
       "/periodo/2025/representantes/V-9001"

@@ -20,6 +20,7 @@ import {
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
 import RouteAccess from "../components/RouteAccess";
 import { PageLayout } from "../../../components/Layout";
+import { Button, PrimaryButton } from "../../../components/Button";
 
 const MAX_TABLE_ROWS = 20;
 const BULK_ACTION_OPTIONS = [
@@ -93,6 +94,7 @@ export default function Grades() {
   const actionData = useActionData();
   const { emitError } = useErrorDialog();
   const [isEditing, setIsEditing] = useState(false);
+  const EditSaveButton = isEditing ? PrimaryButton : Button;
   const [selectedIds, setSelectedIds] = useState({ all: false });
   const navigation = useNavigation()
   const navigate = useNavigate();
@@ -178,7 +180,7 @@ export default function Grades() {
             userLevels={["Administrador", "Coordinador"]}
             periodStatuses={["active"]}
           >
-            <button
+            <EditSaveButton
               type={isEditing ? "submit" : "button"}
               form={isEditing ? "grades-form" : undefined}
               onClick={(event) => {
@@ -187,11 +189,6 @@ export default function Grades() {
                   setIsEditing(true);
                 }
               }}
-              className={`flex items-center gap-2 font-semibold p-3 shadow-sm rounded-lg bg-gradient-to-b border ${
-                isEditing
-                  ? "from-emerald-500 to-emerald-600 border-emerald-500 text-white"
-                  : "from-gray-50 to-gray-200 border-gray-300 text-gray-700"
-              }`}
             >
               {isEditing ? (
                 <>
@@ -202,7 +199,7 @@ export default function Grades() {
                   Editar <Pencil className="w-5 h-5" />
                 </>
               )}
-            </button>
+            </EditSaveButton>
           </RouteAccess>
         )}
       </div>

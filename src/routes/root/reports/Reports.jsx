@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Download, RefreshCw } from "lucide-react";
+import { Download } from "lucide-react";
 import { useFetcher, useRouteLoaderData } from "react-router";
 import { renderAsync } from "docx-preview";
 import {
@@ -11,6 +11,7 @@ import {
 import ReportsFilters from "./ReportsFilters";
 import Filter from "../components/Filter";
 import { PageLayout } from "../../../components/Layout";
+import { PrimaryButton } from "../../../components/Button";
 
 export async function reportsLoader({ params, request }) {
   const url = new URL(request.url);
@@ -136,16 +137,14 @@ export default function Reports() {
               <span>.docx</span>
             </div>
           </Filter>
-          <a
+          <PrimaryButton
+            as="a"
             href={downloadDisabled ? undefined : downloadUrl}
             download={`${fileName}.docx`}
             aria-disabled={downloadDisabled}
-            className={`flex items-center gap-2 rounded-lg border border-emerald-500 bg-gradient-to-b from-emerald-500 to-emerald-600 p-3 font-semibold text-white shadow-sm ${
-              downloadDisabled ? "pointer-events-none cursor-not-allowed opacity-50" : ""
-            }`}
           >
             Descargar reporte <Download className="h-5 w-5" />
-          </a>
+          </PrimaryButton>
         </div>
       </div>
       <div className="relative overflow-hidden rounded-xl border border-gray-200">
@@ -153,7 +152,7 @@ export default function Reports() {
           ref={spinnerRef}
           className="absolute inset-0 z-10 flex items-center justify-center bg-gray-200/60 hidden"
         >
-          <RefreshCw className="h-6 w-6 animate-spin text-gray-500" />
+          <div className="loading-logo h-40 w-40" />
         </div>
         <div className="h-[75vh] overflow-auto" ref={docxPreviewRef}></div>
       </div>

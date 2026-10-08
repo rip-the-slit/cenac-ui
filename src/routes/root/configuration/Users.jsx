@@ -17,7 +17,7 @@ import {
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
 import { UserOption } from "../../login/UserSelector";
 import { CardHeader, FormField, TextInput } from "../../../components/Layout";
-import { DeleteButton, EditButton } from "../../../components/Button";
+import { DeleteButton, EditButton, PrimaryButton } from "../../../components/Button";
 
 const userLevels = ["Administrador", "Coordinador", "Profesor"];
 
@@ -304,18 +304,13 @@ export default function Users() {
           value={JSON.stringify(changes)}
           readOnly
         />
-        <button
+        <PrimaryButton
           type="submit"
           disabled={!hasChanges || isSubmitting}
-          className={`flex items-center gap-2 rounded-lg border px-4 py-2 font-semibold text-white shadow-sm ${
-            hasChanges && !isSubmitting
-              ? "border-emerald-500 bg-gradient-to-b from-emerald-500 to-emerald-600"
-              : "cursor-not-allowed border-gray-300 bg-gray-300"
-          }`}
         >
           <Save aria-hidden="true" className="h-5 w-5" />
           {isSubmitting ? "Guardando..." : "Guardar"}
-        </button>
+        </PrimaryButton>
       </Form>
     </>
   );

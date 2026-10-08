@@ -3,8 +3,6 @@ import {
   BookOpen,
   HelpCircle,
   Settings,
-  Search,
-  Lightbulb,
   MoreHorizontal,
   GraduationCap,
   FileText,
@@ -12,12 +10,12 @@ import {
 } from "lucide-react";
 import UserSelector from "../login/UserSelector";
 import {
-  Link,
   NavLink,
   Outlet,
   redirect,
   useLoaderData,
   useNavigate,
+  useNavigation,
   useRouteLoaderData,
 } from "react-router";
 import { getPeriodList, getPeriodStats } from "../../db";
@@ -37,24 +35,25 @@ export async function appLoader({ params, request }) {
   return { list: periodList, data: periodData, periodId: periodId, url };
 }
 
-const SidebarItem = ({ icon: Icon, label, path, end = true }) => (
-  <NavLink
-    to={path}
-    end={end}
-    className={({ isActive, isPending }) =>
-      `flex items-center w-full px-4 py-2 mt-1 text-sm rounded-lg transition-colors ${
-        isActive
-          ? "bg-gray-100 text-gray-900 font-medium"
-          : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-      }`
-    }
-  >
-    <Icon
-      className={`w-5 h-5 mr-3`}
-    />
-    {label}
-  </NavLink>
-);
+const SidebarItem = ({ icon, label, path, end = true }) => {
+  const Icon = icon;
+  return (
+    <NavLink
+      to={path}
+      end={end}
+      className={({ isActive }) =>
+        `flex items-center w-full px-4 py-2 mt-1 text-sm rounded-lg transition-colors ${
+          isActive
+            ? "bg-gray-100 text-gray-900 font-medium"
+            : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+        }`
+      }
+    >
+      <Icon className="w-5 h-5 mr-3" />
+      {label}
+    </NavLink>
+  );
+};
 
 const SidebarSection = ({ title, children }) => (
   <div className="mb-6">
@@ -73,9 +72,10 @@ export default function App() {
   const period = useLoaderData();
   const isAllDataLoaded = period.data.stats !== null;
   const users = authData.users;
-  const url = period.url.pathname;
   const rootUrl = `/periodo/${period.periodId}`;
   const navigate = useNavigate();
+  const navigation = useNavigation();
+  const isNavigating = navigation.state !== "idle";
 
   const sections = [
     {
@@ -121,9 +121,9 @@ export default function App() {
           }
         >
           {sections.map((s) => (
-            <SidebarSection title={s.title}>
+            <SidebarSection key={s.title} title={s.title}>
               {s.items.map((i) => (
-                <SidebarItem {...i} />
+                <SidebarItem key={i.path} {...i} />
               ))}
             </SidebarSection>
           ))}
@@ -151,7 +151,7 @@ export default function App() {
       </aside>
 
       {/* Main Content Wrapper */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden relative">
         {/* Top Header */}
         <header className="h-16 absolute bg-transparent top-0 right-0 z-10 flex items-center justify-end px-8 shrink-0">
           
@@ -165,7 +165,17 @@ export default function App() {
         <div className="flex-1 overflow-auto p-8">
           <Outlet />
         </div>
+        {isNavigating && (
+        <div
+          role="status"
+          aria-label="Cargando página"
+          className="absolute inset-0 z-50 flex items-center justify-center bg-gray-200/60"
+        >
+          <div className="loading-logo h-40 w-40" aria-hidden="true" />
+        </div>
+      )}
       </main>
+      
     </div>
   );
 }

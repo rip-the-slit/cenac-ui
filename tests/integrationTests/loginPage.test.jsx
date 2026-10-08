@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   createMemoryRouter,
@@ -22,7 +22,7 @@ const users = [
   { id: "teacher-7", name: "Docente", type: "Personal" },
 ];
 
-function createAuthRouter(initialEntry) {
+function createAuthRouter(initialEntry, gradesLoader = () => null) {
   return createMemoryRouter(
     [
       {
@@ -49,6 +49,14 @@ function createAuthRouter(initialEntry) {
               periodId: "2025",
               url: new URL("http://localhost/periodo/2025"),
             }),
+            children: [
+              { index: true, element: <p>Resumen del período</p> },
+              {
+                path: "notas",
+                loader: gradesLoader,
+                element: <p>Notas del período</p>,
+              },
+            ],
           },
         ],
       },
@@ -96,5 +104,34 @@ describe("login flow", () => {
       expect(router.state.location.pathname).toBe("/ingresar");
       expect(router.state.location.search).toBe("?usuario=teacher-7");
     });
+  });
+
+  it("shows a loading indicator while navigating and keeps the current page visible", async () => {
+    const user = userEvent.setup();
+    let finishLoading;
+    const pendingPage = new Promise((resolve) => {
+      finishLoading = resolve;
+    });
+    const router = createAuthRouter("/periodo/2025", () => pendingPage);
+    render(<RouterProvider router={router} />);
+
+    await screen.findByText("Resumen del período");
+    expect(
+      screen.queryByRole("status", { name: "Cargando página" })
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("link", { name: "Notas" }));
+
+    expect(
+      await screen.findByRole("status", { name: "Cargando página" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("Resumen del período")).toBeInTheDocument();
+
+    await act(async () => finishLoading(null));
+    expect(await screen.findByText("Notas del período")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("status", { name: "Cargando página" })
+      ).not.toBeInTheDocument()
+    );
   });
 });

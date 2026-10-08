@@ -36,3 +36,27 @@ input[type="checkbox"] {
     animation: none;
   }
 }
+
+.loading-logo {
+  mask-size: 100%, 100%;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-image: url("/favicon.png");
+  background: linear-gradient(140deg, #9ca3af 25%, #6b7280, #9ca3af 75%);
+  background-size: 800%;
+  animation: infinite loading-gradient 1s ease;
+}
+
+@keyframes loading-gradient {
+  0% {
+    background-position: 0%;
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    background-position: 100% 100%;
+    transform: scale(1);
+  }
+}

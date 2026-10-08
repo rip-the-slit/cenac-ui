@@ -2,23 +2,28 @@ import { Pencil, Trash2 } from "lucide-react";
 import { forwardRef } from "react";
 
 const baseClassName =
-  "flex items-center gap-2 p-3 shadow-sm rounded-lg border transition-all focus:ring-2 ring-offset-2 hover:shadow-md";
+  "flex items-center gap-2 p-3 shadow-sm rounded-lg border transition-all focus:ring-2 ring-offset-2 hover:shadow-md aria-disabled:pointer-events-none aria-disabled:cursor-not-allowed aria-disabled:opacity-50";
 
 const normalClassName =
   " border-gray-300 bg-white font-semibold text-gray-700 hover:brightness-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ring-gray-300";
 
 const primaryClassName =
-  " border-emerald-500 bg-gradient-to-b from-emerald-500 to-emerald-600 font-bold text-white shadow-sm hover:brightness-105 disabled:cursor-not-allowed disabled:border-gray-300 disabled:bg-gray-300 ring-emerald-500";
+  " border-emerald-500 bg-gradient-to-b from-emerald-500 to-emerald-600 font-bold text-white shadow-sm hover:brightness-105 disabled:cursor-not-allowed disabled:border-gray-300 disabled:bg-none disabled:bg-gray-300 disabled:hover:brightness-100 ring-emerald-500";
 
 function createButton(className) {
   return forwardRef(function Button(
-    { className: extraClassName = "", type = "button", ...props },
+    {
+      as: Component = "button",
+      className: extraClassName = "",
+      type = "button",
+      ...props
+    },
     ref
   ) {
     return (
-      <button
+      <Component
         ref={ref}
-        type={type}
+        type={Component === "button" ? type : undefined}
         className={`${className} ${extraClassName}`}
         {...props}
       />
