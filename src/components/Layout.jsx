@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Sparkle } from "lucide-react";
 import { createElement } from "react";
 import { Link } from "react-router";
 
@@ -7,13 +7,28 @@ export function PageLayout({
   children,
   className = "",
   headingClassName = "",
+  options = { underHighlight: true },
 }) {
   return (
     <div
       className={`mx-auto flex h-full w-full max-w-7xl flex-col gap-4 ${className}`}
     >
-      <h1 className={`text-3xl font-bold text-gray-900 ${headingClassName}`}>
+      <h1 className={`text-3xl font-bold text-gray-900 relative ${headingClassName}`}>
         {title}
+        {options.sparkles ? (
+          <span className="page-title-sparkles" aria-hidden="true">
+            <Sparkle className="page-title-sparkle" />
+            <Sparkle className="page-title-sparkle" />
+            <Sparkle className="page-title-sparkle" />
+          </span>
+        ) : (
+          ""
+        )}
+        {options.underHighlight ? (
+          <div className="page-title-underhighlight" />
+        ) : (
+          ""
+        )}
       </h1>
       {children}
     </div>

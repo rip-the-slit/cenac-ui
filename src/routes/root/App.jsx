@@ -21,6 +21,7 @@ import {
 import { getPeriodList, getPeriodStats } from "../../db";
 import { PeriodSelector } from "./PeriodSelector";
 import { logout } from "../../auth";
+import Logo from "./components/Logo";
 
 export async function appLoader({ params, request }) {
   const periodList = await getPeriodList();
@@ -106,6 +107,8 @@ export default function App() {
   return (
     <div className="flex h-screen bg-gray-50">
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+        <Logo className="mb-5"/>
+        <div className="w-full h-[1px] bg-gray-200 px-5 bg-clip-content"/>
         <UserSelector
           users={users}
           userId={authData?.activeUser.id}
@@ -129,7 +132,9 @@ export default function App() {
           ))}
         </div>
 
-        <div className="p-4 border-t border-gray-100 space-y-2">
+        <div className="w-full h-[1px] bg-gray-200 px-5 bg-clip-content"/>
+
+        <div className="p-4">
           <button className="flex items-center w-full px-4 py-2 text-sm text-gray-500 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors">
             <HelpCircle className="w-5 h-5 mr-3 text-gray-500" />
             Centro de Ayuda
@@ -151,9 +156,10 @@ export default function App() {
       </aside>
 
       {/* Main Content Wrapper */}
-      <main className="flex-1 flex flex-col overflow-hidden relative">
+      <main className="flex-1 flex flex-col overflow-hidden relative isolate">
+        <div className="rays" aria-hidden="true" />
         {/* Top Header */}
-        <header className="h-16 absolute bg-transparent top-0 right-0 z-10 flex items-center justify-end px-8 shrink-0">
+        <header className="h-16 absolute bg-transparent top-0 right-0 z-20 flex items-center justify-end px-8 shrink-0">
           
           {/* Right Actions */}
           <div className="flex items-center space-x-4">
@@ -162,7 +168,7 @@ export default function App() {
         </header>
 
         {/* Dashboard Content Area */}
-        <div className="flex-1 overflow-auto p-8">
+        <div className="relative z-10 flex-1 overflow-auto p-8">
           <Outlet />
         </div>
         {isNavigating && (

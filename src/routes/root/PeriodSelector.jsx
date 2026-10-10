@@ -37,7 +37,7 @@ export function PeriodSelector({ currentId, list }) {
       )}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-2 px-3 py-1.5 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-lg text-gray-600"
+        className="relative z-10 flex items-center space-x-2 px-3 py-1.5 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-lg text-gray-600"
       >
         <CalendarDays className="w-4 h-4" />
         <span>{currentLabel}</span>

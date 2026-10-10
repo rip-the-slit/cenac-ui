@@ -98,6 +98,7 @@ export default function PeriodOverview() {
   return (
     <PageLayout
       title={isAllPeriods ? "Todos los Períodos" : `Período ${periodId}`}
+      options={{sparkles:true}}
     >
       <p className="max-w-2xl text-sm text-gray-600">
         Estado general de aprobación estudiantil y progreso de carga de notas.
@@ -189,7 +190,6 @@ export default function PeriodOverview() {
                     <Link
                       key={`${year.id}-${classId}`}
                       to={`notas?year=${year.id}&class=${classId}`}
-                      className="block"
                     >
                       <ClassCard className={classId} />
                     </Link>

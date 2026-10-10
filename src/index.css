@@ -37,14 +37,100 @@ input[type="checkbox"] {
   }
 }
 
-.loading-logo {
+.logo, .loading-logo {
   mask-size: 100%, 100%;
   mask-position: center;
   mask-repeat: no-repeat;
   mask-image: url("/favicon.png");
+}
+
+.logo {
+  background-color: #6b7280;
+}
+
+.loading-logo {
   background: linear-gradient(140deg, #9ca3af 25%, #6b7280, #9ca3af 75%);
   background-size: 800%;
   animation: infinite loading-gradient 1s ease;
+}
+
+.rays {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 24px 260px at 65% 6%, #10b98124, transparent 100%),
+    radial-gradient(ellipse 24px 260px at 70% 5%, #10b98146, transparent 100%),
+    radial-gradient(ellipse 38px 350px at 71% 16%, #10b9811f, transparent 100%),
+    radial-gradient(ellipse 18px 320px at 77% 15%, #10b98129, transparent 100%),
+    radial-gradient(ellipse 18px 320px at 80% 30%, #10b98129, transparent 100%),
+    radial-gradient(ellipse 32px 340px at 88% 50%, #10b9811f, transparent 100%),
+    radial-gradient(ellipse 22px 400px at 86% 30%, #10b98124, transparent 100%);
+  transform: rotate(-40deg) scale(1.4);
+}
+
+.page-title-sparkles {
+  position: relative;
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  margin-left: 10px;
+  vertical-align: middle;
+  color: #10b981;
+  pointer-events: none;
+}
+
+.page-title-sparkle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  animation: title-sparkle-float 4s ease-in-out infinite;
+}
+
+.page-title-sparkle:nth-child(1) {
+  top: 2px;
+  left: 3px;
+}
+
+.page-title-sparkle:nth-child(2) {
+  top: 12px;
+  left: 15px;
+  width: 14px;
+  height: 14px;
+  animation-delay: -1.3s;
+}
+
+.page-title-sparkle:nth-child(3) {
+  top: 23px;
+  left: 2px;
+  width: 7px;
+  height: 7px;
+  animation-delay: -2.6s;
+}
+
+@keyframes title-sparkle-float {
+  0%, 100% {
+    transform: translateY(0) rotate(-8deg);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(-4px) rotate(8deg);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-title-sparkle {
+    animation: none;
+  }
+}
+
+.page-title-underhighlight {
+  position: absolute;
+  width: 80px;
+  height: 10px;
+  background: radial-gradient(ellipse 80px 10px at top left, #10b9817e, transparent 100%);
 }
 
 @keyframes loading-gradient {
