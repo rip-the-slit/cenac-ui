@@ -1,3 +1,4 @@
+import FieldInput from "../../../../components/FieldInput";
 import { useState } from "react";
 import { Plus, Trash2, UserRound } from "lucide-react";
 
@@ -5,7 +6,6 @@ import { Button, DeleteButton, PrimaryButton } from "../../../../components/Butt
 import {
   CardHeader,
   FormField,
-  TextInput,
 } from "../../../../components/Layout";
 import IdInput from "./IdInput";
 import { normalizeId } from "./classLoaderUtils";
@@ -24,6 +24,9 @@ function GuardianForm({
 }) {
   const [draft, setDraft] = useState({
     ...guardianSchema.template,
+    ...Object.fromEntries(Object.entries(guardianSchema.fields)
+      .filter(([, definition]) => definition.default !== undefined)
+      .map(([name, definition]) => [name, definition.default])),
     id: guardianSchema.template.id || "V-",
   });
   const [lockedIdentity, setLockedIdentity] = useState(null);
@@ -89,14 +92,15 @@ function GuardianForm({
         {guardianSchema.attributes.map((field) => (
           <FormField
             key={field}
-            label={guardianSchema.labels[field] || field}
+            label={guardianSchema.fields[field]?.label || field}
             className={field === "address" ? "sm:col-span-2" : ""}
           >
             {field === "id" ? (
               <div className="rounded-lg border border-gray-300 px-2 py-2">
                 <IdInput
                   value={draft.id}
-                  label={guardianSchema.labels[field] || field}
+                  label={guardianSchema.fields[field]?.label || field}
+                  required={guardianSchema.fields[field].required}
                   onChange={handleIdChange}
                   onSuggestionSelect={populateGuardian}
                   suggestionsEndpoint="/api/guardians"
@@ -104,17 +108,10 @@ function GuardianForm({
                 />
               </div>
             ) : (
-              <TextInput
-                type={
-                  field === "birthDate"
-                    ? "date"
-                    : field === "phone"
-                      ? "tel"
-                      : "text"
-                }
+              <FieldInput
+                definition={guardianSchema.fields[field]}
                 value={draft[field] ?? ""}
                 disabled={locked}
-                required
                 onChange={(event) =>
                   updateField(field, event.target.value)
                 }
@@ -160,16 +157,6 @@ export default function GuardianEditor({
     const guardianId = normalizeId(guardian.id);
     if (!/^[VE]-[1-9]\d{0,7}$/.test(guardianId)) {
       emitError("Ingrese una cédula válida para el representante.");
-      return false;
-    }
-
-    const missingField = guardianSchema.attributes.find(
-      (field) => !String(guardian[field] ?? "").trim()
-    );
-    if (missingField) {
-      emitError(
-        `${guardianSchema.labels[missingField] || missingField} es obligatorio.`
-      );
       return false;
     }
 

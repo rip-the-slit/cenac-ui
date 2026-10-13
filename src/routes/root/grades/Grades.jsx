@@ -23,9 +23,7 @@ import { PageLayout } from "../../../components/Layout";
 import { Button, PrimaryButton } from "../../../components/Button";
 
 const MAX_TABLE_ROWS = 20;
-const BULK_ACTION_OPTIONS = [
-  { value: "grades", label: "Generar boletín" },
-];
+const BULK_ACTION_OPTIONS = [{ value: "grades", label: "Generar boletín" }];
 
 function markChangedGrade(event) {
   const target = event.target;
@@ -35,18 +33,19 @@ function markChangedGrade(event) {
 }
 
 export async function gradesLoader({ params, request }) {
-  const url = new URL(request.url);
   const periodList = await getPeriodList();
   const periodId =
     params.periodId === "actual" ? periodList[0].id : params.periodId;
+  const url = new URL(request.url);
+  const requestedPage = Number.parseInt(url.searchParams.get("page"), 10);
+  const page =
+    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const limit = MAX_TABLE_ROWS;
   const year = url.searchParams.get("year") || "";
   const classId = url.searchParams.get("class") || "";
   const q = url.searchParams.get("q") || "";
   const status = url.searchParams.get("status") || "";
   const expanded = url.searchParams.get("expanded") || "";
-  const requestedPage = Number.parseInt(url.searchParams.get("page"), 10);
-  const page =
-    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const data = await getGrades(
     periodId,
     year,
@@ -54,10 +53,10 @@ export async function gradesLoader({ params, request }) {
     status,
     q,
     page,
-    MAX_TABLE_ROWS
+    limit
   );
   const recordsAmount = data.recordsAmount;
-  const pageCount = Math.max(1, Math.ceil(recordsAmount / MAX_TABLE_ROWS));
+  const pageCount = Math.max(1, Math.ceil(recordsAmount / limit));
   const currentPage = Math.min(page, pageCount);
   return {
     ...data,
@@ -96,10 +95,10 @@ export default function Grades() {
   const [isEditing, setIsEditing] = useState(false);
   const EditSaveButton = isEditing ? PrimaryButton : Button;
   const [selectedIds, setSelectedIds] = useState({ all: false });
-  const navigation = useNavigation()
+  const navigation = useNavigation();
   const navigate = useNavigate();
-  const navigationRef = useRef(null)
-  const gradesFormRef = useRef(null)
+  const navigationRef = useRef(null);
+  const gradesFormRef = useRef(null);
 
   const activeData = filterFetcher.data ?? loaderData;
   let {
@@ -109,7 +108,7 @@ export default function Grades() {
     subjects,
     subjectsByYear,
     statuses,
-    studentGradesFieldLabels,
+    fields,
     filters,
     recordsAmount,
   } = activeData;
@@ -135,7 +134,15 @@ export default function Grades() {
     }
 
     const params = new URLSearchParams({ type: action });
-    if (!allSelected) params.set("q", studentIds.join(" OR "));
+    const applied = activeData.filters;
+    for (const [name, value] of Object.entries({
+      q: !allSelected ? studentIds.join(",") : "",
+      year: applied.year,
+      class: applied.classId,
+      status: applied.status,
+    })) {
+      if (value) params.set(name, value);
+    }
     navigate(
       `/periodo/${encodeURIComponent(activeData.periodId)}/reportes?${params}`
     );
@@ -155,12 +162,12 @@ export default function Grades() {
 
   useEffect(() => {
     if (navigation?.state === "submitting") {
-      navigationRef.current = navigation
+      navigationRef.current = navigation;
     } else if (navigation?.state === "idle" && navigationRef.current) {
-      navigationRef.current = null
-      setIsEditing(false)
+      navigationRef.current = null;
+      setIsEditing(false);
     }
-  }, [navigation])
+  }, [navigation]);
 
   return (
     <PageLayout title="Notas">
@@ -172,7 +179,7 @@ export default function Grades() {
           classesByYear={classesByYear}
           statuses={statuses || []}
           subjects={subjects || []}
-          studentGradesFieldLabels={studentGradesFieldLabels}
+          fields={fields}
           onSubmit={submitFilters}
         />
         {expandedSubject && (
@@ -241,7 +248,7 @@ export default function Grades() {
             rows={rows}
             subjects={subjects}
             years={years}
-            studentGradesFieldLabels={studentGradesFieldLabels}
+            fields={fields}
             statuses={statuses || []}
             expandedSubject={expandedSubject}
             isEditing={isEditing}

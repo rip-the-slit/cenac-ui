@@ -1,3 +1,4 @@
+import FieldInput from "../../../../components/FieldInput";
 import { createContext, useContext, useState } from "react";
 import { createPortal } from "react-dom";
 import { BookOpenCheck, ChevronRight, UserRound, X } from "lucide-react";
@@ -7,7 +8,6 @@ import {
   Card,
   CardHeader,
   FormField,
-  TextInput,
 } from "../../../../components/Layout";
 import EnrollmentEditor from "./EnrollmentEditor";
 import GuardianEditor from "./GuardianEditor";
@@ -232,23 +232,23 @@ function StudentEditorModal({ editor, config, onClose }) {
           {studentSchema.attributes.map((field) => (
             <FormField
               key={field}
-              label={studentSchema.labels[field] || field}
+              label={studentSchema.fields[field]?.label || field}
             >
               {field === "id" ? (
                 <div className="rounded-lg border border-gray-300 px-2 py-2">
                   <IdInput
                     value={draft.id}
-                    label={studentSchema.labels[field] || field}
+                    label={studentSchema.fields[field]?.label || field}
+                    required={studentSchema.fields[field].required}
                     onChange={handleIdChange}
                     onSuggestionSelect={populateHistoricalStudent}
                   />
                 </div>
               ) : (
-                <TextInput
-                  type={field === "birthDate" ? "date" : "text"}
+                <FieldInput
+                  definition={studentSchema.fields[field]}
                   value={draft[field] ?? ""}
                   disabled={locked}
-                  required
                   onChange={(event) =>
                     updateField(field, event.target.value)
                   }
@@ -337,6 +337,9 @@ export default function StudentEditorProvider({
       onCommitted,
       student: {
         ...editorConfig.studentSchema.template,
+        ...Object.fromEntries(Object.entries(editorConfig.studentSchema.fields)
+          .filter(([, definition]) => definition.default !== undefined)
+          .map(([name, definition]) => [name, definition.default])),
         id: editorConfig.getNextStudentId(),
         _class: { year: yearId, id: classId },
         pendingSubjects: [],

@@ -12,6 +12,7 @@ export { normalizeId } from "./classLoaderUtils";
 export default function IdInput({
   value = "",
   disabled = false,
+  required = true,
   label = "Documento",
   onChange,
   onSuggestionSelect,
@@ -53,7 +54,7 @@ export default function IdInput({
         inputMode="numeric"
         maxLength={8}
         pattern="[1-9][0-9]{0,7}"
-        required
+        required={required}
         onChange={(event) =>
           emitValue(prefix, sanitizeIdNumber(event.target.value))
         }

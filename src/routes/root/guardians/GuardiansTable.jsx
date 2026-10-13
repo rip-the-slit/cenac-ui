@@ -10,7 +10,7 @@ import GuardiansTableRow from "./GuardiansTableRow";
 
 export default function GuardiansTable({
   rows,
-  guardianFieldLabels,
+  fields,
   selectedIds,
   className,
   onSelectAll,
@@ -33,7 +33,7 @@ export default function GuardiansTable({
               />
             </HeadCell>
             {GUARDIAN_FIELDS.map((field) => (
-              <HeadCell key={field}>{guardianFieldLabels[field] || field}</HeadCell>
+              <HeadCell key={field}>{fields[field]?.label || field}</HeadCell>
             ))}
             <HeadCell>Estudiantes representados</HeadCell>
           </tr>
@@ -43,6 +43,7 @@ export default function GuardiansTable({
             <GuardiansTableRow
               key={guardian.id}
               guardian={guardian}
+              fields={fields}
               selected={
                 selectedIds.all
                   ? selectedIds[guardian.id] !== false

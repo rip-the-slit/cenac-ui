@@ -58,10 +58,8 @@ export async function classAction({ request }) {
       }
     }
 
-    const { studentClass } = await getClassSuggestions();
-    const fields = Object.keys(studentClass).filter(
-      (field) => !field.startsWith("_")
-    );
+    const { fields: definitions } = await getClassSuggestions();
+    const fields = Object.keys(definitions.student);
     const students = formData.getAll("id").map((studentId) => {
       const student = {};
 
@@ -107,9 +105,8 @@ export async function classLoader() {
   const {
     students: suggestedStudents,
     studentClass,
-    studentFieldLabels,
+    fields,
     guardianClass = {},
-    guardianFieldLabels = {},
   } = suggestions;
   const students =
     Array.isArray(cachedStudents) && cachedStudents.length > 0
@@ -182,17 +179,13 @@ export async function classLoader() {
     subjectsByYear,
     studentSchema: {
       template: studentClass,
-      attributes: Object.keys(studentClass).filter(
-        (field) => !field.startsWith("_")
-      ),
-      labels: studentFieldLabels,
+      attributes: Object.keys(fields.student),
+      fields: fields.student,
     },
     guardianSchema: {
       template: guardianClass,
-      attributes: Object.keys(guardianClass).filter(
-        (field) => !field.startsWith("_")
-      ),
-      labels: guardianFieldLabels,
+      attributes: Object.keys(fields.guardian),
+      fields: fields.guardian,
     },
   };
 }
@@ -201,7 +194,6 @@ function validateStudentChange({
   change,
   classesByYear,
   studentsById,
-  studentSchema,
   years,
   subjectsByYear,
 }) {
@@ -210,13 +202,6 @@ function validateStudentChange({
 
   if (!/^[VE]-[1-9]\d{0,7}$/.test(studentId)) {
     return "Ingrese una cédula válida.";
-  }
-
-  const missingField = studentSchema.attributes.find(
-    (field) => !String(student[field] ?? "").trim()
-  );
-  if (missingField) {
-    return `${studentSchema.labels[missingField] || missingField} es obligatorio.`;
   }
 
   const duplicate =

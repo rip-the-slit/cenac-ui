@@ -1,3 +1,4 @@
+import { fieldDefinitions } from "../fieldFixtures";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -201,9 +202,8 @@ describe("Data loading pages", () => {
     getClassSuggestions.mockResolvedValue({
       students,
       studentClass,
-      studentFieldLabels,
+      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
       guardianClass,
-      guardianFieldLabels,
     });
     getSubjectSuggestions.mockResolvedValue({subjectsByYear})
     getGuardians.mockImplementation(({ id }) =>
@@ -220,7 +220,7 @@ describe("Data loading pages", () => {
     getStudents.mockResolvedValue({
       recordsAmount: 0,
       rows: [],
-      studentFieldLabels,
+      fields: fieldDefinitions(studentFieldLabels),
     });
     getActiveUser.mockReturnValue({ userLevel: "Administrador" });
     loadPeriodData.mockResolvedValue(undefined);
@@ -316,12 +316,12 @@ describe("Data loading pages", () => {
       studentSchema: {
         template: studentClass,
         attributes: ["id", "firstName", "lastName"],
-        labels: studentFieldLabels,
+        fields: fieldDefinitions(studentFieldLabels),
       },
       guardianSchema: {
         template: guardianClass,
         attributes: Object.keys(guardianClass),
-        labels: guardianFieldLabels,
+        fields: fieldDefinitions(guardianFieldLabels),
       },
       subjectsByYear: {
         1: [subjects[0]],
@@ -545,9 +545,8 @@ describe("Data loading pages", () => {
     getClassSuggestions.mockResolvedValue({
       students: [enrolledStudent],
       studentClass,
-      studentFieldLabels,
+      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
       guardianClass,
-      guardianFieldLabels,
     });
     renderClassLoader();
 
@@ -610,9 +609,8 @@ describe("Data loading pages", () => {
         },
       ],
       studentClass,
-      studentFieldLabels,
+      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
       guardianClass,
-      guardianFieldLabels,
     });
 
     renderClassLoader();
@@ -645,9 +643,8 @@ describe("Data loading pages", () => {
         },
       ],
       studentClass,
-      studentFieldLabels,
+      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
       guardianClass,
-      guardianFieldLabels,
     });
 
     renderClassLoader();
@@ -688,9 +685,8 @@ describe("Data loading pages", () => {
         { id: "V-104", firstName: "Sara", lastName: "Sol", _class: { year: 2, id: "z" } },
       ],
       studentClass,
-      studentFieldLabels,
+      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
       guardianClass,
-      guardianFieldLabels,
     });
     renderClassLoader();
 
@@ -733,9 +729,8 @@ describe("Data loading pages", () => {
     getClassSuggestions.mockResolvedValue({
       students: [{ ...students[0], _class: { year: 2, id: "z" } }],
       studentClass,
-      studentFieldLabels,
+      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
       guardianClass,
-      guardianFieldLabels,
     });
     renderClassLoader();
     await user.click(await screen.findByRole("button", { name: "Añadir Estudiante" }));
@@ -782,9 +777,8 @@ describe("Data loading pages", () => {
         },
       ],
       studentClass,
-      studentFieldLabels,
+      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
       guardianClass,
-      guardianFieldLabels,
     });
     renderClassLoader();
 
@@ -826,9 +820,8 @@ describe("Data loading pages", () => {
         },
       ],
       studentClass,
-      studentFieldLabels,
+      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
       guardianClass,
-      guardianFieldLabels,
     });
     createGuardian.mockImplementation(async (record) => ({
       ...record,
@@ -1005,7 +998,7 @@ describe("Data loading pages", () => {
     getClassSuggestions.mockResolvedValue({
       students: manyStudents,
       studentClass,
-      studentFieldLabels,
+      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
     });
     renderClassLoader();
 
@@ -1060,7 +1053,7 @@ describe("Data loading pages", () => {
     getClassSuggestions.mockResolvedValue({
       students: [],
       studentClass,
-      studentFieldLabels,
+      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
     });
     renderClassLoader();
 

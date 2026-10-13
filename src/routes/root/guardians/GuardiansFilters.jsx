@@ -7,7 +7,7 @@ const CONTROL_CLASS_NAME =
 export default function GuardiansFilters({
   FormComponent,
   filters,
-  guardianFieldLabels,
+  fields,
   onSubmit,
 }) {
   const FilterForm = FormComponent;
@@ -25,11 +25,11 @@ export default function GuardiansFilters({
       }}
     >
       {GUARDIAN_FIELDS.map((field) => (
-        <Filter key={field} label={guardianFieldLabels[field] || field}>
+        <Filter key={field} label={fields[field]?.label || field}>
           <input
             name={field}
             className={CONTROL_CLASS_NAME}
-            placeholder={guardianFieldLabels[field] || field}
+            placeholder={fields[field]?.label || field}
             size="1"
             defaultValue={filters[field]}
             onChange={() => {}}

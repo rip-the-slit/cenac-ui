@@ -12,7 +12,7 @@ export default function GradesFilters({
   classesByYear,
   statuses,
   subjects,
-  studentGradesFieldLabels,
+  fields,
   onSubmit,
 }) {
   const FilterForm = FormComponent;
@@ -28,17 +28,17 @@ export default function GradesFilters({
         onSubmit(formData);
       }}
     >
-      <Filter label={studentGradesFieldLabels.id}>
+      <Filter label={fields.q?.label || fields.id?.label}>
         <input
           name="q"
           className={CONTROL_CLASS_NAME}
-          placeholder={`Buscar ${studentGradesFieldLabels.id} o ${studentGradesFieldLabels.fullName}`}
+          placeholder={fields.q?.placeholder || `Buscar ${fields.id?.label} o ${fields.fullName?.label}`}
           size="1"
           defaultValue={filters.q}
           onChange={() => {}}
         />
       </Filter>
-      <Filter label="Año">
+      <Filter label={fields.year?.label || "Año"}>
         <select
           name="year"
           className={CONTROL_CLASS_NAME}
@@ -52,7 +52,7 @@ export default function GradesFilters({
           ))}
         </select>
       </Filter>
-      <Filter label="Sección">
+      <Filter label={fields.class?.label || "Sección"}>
         <select
           name="class"
           className={CONTROL_CLASS_NAME}
@@ -66,7 +66,7 @@ export default function GradesFilters({
           ))}
         </select>
       </Filter>
-      <Filter label="Estatus">
+      <Filter label={fields.status?.label || "Estatus"}>
         <select
           name="status"
           className={CONTROL_CLASS_NAME}

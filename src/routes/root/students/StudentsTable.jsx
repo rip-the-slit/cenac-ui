@@ -10,7 +10,7 @@ import StudentsTableRow from "./StudentsTableRow";
 export default function StudentsTable({
   rows,
   years,
-  studentFieldLabels,
+  fields,
   statuses,
   selectedIds,
   className,
@@ -34,14 +34,14 @@ export default function StudentsTable({
                 onChange={(event) => onSelectAll(event.target.checked)}
               />
             </HeadCell>
-            <HeadCell>{studentFieldLabels.id}</HeadCell>
-            <HeadCell>{studentFieldLabels.firstName}</HeadCell>
-            <HeadCell>{studentFieldLabels.lastName}</HeadCell>
-            <HeadCell>{studentFieldLabels.birthDate}</HeadCell>
-            <HeadCell>{studentFieldLabels.birthPlace}</HeadCell>
-            <HeadCell>{studentFieldLabels.class}</HeadCell>
-            <HeadCell>{studentFieldLabels.status}</HeadCell>
-            <HeadCell>{studentFieldLabels.guardians || "Representantes"}</HeadCell>
+            <HeadCell>{fields.id?.label}</HeadCell>
+            <HeadCell>{fields.firstName?.label}</HeadCell>
+            <HeadCell>{fields.lastName?.label}</HeadCell>
+            <HeadCell>{fields.birthDate?.label}</HeadCell>
+            <HeadCell>{fields.birthPlace?.label}</HeadCell>
+            <HeadCell>{fields.class?.label}</HeadCell>
+            <HeadCell>{fields.status?.label}</HeadCell>
+            <HeadCell>{fields.guardians?.label || "Representantes"}</HeadCell>
           </tr>
         </TableHead>
         <TableBody>
@@ -49,6 +49,7 @@ export default function StudentsTable({
             <StudentsTableRow
               key={student.id}
               student={student}
+              fields={fields}
               years={years}
               selected={
                 selectedIds.all

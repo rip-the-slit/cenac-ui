@@ -1,3 +1,4 @@
+import { fieldDefinitions } from "../fieldFixtures";
 import {
   fireEvent,
   render,
@@ -44,7 +45,7 @@ const gradesResponse = {
     { value: "passed", name: "Aprobado" },
     { value: "failed", name: "Reprobado" },
   ],
-  studentGradesFieldLabels,
+  fields: fieldDefinitions(studentGradesFieldLabels),
   subjects: [
     { id: "math", name: "Matemática", abbr: "MAT" },
     { id: "language", name: "Castellano", abbr: "CAS" },
@@ -236,6 +237,7 @@ describe("Grades page", () => {
 
   it("shows a period column when viewing grades across all periods", async () => {
     studentGradesFieldLabels.period = "Periodo Escolar";
+    gradesResponse.fields.period = { label: studentGradesFieldLabels.period };
     renderGrades("/periodo/all/notas");
 
     const table = await screen.findByRole("table");
@@ -581,7 +583,23 @@ describe("Grades page", () => {
       Object.fromEntries(new URLSearchParams(router.state.location.search))
     ).toEqual({
       type: "grades",
-      q: "V-1001 OR V-1002",
+      q: "V-1001,V-1002",
+    });
+  });
+
+  it.each([false, true])("preserves applied filters with allSelected=%s", async (allSelected) => {
+    const user = userEvent.setup();
+    const { router } = renderGrades("/periodo/2025/notas?q=Ana&year=1&class=1-A&status=pending&expanded=math&page=2");
+    await screen.findByRole("checkbox", { name: "Seleccionar todos" });
+    const checkbox = allSelected
+      ? screen.getByRole("checkbox", { name: "Seleccionar todos" })
+      : within(screen.getAllByRole("rowgroup").at(-1)).getAllByRole("checkbox")[0];
+    await user.click(checkbox);
+    await user.click(screen.getByRole("button", { name: "Aplicar" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/periodo/2025/reportes"));
+    expect(Object.fromEntries(new URLSearchParams(router.state.location.search))).toEqual({
+      type: "grades", year: "1", class: "1-A", status: "pending",
+      ...(!allSelected ? { q: "V-1001" } : {}),
     });
   });
 

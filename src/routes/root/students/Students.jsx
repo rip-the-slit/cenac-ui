@@ -25,11 +25,7 @@ export async function studentsLoader({ params, request }) {
   const requestedPage = Number.parseInt(url.searchParams.get("page"), 10);
   const page =
     Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const requestedLimit = Number.parseInt(url.searchParams.get("limit"), 10);
-  const limit =
-    Number.isInteger(requestedLimit) && requestedLimit > 0
-      ? Math.min(requestedLimit, MAX_TABLE_ROWS)
-      : MAX_TABLE_ROWS;
+  const limit = MAX_TABLE_ROWS;
   const filters = {
     id: url.searchParams.get("id") || "",
     firstName: url.searchParams.get("firstName") || "",
@@ -71,7 +67,7 @@ export default function Students() {
     rows,
     years,
     classesByYear,
-    studentFieldLabels,
+    fields,
     statuses,
     filters,
     recordsAmount,
@@ -89,8 +85,8 @@ export default function Students() {
         filters={viewFilters}
         years={years}
         classesByYear={classesByYear}
-        studentFieldLabels={studentFieldLabels}
-        guardianLabel={studentFieldLabels.guardians || "Representantes"}
+        fields={fields}
+        guardianLabel={fields.guardians?.label}
         statuses={statuses || []}
         onSubmit={submitFilters}
       />
@@ -120,8 +116,8 @@ export default function Students() {
           <StudentsTable
             rows={rows}
             years={years}
-            studentFieldLabels={studentFieldLabels}
-        guardianLabel={studentFieldLabels.guardians || "Representantes"}
+            fields={fields}
+            guardianLabel={fields.guardians?.label}
             statuses={statuses || []}
             selectedIds={selectedIds}
             className={

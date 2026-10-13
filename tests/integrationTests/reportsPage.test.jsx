@@ -2,241 +2,106 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
 import Reports, { reportsLoader } from "../../src/routes/root/reports/Reports";
-import {
-  generateReport,
-  getPeriodList,
-  getReportOptionData,
-  getReportUrl,
-} from "../../src/db";
+import { generateReport, getPeriodList, getReportOptionData, getReportUrl } from "../../src/db";
+import { fieldDefinitions } from "../fieldFixtures";
 
-vi.mock("docx-preview", () => ({
-  renderAsync: vi.fn().mockResolvedValue(undefined),
-}));
-
+vi.mock("docx-preview", () => ({ renderAsync: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("../../src/db", () => ({
-  generateReport: vi.fn(),
-  getPeriodList: vi.fn(),
-  getReportOptionData: vi.fn(),
-  getReportUrl: vi.fn(),
+  generateReport: vi.fn(), getPeriodList: vi.fn(), getReportOptionData: vi.fn(), getReportUrl: vi.fn(),
 }));
-
-const reportOptionData = {
+const response = {
   reportTypes: [
-    {
-      value: "grades",
-      name: "Boletín",
-      options: [
-        {
-          value: "terms",
-          name: "Lapsos",
-          options: [
-            { value: "all", name: "Todos los lapsos" },
-            { value: "1", name: "1er Lapso" },
-            { value: "2", name: "2do Lapso" },
-            { value: "3", name: "3er Lapso" },
-          ],
-        },
+    { value: "grades", name: "Boletín", options: [{
+      value: "terms", name: "Lapsos", options: [
+        { value: "all", name: "Todos los lapsos" },
+        { value: "1", name: "1er Lapso" },
+        { value: "2", name: "2do Lapso" },
+        { value: "3", name: "3er Lapso" },
       ],
-    },
-    {
-      value: "enrollment",
-      name: "Matrícula",
-      options: [
-        {
-          value: "year",
-          name: "Año",
-          options: [
-            { value: "all", name: "Todos los años" },
-            { value: "1", name: "Primer año" },
-          ],
-        },
+    }] },
+    { value: "enrollment", name: "Matrícula", options: [{
+      value: "year", name: "Año", options: [
+        { value: "all", name: "Todos los años" },
+        { value: "1", name: "Primer año" },
       ],
-    },
+    }] },
   ],
+  fields: fieldDefinitions({
+    q: "Buscar estudiante", firstName: "Nombres", lastName: "Apellidos",
+    birthDate: "Fecha de nacimiento", birthPlace: "Lugar de nacimiento",
+    guardians: "Representantes", class: "Sección", status: "Estatus",
+  }),
+  years: [{ id: 1, name: "Primer año" }],
+  classesByYear: { 1: ["A"] },
+  statuses: [{ value: "pending", name: "Pendiente" }],
 };
-
-function renderReports(initialEntry = "/periodo/2025/reportes") {
+function renderReports(search = "") {
   const loader = vi.fn(reportsLoader);
-  const router = createMemoryRouter(
-    [
-      {
-        id: "reports",
-        path: "/periodo/:periodId/reportes",
-        element: <Reports />,
-        loader,
-      },
-    ],
-    { initialEntries: [initialEntry] }
-  );
-
+  const router = createMemoryRouter([{
+    id: "reports", path: "/periodo/:periodId/reportes", element: <Reports />, loader,
+  }], { initialEntries: ["/periodo/actual/reportes" + search] });
   render(<RouterProvider router={router} />);
   return { loader, router };
 }
-
-function latestLoaderUrl(loader) {
-  const lastCall = loader.mock.calls.at(-1);
-  return lastCall ? new URL(lastCall[0].request.url) : null;
+function query(loader) {
+  return new URL(loader.mock.calls.at(-1)[0].request.url).searchParams;
 }
-
+beforeEach(() => {
+  vi.clearAllMocks();
+  getPeriodList.mockResolvedValue([{ id: "2025" }]);
+  getReportOptionData.mockResolvedValue(response);
+  getReportUrl.mockReturnValue("/api/reports/grades?periodId=2025");
+  generateReport.mockResolvedValue(new Blob());
+});
 describe("Reports page", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    getPeriodList.mockResolvedValue([{ id: "2025" }]);
-    getReportOptionData.mockResolvedValue(reportOptionData);
-    getReportUrl.mockReturnValue("/api/reports/grades?periodId=2025");
-    generateReport.mockResolvedValue(new Blob());
-  });
-
-  it("renders the selected report type and all of its configured options", async () => {
+  it("declares report options locally and renders every common student filter", async () => {
     renderReports();
-
-    const reportType = await screen.findByLabelText("Tipo de reporte");
-    const terms = screen.getByLabelText("Lapsos");
-
-    expect(reportType).toHaveValue("grades");
-    expect(
-      within(reportType).getByRole("option", { name: "Matrícula" })
-    ).toHaveValue("enrollment");
-    expect(terms).toHaveValue("all");
-    expect(within(terms).getAllByRole("option")).toHaveLength(4);
-    expect(screen.getByLabelText("Nombre del archivo")).toHaveValue(
-      "reporte-Boletín"
-    );
-
-    const students = screen.getByRole("group", { name: "Estudiantes" });
-    expect(
-      within(students).getByRole("list", {
-        name: "Estudiantes seleccionados",
-      })
-    ).toHaveTextContent("Todos los estudiantes");
+    const type = await screen.findByLabelText("Tipo de reporte");
+    expect(getReportOptionData).toHaveBeenCalled();
+    expect(within(type).getByRole("option", { name: "Matrícula" })).toHaveValue("enrollment");
+    expect(screen.getByLabelText("Lapsos")).toHaveValue("all");
+    for (const label of Object.values(response.fields).map((field) => field.label)) {
+      expect(screen.getByLabelText(label)).toBeInTheDocument();
+    }
+    expect(screen.getByLabelText("Año")).toBeInTheDocument();
+    expect(screen.getByLabelText("Nombres")).not.toBeRequired();
   });
-
-  it("links to the non-preview report using the selected filename", async () => {
+  it("uses all filters and comma-separated IDs for preview and download", async () => {
+    renderReports("?type=grades&terms=2&q=V-1,E-2&firstName=Ana&lastName=Perez&birthDate=2010&birthPlace=Caracas&guardianQ=Maria&year=1&class=A&status=pending");
+    await screen.findByLabelText("Lapsos");
+    const filters = { terms: "2", q: "V-1,E-2", firstName: "Ana", lastName: "Perez", birthDate: "2010", birthPlace: "Caracas", guardianQ: "Maria", year: "1", class: "A", status: "pending" };
+    expect(generateReport).toHaveBeenCalledWith("2025", "grades", { ...filters, preview: "true" });
+    expect(getReportUrl).toHaveBeenCalledWith("2025", "grades", filters);
+  });
+  it("changes report type while retaining common filters and IDs", async () => {
     const user = userEvent.setup();
-    renderReports("/periodo/2025/reportes?type=grades");
-
-    const fileName = await screen.findByLabelText("Nombre del archivo");
-    await user.clear(fileName);
-    await user.type(fileName, "notas-del-grupo");
-
-    const download = screen.getByRole("link", { name: "Descargar reporte" });
-    expect(download).toHaveAttribute("href", "/api/reports/grades?periodId=2025");
-    expect(download).toHaveAttribute("download", "notas-del-grupo.docx");
+    const { loader } = renderReports("?terms=2&q=V-1,E-2&year=1&class=A&status=pending");
+    await user.selectOptions(await screen.findByLabelText("Tipo de reporte"), "enrollment");
+    await waitFor(() => expect(screen.queryByLabelText("Lapsos")).not.toBeInTheDocument());
+    expect(query(loader).get("q")).toBe("V-1,E-2");
+    expect(query(loader).get("status")).toBe("pending");
+    expect(query(loader).has("terms")).toBe(false);
+    expect(screen.getByLabelText("Nombre del archivo")).toHaveValue("reporte-Matrícula");
   });
-
-  it("resets the filename when the report type changes", async () => {
+  it("clears the class when the year is cleared", async () => {
     const user = userEvent.setup();
-    renderReports("/periodo/2025/reportes?type=grades");
-
-    const fileName = await screen.findByLabelText("Nombre del archivo");
-    await user.clear(fileName);
-    await user.type(fileName, "nombre-personalizado");
-    await user.selectOptions(
-      screen.getByLabelText("Tipo de reporte"),
-      "enrollment"
-    );
-
-    await screen.findByLabelText("Año");
-    await waitFor(() =>
-      expect(screen.getByLabelText("Nombre del archivo")).toHaveValue(
-        "reporte-Matrícula"
-      )
-    );
+    const { loader } = renderReports("?year=1&class=A");
+    await user.selectOptions(await screen.findByLabelText("Año"), "");
+    await waitFor(() => expect(query(loader).has("class")).toBe(false));
   });
-  it("submits configured options as query parameters", async () => {
+  it("downloads the report using the entered filename", async () => {
     const user = userEvent.setup();
-    const { loader } = renderReports(
-      "/periodo/2025/reportes?type=grades&q=V-1%20OR%20E-2"
-    );
-
-    await user.selectOptions(await screen.findByLabelText("Lapsos"), "2");
-
-    await waitFor(() => {
-      const params = latestLoaderUrl(loader)?.searchParams;
-      expect(Object.fromEntries(params)).toEqual({
-        type: "grades",
-        terms: "2",
-        q: "V-1 OR E-2",
-      });
-    });
-    expect(screen.getByLabelText("Lapsos")).toHaveValue("2");
-  });
-
-  it("changes report type while keeping only the student filter", async () => {
-    const user = userEvent.setup();
-    const { loader } = renderReports(
-      "/periodo/2025/reportes?type=grades&terms=2&q=V-1%20OR%20E-2"
-    );
-
-    await user.selectOptions(
-      await screen.findByLabelText("Tipo de reporte"),
-      "enrollment"
-    );
-
-    await screen.findByLabelText("Año");
-    const params = latestLoaderUrl(loader).searchParams;
-    expect(Object.fromEntries(params)).toEqual({
-      type: "enrollment",
-      q: "V-1 OR E-2",
-    });
-    expect(screen.queryByLabelText("Lapsos")).not.toBeInTheDocument();
-  });
-
-  it("removes student IDs through the filter form", async () => {
-    const user = userEvent.setup();
-    const { loader } = renderReports(
-      "/periodo/2025/reportes?type=grades&terms=1&q=V-1%20OR%20E-2%20OR%20V-3"
-    );
-
-    await user.click(
-      await screen.findByRole("button", { name: "Quitar E-2" })
-    );
-
-    await waitFor(() => {
-      const params = latestLoaderUrl(loader)?.searchParams;
-      expect(params.get("terms")).toBe("1");
-      expect(params.get("q")).toBe("V-1 OR V-3");
-    });
-    expect(
-      screen.queryByRole("button", { name: "Quitar E-2" })
-    ).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Quitar V-1" }));
-    await screen.findByRole("button", { name: "Quitar V-3" });
-    await user.click(screen.getByRole("button", { name: "Quitar V-3" }));
-
-    await waitFor(() =>
-      expect(latestLoaderUrl(loader)?.searchParams.has("q")).toBe(false)
-    );
-    expect(screen.getByText("Todos los estudiantes")).toBeInTheDocument();
-  });
-
-  it("resolves the period and generates the selected report", async () => {
-    renderReports(
-      "/periodo/actual/reportes?type=enrollment&year=1&q=V-10%20OR%20E-20"
-    );
-
-    await screen.findByLabelText("Año");
-    expect(generateReport).toHaveBeenCalledWith("2025", "enrollment", {
-      q: "V-10 OR E-20",
-      year: "1",
-      preview: "true",
-    });
-    expect(getReportUrl).toHaveBeenCalledWith("2025", "enrollment", {
-      q: "V-10 OR E-20",
-      year: "1",
-    });
-  });
-
-  it("shows an empty state without requesting a report file", async () => {
-    getReportOptionData.mockResolvedValue({ reportTypes: [] });
     renderReports();
-
-    expect(
-      await screen.findByText("No hay tipos de reporte disponibles")
-    ).toBeInTheDocument();
+    const filename = await screen.findByLabelText("Nombre del archivo");
+    await user.clear(filename);
+    await user.type(filename, "notas-del-grupo");
+    expect(screen.getByRole("link", { name: "Descargar reporte" })).toHaveAttribute("download", "notas-del-grupo.docx");
+  });
+  it("shows an empty state without requesting a report when no report types exist", async () => {
+    getReportOptionData.mockResolvedValue({ ...response, reportTypes: [] });
+    renderReports();
+    expect(await screen.findByText("No hay tipos de reporte disponibles")).toBeInTheDocument();
     expect(generateReport).not.toHaveBeenCalled();
   });
 });

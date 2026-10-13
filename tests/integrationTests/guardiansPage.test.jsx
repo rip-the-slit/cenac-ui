@@ -1,3 +1,4 @@
+import { fieldDefinitions } from "../fieldFixtures";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
@@ -34,7 +35,7 @@ const guardian = {
 };
 const response = {
   recordsAmount: 40,
-  guardianFieldLabels,
+  fields: fieldDefinitions(guardianFieldLabels),
   rows: [guardian],
 };
 
@@ -73,7 +74,7 @@ describe("Representantes page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getGuardians.mockResolvedValue(response);
-    getGuardianById.mockResolvedValue({ guardian, guardianFieldLabels });
+    getGuardianById.mockResolvedValue({ guardian, fields: fieldDefinitions(guardianFieldLabels) });
   });
 
   it("renders guardian records and links represented students", async () => {

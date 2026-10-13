@@ -1,3 +1,4 @@
+import { fieldDefinitions } from "../fieldFixtures";
 import {
   fireEvent,
   render,
@@ -51,7 +52,7 @@ const studentsResponse = {
     { id: "2", name: "Segundo año" },
   ],
   classesByYear: { 1: ["1-A", "1-B"], 2: ["2-A"] },
-  studentFieldLabels,
+  fields: fieldDefinitions(studentFieldLabels),
   rows: [
     {
       id: "V-1001",
@@ -134,7 +135,7 @@ describe("Students page", () => {
       student:
         studentsResponse.rows.find((student) => student.id === studentId) ||
         studentsResponse.rows[0],
-      studentFieldLabels,
+      fields: fieldDefinitions(studentFieldLabels),
     }));
   });
 

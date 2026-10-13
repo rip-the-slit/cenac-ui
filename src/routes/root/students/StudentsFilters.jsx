@@ -10,10 +10,13 @@ export default function StudentsFilters({
   filters,
   years,
   classesByYear,
-  studentFieldLabels,
+  fields,
   statuses,
   guardianLabel = "Representantes",
   onSubmit,
+  searchField = "id",
+  children,
+  paginate = true,
 }) {
   const FilterForm = FormComponent;
 
@@ -23,63 +26,68 @@ export default function StudentsFilters({
       method="get"
       onChange={(event) => {
         const formData = new FormData(event.currentTarget);
-        if (!formData.get("year")) formData.delete("class");
+        const year = String(formData.get("year") || "");
+        const classId = String(formData.get("class") || "");
+        if (!year || !pickClasses(classesByYear, year).includes(classId)) {
+          formData.delete("class");
+        }
         if (!formData.get("guardianQ")) formData.delete("guardianQ");
-        formData.set("page", "1");
+        if (paginate) formData.set("page", "1");
         onSubmit(formData);
       }}
     >
-      <Filter label={studentFieldLabels.id}>
+      {children}
+      <Filter label={fields[searchField]?.label || "Buscar estudiante"}>
         <input
-          name="id"
+          name={searchField}
           className={CONTROL_CLASS_NAME}
-          placeholder={studentFieldLabels.id}
+          placeholder={fields[searchField]?.placeholder || fields[searchField]?.label}
           size="1"
-          defaultValue={filters.id}
+          defaultValue={filters[searchField]}
           onChange={() => {}}
         />
       </Filter>
-      <Filter label={studentFieldLabels.firstName}>
+      <Filter label={fields.firstName?.label}>
         <input
           name="firstName"
           className={CONTROL_CLASS_NAME}
-          placeholder={studentFieldLabels.firstName}
+          placeholder={fields.firstName?.label}
           size="1"
           defaultValue={filters.firstName}
           onChange={() => {}}
         />
       </Filter>
-      <Filter label={studentFieldLabels.lastName}>
+      <Filter label={fields.lastName?.label}>
         <input
           name="lastName"
           className={CONTROL_CLASS_NAME}
-          placeholder={studentFieldLabels.lastName}
+          placeholder={fields.lastName?.label}
           size="1"
           defaultValue={filters.lastName}
           onChange={() => {}}
         />
       </Filter>
-      <Filter label={studentFieldLabels.birthDate}>
+      <Filter label={fields.birthDate?.label}>
         <input
           name="birthDate"
           className={CONTROL_CLASS_NAME}
-          placeholder={studentFieldLabels.birthDate}
+          placeholder={fields.birthDate?.label}
           size="1"
           defaultValue={filters.birthDate}
           onChange={() => {}}
         />
       </Filter>
-      <Filter label={studentFieldLabels.birthPlace}>
+      <Filter label={fields.birthPlace?.label}>
         <input
           name="birthPlace"
           className={CONTROL_CLASS_NAME}
-          placeholder={studentFieldLabels.birthPlace}
+          placeholder={fields.birthPlace?.label}
           size="1"
           defaultValue={filters.birthPlace}
           onChange={() => {}}
         />
       </Filter>
-      <Filter label={guardianLabel}>
+      <Filter label={fields.guardianQ?.label || guardianLabel}>
         <input
           name="guardianQ"
           className={CONTROL_CLASS_NAME}
@@ -89,7 +97,7 @@ export default function StudentsFilters({
           onChange={() => {}}
         />
       </Filter>
-      <Filter label="Año">
+      <Filter label={fields.year?.label || "Año"}>
         <select
           name="year"
           className={CONTROL_CLASS_NAME}
@@ -105,7 +113,7 @@ export default function StudentsFilters({
           ))}
         </select>
       </Filter>
-      <Filter label={studentFieldLabels.class}>
+      <Filter label={fields.class?.label}>
         <select
           name="class"
           className={CONTROL_CLASS_NAME}
@@ -121,7 +129,7 @@ export default function StudentsFilters({
           ))}
         </select>
       </Filter>
-      <Filter label={studentFieldLabels.status}>
+      <Filter label={fields.status?.label}>
         <select
           name="status"
           className={CONTROL_CLASS_NAME}

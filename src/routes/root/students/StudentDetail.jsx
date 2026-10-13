@@ -18,7 +18,7 @@ export async function studentDetailLoader({ params }) {
 }
 
 export default function StudentDetail() {
-  const { student, studentFieldLabels } = useLoaderData();
+  const { student, fields } = useLoaderData();
 
   return (
     <PageLayout title="Estudiantes">
@@ -29,11 +29,16 @@ export default function StudentDetail() {
           backLabel="Volver a la lista de estudiantes"
         />
         <div className="grid gap-5 sm:grid-cols-2">
-          {Object.entries(studentFieldLabels)
+          {Object.entries(fields)
             .filter(([field]) => Object.hasOwn(student, field))
-            .map(([field, label]) => (
-              <FormField key={field} label={label}>
-                <TextInput value={student[field] ?? ""} readOnly />
+            .map(([field, definition]) => (
+              <FormField key={field} label={definition.label}>
+                <TextInput
+                  value={fields[field]?.options?.find(
+                    (option) => String(option.value) === String(student[field])
+                  )?.label ?? student[field] ?? ""}
+                  readOnly
+                />
               </FormField>
             ))}
         </div>

@@ -188,7 +188,7 @@ export default function StudentTable({ yearId, classId, students }) {
                 </HeadCell>
                 {studentSchema.attributes.map((attribute) => (
                   <HeadCell key={attribute}>
-                    {studentSchema.labels[attribute] || attribute}
+                    {studentSchema.fields[attribute]?.label || attribute}
                   </HeadCell>
                 ))}
                 <HeadCell>Materias pendientes</HeadCell>

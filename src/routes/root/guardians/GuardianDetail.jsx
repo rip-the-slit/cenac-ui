@@ -16,7 +16,7 @@ export async function guardianDetailLoader({ params }) {
 }
 
 export default function GuardianDetail() {
-  const { guardian, guardianFieldLabels } = useLoaderData();
+  const { guardian, fields } = useLoaderData();
   return (
     <PageLayout title="Representantes">
       <Card>
@@ -27,8 +27,13 @@ export default function GuardianDetail() {
         />
         <div className="grid gap-5 sm:grid-cols-2">
           {GUARDIAN_FIELDS.map((field) => (
-            <FormField key={field} label={guardianFieldLabels[field] || field}>
-              <TextInput value={guardian[field] ?? ""} readOnly />
+            <FormField key={field} label={fields[field]?.label || field}>
+              <TextInput
+                  value={fields[field]?.options?.find(
+                    (option) => String(option.value) === String(guardian[field])
+                  )?.label ?? guardian[field] ?? ""}
+                  readOnly
+                />
             </FormField>
           ))}
         </div>

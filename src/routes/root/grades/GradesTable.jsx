@@ -15,7 +15,7 @@ export default function GradesTable({
   rows,
   subjects,
   years,
-  studentGradesFieldLabels,
+  fields,
   statuses,
   expandedSubject,
   isEditing,
@@ -45,11 +45,11 @@ export default function GradesTable({
                 onChange={(event) => onSelectAll(event.target.checked)}
               />
             </HeadCell>
-            <HeadCell rowSpan={rowSpan}>{studentGradesFieldLabels.id}</HeadCell>
-            <HeadCell rowSpan={rowSpan}>{studentGradesFieldLabels.fullName}</HeadCell>
-            <HeadCell rowSpan={rowSpan}>{studentGradesFieldLabels.class}</HeadCell>
-            {showPeriod && <HeadCell rowSpan={rowSpan}>{studentGradesFieldLabels.period}</HeadCell>}
-            <HeadCell rowSpan={rowSpan}>{studentGradesFieldLabels.status}</HeadCell>
+            <HeadCell rowSpan={rowSpan}>{fields.id?.label}</HeadCell>
+            <HeadCell rowSpan={rowSpan}>{fields.fullName?.label}</HeadCell>
+            <HeadCell rowSpan={rowSpan}>{fields.class?.label}</HeadCell>
+            {showPeriod && <HeadCell rowSpan={rowSpan}>{fields.period?.label}</HeadCell>}
+            <HeadCell rowSpan={rowSpan}>{fields.status?.label}</HeadCell>
             {!expandedSubject && (
               <HeadCell className="text-center" colSpan={subjects.length}>
                 Areas de Formación

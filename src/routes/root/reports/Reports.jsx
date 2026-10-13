@@ -17,38 +17,50 @@ export async function reportsLoader({ params, request }) {
   const url = new URL(request.url);
   const periodList = await getPeriodList();
   const reportOptionData = await getReportOptionData();
-  const periodId =
-    params.periodId === "actual" ? periodList[0].id : params.periodId;
+  const periodId = params.periodId === "actual" ? periodList[0].id : params.periodId;
+  const reportTypes = reportOptionData.reportTypes;
   const requestedReportType = url.searchParams.get("type");
-  const activeReport =
-    reportOptionData.reportTypes.find(
-      (report) => report.value === requestedReportType
-    ) || reportOptionData.reportTypes[0];
+  const activeReport = reportTypes.find(
+    (report) => report.value === requestedReportType
+  ) || reportTypes[0];
   const reportType = activeReport?.value || "";
-  const filters = { reportType, q: url.searchParams.get("q") || "" };
-  const reportFilters = { q: filters.q };
-
+  const q = url.searchParams.get("q") || "";
+  const firstName = url.searchParams.get("firstName") || "";
+  const lastName = url.searchParams.get("lastName") || "";
+  const birthDate = url.searchParams.get("birthDate") || "";
+  const birthPlace = url.searchParams.get("birthPlace") || "";
+  const guardianQ = url.searchParams.get("guardianQ") || "";
+  const year = url.searchParams.get("year") || "";
+  const classId = url.searchParams.get("class") || "";
+  const status = url.searchParams.get("status") || "";
+  const filters = {
+    reportType, q, firstName, lastName, birthDate, birthPlace,
+    guardianQ, year, classId, status,
+  };
+  const reportFilters = { q };
+  if (firstName) reportFilters.firstName = firstName;
+  if (lastName) reportFilters.lastName = lastName;
+  if (birthDate) reportFilters.birthDate = birthDate;
+  if (birthPlace) reportFilters.birthPlace = birthPlace;
+  if (guardianQ) reportFilters.guardianQ = guardianQ;
+  if (year) reportFilters.year = year;
+  if (classId) reportFilters.class = classId;
+  if (status) reportFilters.status = status;
   for (const option of activeReport?.options || []) {
-    const value =
-      url.searchParams.get(option.value) || option.options[0]?.value || "";
+    const value = url.searchParams.get(option.value) || option.options[0]?.value || "";
     filters[option.value] = value;
     reportFilters[option.value] = value;
   }
-
   const reportFile = reportType
     ? await generateReport(periodId, reportType, {
         ...reportFilters,
         preview: "true",
       })
     : null;
-  const downloadUrl = reportType
-    ? getReportUrl(periodId, reportType, reportFilters)
-    : "";
-
   return {
     ...reportOptionData,
     reportFile,
-    downloadUrl,
+    downloadUrl: reportType ? getReportUrl(periodId, reportType, reportFilters) : "",
     periodId,
     filters,
   };
@@ -59,7 +71,7 @@ export default function Reports() {
   const filterFetcher = useFetcher();
   const activeData = filterFetcher.data ?? loaderData;
   const {
-    reportTypes = [],
+    reportTypes = [], fields, years = [], classesByYear = {}, statuses = [],
     reportFile,
     downloadUrl = "",
     filters = {},
@@ -68,7 +80,7 @@ export default function Reports() {
     ? Object.fromEntries(filterFetcher.formData)
     : null;
   const viewFilters = pendingFilters
-    ? { ...pendingFilters, reportType: pendingFilters.type || filters.reportType }
+    ? { ...pendingFilters, classId: pendingFilters.class || "", reportType: pendingFilters.type || filters.reportType }
     : filters;
   const docxPreviewRef = useRef(null);
   const spinnerRef = useRef(null);
@@ -118,6 +130,10 @@ export default function Reports() {
           FormComponent={filterFetcher.Form}
           filters={viewFilters}
           reportTypes={reportTypes}
+          fields={fields}
+          years={years}
+          classesByYear={classesByYear}
+          statuses={statuses}
           onSubmit={submitFilters}
         />
         <div className="flex items-center gap-5">
