@@ -17,6 +17,7 @@ import StudentDetail, {
   studentDetailLoader,
 } from "../../src/routes/root/students/StudentDetail";
 import {
+  getGrades,
   getPeriodList,
   getStudentById,
   getStudents,
@@ -24,6 +25,7 @@ import {
 import { ErrorDialogProvider } from "../../src/context/ErrorDialogContext";
 
 vi.mock("../../src/db", () => ({
+  getGrades: vi.fn(),
   getPeriodList: vi.fn(),
   getStudentById: vi.fn(),
   getStudents: vi.fn(),
@@ -131,6 +133,7 @@ describe("Students page", () => {
       },
     ]);
     getStudents.mockResolvedValue(studentsResponse);
+    getGrades.mockResolvedValue({ recordsAmount: 0, rows: [], subjects: [] });
     getStudentById.mockImplementation(async (_periodId, studentId) => ({
       student:
         studentsResponse.rows.find((student) => student.id === studentId) ||
@@ -310,6 +313,36 @@ describe("Students page", () => {
     await user.click(screen.getByRole("link", { name: "Volver a la lista de estudiantes" }));
     expect(await screen.findByRole("table")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Aplicar" })).toBeInTheDocument();
+  });
+
+  it("shows relationship links and paginated, expandable all-period academic history", async () => {
+    const user = userEvent.setup();
+    const row = {
+      id: "V-1001", fullName: "Ana Pérez", yearId: "1", className: "A",
+      status: "passed", subjectAverages: { math: 15 },
+      subjectDetails: { math: { terms: [[10], [15], [20], [16]] } },
+    };
+    getGrades.mockResolvedValue({
+      recordsAmount: 40, years: studentsResponse.years, statuses: studentsResponse.statuses,
+      fields: fieldDefinitions({ id: "Documento", fullName: "Estudiante", class: "Sección", period: "Periodo", status: "Estatus" }),
+      subjects: [{ id: "math", name: "Matemática", abbr: "MAT" }],
+      rows: [{ ...row, period: "2023 - 2024" }, { ...row, period: "2024 - 2025" }],
+    });
+    renderStudents("/periodo/2025/estudiantes/V-1001");
+    await screen.findByRole("heading", { name: "Record Académico" });
+    expect(getGrades).toHaveBeenCalledWith("all", "", "", "", "V-1001", 1, 20);
+    expect(screen.getByRole("link", { name: "María Rojas" })).toHaveAttribute("href", "/periodo/2025/representantes/V-9001");
+    expect(screen.getByText("2023 - 2024")).toBeInTheDocument();
+    expect(screen.getByText("2024 - 2025")).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "MAT" }));
+    await screen.findByText("L1");
+    await user.click(screen.getByRole("button", { name: "Siguiente" }));
+    await waitFor(() => expect(getGrades).toHaveBeenLastCalledWith("all", "", "", "", "V-1001", 2, 20));
+    expect(screen.getByText("L1")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Volver" }));
+    await screen.findByRole("button", { name: "MAT" });
+    expect(screen.queryByText("L1")).not.toBeInTheDocument();
   });
 
   it("renders the detail outlet from a direct nested URL", async () => {

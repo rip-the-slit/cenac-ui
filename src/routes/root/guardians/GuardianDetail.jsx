@@ -1,3 +1,4 @@
+import RelationshipLinks from "../components/RelationshipLinks";
 import { useLoaderData } from "react-router";
 import { getGuardianById } from "../../../db";
 import {
@@ -36,6 +37,10 @@ export default function GuardianDetail() {
                 />
             </FormField>
           ))}
+          <div className="space-y-2 sm:col-span-2">
+            <h2 className="text-sm font-medium text-gray-700">Estudiantes representados</h2>
+            <RelationshipLinks records={guardian.assignedStudents} entity="estudiantes" />
+          </div>
         </div>
       </Card>
     </PageLayout>

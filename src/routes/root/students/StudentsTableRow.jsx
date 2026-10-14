@@ -1,5 +1,5 @@
-import { UserRound } from "lucide-react";
-import { Link, useParams } from "react-router";
+import RelationshipLinks from "../components/RelationshipLinks";
+import { Link } from "react-router";
 import { BodyCell, BodyRow } from "../load/TablePrimitives";
 import { formatClassName } from "../classDisplay";
 
@@ -11,7 +11,6 @@ export default function StudentsTableRow({
   statuses,
 }) {
   const to = String(student.id);
-  const { periodId } = useParams();
   const yearName =
     years.find(
       (year) => String(year.id) === String(student?._class?.year)
@@ -45,23 +44,7 @@ export default function StudentsTableRow({
       </BodyCell>
       <BodyCell>{statusName || "—"}</BodyCell>
       <BodyCell>
-        {guardians.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {guardians.map((guardian) => {
-              const name = `${guardian.firstName || ""} ${guardian.lastName || ""}`.trim() || guardian.id;
-              return (
-                <Link
-                  key={guardian.id}
-                  to={"/periodo/" + periodId + "/representantes/" + guardian.id}
-                  className="inline-flex items-center gap-1 underline decoration-emerald-500 decoration-dotted underline-offset-4"
-                >
-                  <UserRound aria-hidden="true" className="h-4 w-4" />
-                  {name}
-                </Link>
-              );
-            })}
-          </div>
-        ) : "—"}
+        <RelationshipLinks records={guardians} entity="representantes" />
       </BodyCell>
     </BodyRow>
   );

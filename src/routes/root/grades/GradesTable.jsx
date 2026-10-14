@@ -19,7 +19,8 @@ export default function GradesTable({
   statuses,
   expandedSubject,
   isEditing,
-  selectedIds,
+  selectable = true,
+  selectedIds = {},
   className,
   onExpandedChange,
   onSelectAll,
@@ -37,14 +38,14 @@ export default function GradesTable({
       <DataTable>
         <TableHead>
           <tr>
-            <HeadCell rowSpan={rowSpan} className="text-center">
+            {selectable && <HeadCell rowSpan={rowSpan} className="text-center">
               <input
                 type="checkbox"
                 aria-label="Seleccionar todos"
                 checked={allSelected}
                 onChange={(event) => onSelectAll(event.target.checked)}
               />
-            </HeadCell>
+            </HeadCell>}
             <HeadCell rowSpan={rowSpan}>{fields.id?.label}</HeadCell>
             <HeadCell rowSpan={rowSpan}>{fields.fullName?.label}</HeadCell>
             <HeadCell rowSpan={rowSpan}>{fields.class?.label}</HeadCell>
@@ -132,8 +133,9 @@ export default function GradesTable({
         <TableBody>
           {rows.map((row) => (
             <GradesTableRow
-              key={row.id}
+              key={`${row.id}-${row.period}-${row.yearId}-${row.className}`}
               row={row}
+              selectable={selectable}
               statuses={statuses}
               subjects={subjects}
               years={years}

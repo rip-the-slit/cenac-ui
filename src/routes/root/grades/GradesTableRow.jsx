@@ -32,6 +32,7 @@ export default function GradesTableRow({
   expandedSubject,
   isEditing,
   selected,
+  selectable = true,
   termCount,
   gradeSlotsPerTerm,
   onSelect,
@@ -48,14 +49,14 @@ export default function GradesTableRow({
 
   return (
     <BodyRow>
-      <BodyCell className="text-center">
+      {selectable && <BodyCell className="text-center">
         <input
           type="checkbox"
           aria-label={`Seleccionar ${row.fullName}`}
           checked={selected}
           onChange={onSelect}
         />
-      </BodyCell>
+      </BodyCell>}
       <BodyCell>{row.id}</BodyCell>
       <BodyCell>{row.fullName}</BodyCell>
       <BodyCell>{`${yearName} ${formatClassName(row.className)}`.trim()}</BodyCell>

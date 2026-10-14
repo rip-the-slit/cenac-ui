@@ -910,7 +910,7 @@ describe("Data loading pages", () => {
     getGuardians.mockImplementation(({ id }) =>
       Promise.resolve({
         filters: { id },
-        rows: id === guardian.id ? [guardian] : [],
+        rows: id === guardian.id ? [{ ...guardian, assignedStudents: [{ id: "V-7", firstName: "Sara", lastName: "Sol" }] }] : [],
         recordsAmount: id === guardian.id ? 1 : 0,
       })
     );

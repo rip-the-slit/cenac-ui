@@ -124,6 +124,7 @@ describe("Representantes page", () => {
 
     expect(await screen.findByRole("heading", { name: "Detalle del Representante" })).toBeInTheDocument();
     expect(screen.getByDisplayValue("V-9001")).toHaveAttribute("readonly");
+    expect(screen.getByRole("link", { name: "Ana Pérez" })).toHaveAttribute("href", "/periodo/2025/estudiantes/V-1001");
     expect(screen.queryByRole("button", { name: /guardar/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("link", { name: "Volver a la lista de representantes" }));

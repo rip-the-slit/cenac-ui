@@ -1,3 +1,4 @@
+import RelationshipLinks from "../../components/RelationshipLinks";
 import FieldInput from "../../../../components/FieldInput";
 import { useState } from "react";
 import { Plus, Trash2, UserRound } from "lucide-react";
@@ -28,6 +29,7 @@ function GuardianForm({
       .filter(([, definition]) => definition.default !== undefined)
       .map(([name, definition]) => [name, definition.default])),
     id: guardianSchema.template.id || "V-",
+    assignedStudents: [],
   });
   const [lockedIdentity, setLockedIdentity] = useState(null);
   const locked = lockedIdentity !== null;
@@ -40,12 +42,12 @@ function GuardianForm({
     if (lockedIdentity) {
       setLockedIdentity(null);
     }
-    updateField("id", value);
+    setDraft((current) => ({ ...current, id: value, assignedStudents: [] }));
   }
 
   function populateGuardian(guardian) {
-    const nextGuardian = {};
-    for (const field of guardianSchema.attributes) {
+    const nextGuardian = { assignedStudents: guardian.assignedStudents || [] };
+    for (const field of guardianSchema.attributes.filter((field) => field !== "assignedStudents")) {
       nextGuardian[field] =
         field === "id"
           ? normalizeId(guardian[field])
@@ -64,11 +66,12 @@ function GuardianForm({
       _locked: locked,
     };
 
-    for (const field of guardianSchema.attributes) {
+    for (const field of guardianSchema.attributes.filter((field) => field !== "assignedStudents")) {
       if (field !== "id") {
         guardian[field] = String(identity[field] ?? "").trim();
       }
     }
+    if (!locked) delete guardian.assignedStudents;
     return guardian;
   }
 
@@ -89,7 +92,7 @@ function GuardianForm({
       />
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {guardianSchema.attributes.map((field) => (
+        {guardianSchema.attributes.filter((field) => field !== "assignedStudents").map((field) => (
           <FormField
             key={field}
             label={guardianSchema.fields[field]?.label || field}
