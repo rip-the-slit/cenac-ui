@@ -22,8 +22,11 @@ const years = [
   { id: "3", name: "Tercer año" },
 ];
 const classesByYear = {
-  1: ["1-A", "1-B"],
-  2: ["2-A"],
+  1: [
+    { id: 1, name: "A", studentCount: 1, yearPeriodId: 1, yearId: 1, periodId: "2025" },
+    { id: 2, name: "B", studentCount: 30, yearPeriodId: 1, yearId: 1, periodId: "2025" },
+  ],
+  2: [{ id: 3, name: "A", studentCount: 0, yearPeriodId: 2, yearId: 2, periodId: "2025" }],
   3: [],
 };
 const populatedStats = {
@@ -147,11 +150,16 @@ describe("PeriodOverview", () => {
     const user = userEvent.setup();
     renderOverview();
 
-    const firstClass = await screen.findByText("Sección 1-A");
-    expect(firstClass.closest("a")).toHaveAttribute(
+    const firstClass = await screen.findByRole("link", { name: "Sección A, estudiantes: 1" });
+    expect(firstClass).toHaveAttribute(
       "href",
-      "/periodo/2025/notas?year=1&class=1-A"
+      "/periodo/2025/notas?year=1&class=A"
     );
+    const dots = firstClass.querySelector('[aria-hidden="true"]');
+    expect(dots.children).toHaveLength(30);
+    expect(dots.querySelectorAll(".bg-gray-700")).toHaveLength(1);
+    expect(firstClass).toHaveClass("bg-emerald-100");
+    expect(screen.getByRole("link", { name: "Sección B, estudiantes: 30" })).toHaveClass("bg-sky-100");
 
     const emptyYear = screen.getByRole("button", { name: years[2].name });
     const emptyYearContent = emptyYear.parentElement.lastElementChild;

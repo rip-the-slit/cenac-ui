@@ -13,12 +13,20 @@ import {
   getPeriodList,
   getYears,
 } from "../../db";
-import ClassCard from "./load/ClassCard";
+import { formatClassName } from "./classDisplay";
 import CollapsibleSection from "./load/CollapsibleSection";
-import { Archive, Plus } from "lucide-react";
+import { Archive, User } from "lucide-react";
 import { useErrorDialog } from "../../context/ErrorDialogContext";
 import RouteAccess from "./components/RouteAccess";
 import { Card, PageLayout } from "../../components/Layout";
+
+const CLASS_CARD_BACKGROUNDS = [
+  "bg-emerald-400",
+  "bg-blue-400",
+  "bg-indigo-400",
+  "bg-pink-400",
+  "bg-gray-400"
+];
 
 export async function periodOverviewLoader({ params }) {
   const periodList = await getPeriodList();
@@ -98,7 +106,7 @@ export default function PeriodOverview() {
   return (
     <PageLayout
       title={isAllPeriods ? "Todos los Períodos" : `Período ${periodId}`}
-      options={{sparkles:true}}
+      options={{ sparkles: true }}
     >
       <p className="max-w-2xl text-sm text-gray-600">
         Estado general de aprobación estudiantil y progreso de carga de notas.
@@ -177,27 +185,65 @@ export default function PeriodOverview() {
         <Card className="space-y-4">
           <h2 className="text-base font-semibold">Secciones por Año</h2>
           {years.map((year, i) => {
-          const classes = classesByYear[year.id] || [];
-          return (
-            <CollapsibleSection key={year.id} title={year.name} open={i === 0}>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
-                {classes.length === 0 ? (
-                  <p className="text-sm text-gray-500">
-                    Sin secciones registradas.
-                  </p>
-                ) : (
-                  classes.map((classId) => (
-                    <Link
-                      key={`${year.id}-${classId}`}
-                      to={`notas?year=${year.id}&class=${classId}`}
-                    >
-                      <ClassCard className={classId} />
-                    </Link>
-                  ))
-                )}
-              </div>
-            </CollapsibleSection>
-          );
+            const classes = classesByYear[year.id] || [];
+            return (
+              <CollapsibleSection
+                key={year.id}
+                title={year.name}
+                open={i === 0}
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
+                  {classes.length === 0 ? (
+                    <p className="text-sm text-gray-500">
+                      Sin secciones registradas.
+                    </p>
+                  ) : (
+                    classes.map((schoolClass, index) => (
+                      <Link
+                        key={schoolClass.id}
+                        to={`notas?year=${year.id}&class=${schoolClass.name}`}
+                        aria-label={`${formatClassName(
+                          schoolClass.name
+                        )}, estudiantes: ${schoolClass.studentCount}`}
+                        className={`flex flex-col items-start gap-3 rounded-xl p-4 shadow-sm transition-shadow hover:shadow-md ${
+                          CLASS_CARD_BACKGROUNDS[
+                            schoolClass.id % CLASS_CARD_BACKGROUNDS.length
+                          ]
+                        }`}
+                      >
+                        <span className="text-md font-bold text-white">
+                          {formatClassName(schoolClass.name)}{" "}
+                          <span
+                            aria-label={`${schoolClass.studentCount} estudiantes en la sección ${schoolClass.name}`}
+                            className={`inline-flex origin-left items-center gap-1 ml-2 rounded-md text-sm font-semibold text-white`}
+                          >
+                            <User aria-hidden="true" className="h-3.5 w-3.5" />
+                            <span aria-hidden="true">
+                              {schoolClass.studentCount}
+                            </span>
+                          </span>
+                        </span>
+                        <div
+                          className="grid grid-cols-10 gap-2 w-full"
+                          aria-hidden="true"
+                        >
+                          {Array.from({ length: 30 }, (_, dotIndex) => (
+                            <span
+                              key={dotIndex}
+                              className={`h-2.5 w-2.5 rounded-full ${
+                                dotIndex < schoolClass.studentCount
+                                  ? "bg-white"
+                                  : "border border-white"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </Link>
+                    ))
+                  )}
+                </div>
+              </CollapsibleSection>
+            );
           })}
         </Card>
       )}
