@@ -6,8 +6,8 @@ export async function request(path, options = {}) {
     ...options,
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || res.statusText);
+    const err = await res.json();
+    throw new Error(err.message, { cause: res });
   }
   return res.json();
 }

@@ -1,24 +1,34 @@
-import { isRouteErrorResponse, useRouteError } from "react-router";
+import { RotateCcw } from "lucide-react";
+import { isRouteErrorResponse, Link, useRouteError } from "react-router";
 
 export default function ErrorBoundary() {
   const error = useRouteError();
+  const displayedError = {
+    status: error?.status || error?.cause?.status || "Oops...",
+    message: error?.message || error?.cause.body?.error || "Algo salió mal.",
+  };
 
-  if (isRouteErrorResponse(error)) {
-    return (
-      <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col items-start justify-center gap-3 p-6">
-        <h1 className="text-2xl font-semibold">Error {error.status}</h1>
-        <p className="text-lg">{error.statusText || "Something went wrong."}</p>
-        {error.data ? <pre className="w-full overflow-auto rounded bg-slate-100 p-3 text-sm">{String(error.data)}</pre> : null}
-      </main>
-    );
-  }
-
-  error instanceof Error && console.error(error)
+  error instanceof Error && console.error(error);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-2xl flex-col items-start justify-center gap-3 p-6">
-      <h1 className="text-2xl font-semibold">Unexpected Error</h1>
-      <p className="text-lg">{error instanceof Error ? error.message : "Unexpected application error."}</p>
+    <main className="mx-auto flex min-h-screen w-full bg-gray-100 justify-center items-center p-6">
+      <div className="max-w-2xl grid grid-cols-2 gap-16 items-center">
+        <img src="/favicon.png" alt="Logo de la institución" />
+        <div className="">
+          <h1 className="text-7xl leading-snug font-semibold">
+            {displayedError?.status}
+          </h1>
+          <p className="text-xl">
+            {displayedError?.message}{" "}
+            <Link
+              className="text-emerald-700 inline-flex gap-2 underline decoration-wavy"
+              reloadDocument
+            >
+              Volver a intentar <RotateCcw className="w-5" />
+            </Link>
+          </p>
+        </div>
+      </div>
     </main>
   );
 }

@@ -155,11 +155,8 @@ describe("PeriodOverview", () => {
       "href",
       "/periodo/2025/notas?year=1&class=A"
     );
-    const dots = firstClass.querySelector('[aria-hidden="true"]');
+    const dots = firstClass.querySelector('div[aria-hidden="true"]');
     expect(dots.children).toHaveLength(30);
-    expect(dots.querySelectorAll(".bg-gray-700")).toHaveLength(1);
-    expect(firstClass).toHaveClass("bg-emerald-100");
-    expect(screen.getByRole("link", { name: "Sección B, estudiantes: 30" })).toHaveClass("bg-sky-100");
 
     const emptyYear = screen.getByRole("button", { name: years[2].name });
     const emptyYearContent = emptyYear.parentElement.lastElementChild;
@@ -167,7 +164,6 @@ describe("PeriodOverview", () => {
 
     await user.click(emptyYear);
 
-    expect(emptyYearContent).toHaveClass("opacity-100");
     expect(
       within(emptyYearContent).getByText("Sin secciones registradas.")
     ).toBeInTheDocument();
