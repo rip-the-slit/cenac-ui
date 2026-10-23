@@ -274,7 +274,7 @@ describe("getViewFilters", () => {
     year: "1",
     classId: "1-A",
     status: "active",
-    expanded: "math",
+    expanded: "0",
     page: "2",
   };
 
@@ -320,7 +320,7 @@ describe("createFilterSearchParams", () => {
       year: "2",
       classId: "2-B",
       status: "active",
-      expanded: "math",
+      expanded: 0,
       page: "3",
     };
     const snapshot = { ...filters };
@@ -332,7 +332,7 @@ describe("createFilterSearchParams", () => {
       year: "2",
       class: "2-B",
       status: "active",
-      expanded: "math",
+      expanded: "0",
       page: "3",
     });
     expect(filters).toEqual(snapshot);

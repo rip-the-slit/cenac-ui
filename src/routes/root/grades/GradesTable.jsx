@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import {
   DataTable,
   HeadCell,
@@ -17,7 +17,7 @@ export default function GradesTable({
   years,
   fields,
   statuses,
-  expandedSubject,
+  expandedIndex = null,
   isEditing,
   selectable = true,
   selectedIds = {},
@@ -27,6 +27,7 @@ export default function GradesTable({
   onSelectRow,
   showPeriod,
 }) {
+  const expandedSubject = expandedIndex === null ? null : subjects[expandedIndex];
   const visibleSubjects = expandedSubject ? [expandedSubject] : subjects;
   const rowSpan = expandedSubject ? 4 : 2;
   const allSelected =
@@ -38,18 +39,22 @@ export default function GradesTable({
       <DataTable>
         <TableHead>
           <tr>
-            {selectable && <HeadCell rowSpan={rowSpan} className="text-center">
-              <input
-                type="checkbox"
-                aria-label="Seleccionar todos"
-                checked={allSelected}
-                onChange={(event) => onSelectAll(event.target.checked)}
-              />
-            </HeadCell>}
+            {selectable && (
+              <HeadCell rowSpan={rowSpan} className="text-center">
+                <input
+                  type="checkbox"
+                  aria-label="Seleccionar todos"
+                  checked={allSelected}
+                  onChange={(event) => onSelectAll(event.target.checked)}
+                />
+              </HeadCell>
+            )}
             <HeadCell rowSpan={rowSpan}>{fields.id?.label}</HeadCell>
             <HeadCell rowSpan={rowSpan}>{fields.fullName?.label}</HeadCell>
             <HeadCell rowSpan={rowSpan}>{fields.class?.label}</HeadCell>
-            {showPeriod && <HeadCell rowSpan={rowSpan}>{fields.period?.label}</HeadCell>}
+            {showPeriod && (
+              <HeadCell rowSpan={rowSpan}>{fields.period?.label}</HeadCell>
+            )}
             <HeadCell rowSpan={rowSpan}>{fields.status?.label}</HeadCell>
             {!expandedSubject && (
               <HeadCell className="text-center" colSpan={subjects.length}>
@@ -63,22 +68,35 @@ export default function GradesTable({
             )}
           </tr>
           <tr>
-            {visibleSubjects.map((subject) => (
+            {visibleSubjects.map((subject, i) => (
               <HeadCell
                 key={subject.id}
                 className="text-center relative"
-                colSpan={expandedSubject ? TERM_COUNT * GRADE_SLOTS_PER_TERM + 1 : 1}
-                title={expandedSubject ? "Volver" : subject.name}
+                colSpan={
+                  expandedSubject ? TERM_COUNT * GRADE_SLOTS_PER_TERM + 1 : 1
+                }
+                title={expandedSubject ? "Materia expandida" : subject.name}
               >
                 {expandedSubject ? (
-                  <button
-                    type="button"
-                    className="absolute left-2"
-                    onClick={() => onExpandedChange("")}
-                    aria-label="Volver"
-                  >
-                    <ArrowLeft width={20} className="text-gray-500" />
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="mr-5 disabled:opacity-30"
+                      disabled={expandedIndex === 0}
+                      onClick={() => onExpandedChange(expandedIndex - 1)}
+                      aria-label="Materia anterior"
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                      className="mr-1"
+                      type="button"
+                      onClick={() => onExpandedChange("")}
+                      aria-label="Volver"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </>
                 ) : (
                   ""
                 )}
@@ -86,11 +104,26 @@ export default function GradesTable({
                   type="button"
                   className="underline decoration-dotted"
                   onClick={() =>
-                    onExpandedChange(expandedSubject ? "" : String(subject.id))
+                    onExpandedChange(expandedSubject ? "" : i)
                   }
                 >
-                  {expandedSubject ? subject.name : subject.abbr || subject.name}
+                  {expandedSubject
+                    ? subject.name
+                    : subject.abbr || subject.name}
                 </button>
+                {expandedSubject ? (
+                  <button
+                    type="button"
+                    className="ml-5 disabled:opacity-30"
+                    disabled={expandedIndex === subjects.length - 1}
+                    onClick={() => onExpandedChange(expandedIndex + 1)}
+                    aria-label="Materia siguiente"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                ) : (
+                  ""
+                )}
               </HeadCell>
             ))}
             {expandedSubject && (
@@ -107,7 +140,7 @@ export default function GradesTable({
                   className="text-center"
                   colSpan={GRADE_SLOTS_PER_TERM}
                 >
-                 L{termIndex + 1}
+                  L{termIndex + 1}
                 </HeadCell>
               ))}
               <HeadCell className="text-center" rowSpan={2}>
@@ -118,14 +151,17 @@ export default function GradesTable({
           {expandedSubject && (
             <tr>
               {Array.from({ length: TERM_COUNT }, (_, termIndex) =>
-                Array.from({ length: GRADE_SLOTS_PER_TERM }, (_, gradeIndex) => (
-                  <HeadCell
-                    key={`l${termIndex + 1}-${gradeIndex + 1}`}
-                    className="text-center"
-                  >
-                    E{gradeIndex + 1}
-                  </HeadCell>
-                ))
+                Array.from(
+                  { length: GRADE_SLOTS_PER_TERM },
+                  (_, gradeIndex) => (
+                    <HeadCell
+                      key={`l${termIndex + 1}-${gradeIndex + 1}`}
+                      className="text-center"
+                    >
+                      E{gradeIndex + 1}
+                    </HeadCell>
+                  )
+                )
               )}
             </tr>
           )}

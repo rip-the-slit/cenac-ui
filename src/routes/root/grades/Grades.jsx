@@ -121,9 +121,8 @@ export default function Grades() {
       )
     );
   }
-  const expandedSubject =
-    subjects.find((subject) => String(subject.id) === viewFilters.expanded) ||
-    null;
+  const expandedIndex = viewFilters.expanded === "" ? null : Number(viewFilters.expanded);
+  const expandedSubject = subjects[expandedIndex] || null;
   const page = Number(viewFilters.page);
   const pageCount = Math.max(1, Math.ceil(recordsAmount / MAX_TABLE_ROWS));
   const submitFilters = (formData) =>
@@ -250,7 +249,7 @@ export default function Grades() {
             years={years}
             fields={fields}
             statuses={statuses || []}
-            expandedSubject={expandedSubject}
+            expandedIndex={expandedIndex}
             isEditing={isEditing}
             selectedIds={selectedIds}
             showPeriod={activeData.periodId === "all"}
@@ -259,7 +258,7 @@ export default function Grades() {
               (filterFetcher.state !== "idle" ? "opacity-60" : "")
             }
             onExpandedChange={(expanded) => {
-              if (!expanded) setIsEditing(false);
+              if (expanded === "") setIsEditing(false);
               submitFilters(
                 createFilterSearchParams({ ...viewFilters, expanded })
               );

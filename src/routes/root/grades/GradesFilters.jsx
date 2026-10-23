@@ -23,6 +23,7 @@ export default function GradesFilters({
       method="get"
       onChange={(event) => {
         const formData = new FormData(event.currentTarget);
+        if (event.target.name === "year") formData.delete("expanded");
         if (!formData.get("year")) formData.delete("class");
         formData.set("page", "1");
         onSubmit(formData);
@@ -85,12 +86,12 @@ export default function GradesFilters({
           name="expanded"
           className={CONTROL_CLASS_NAME}
           size="1"
-          defaultValue={filters.expanded}
+          value={filters.expanded}
           onChange={() => {}}
         >
           <option value="">Todas las materias</option>
-          {subjects.map((subject) => (
-            <option key={subject.id} value={subject.id}>{subject.name}</option>
+          {subjects.map((subject, i) => (
+            <option key={subject.id} value={i}>{subject.name}</option>
           ))}
         </select>
       </Filter>

@@ -32,11 +32,11 @@ export default function StudentDetail() {
   const { student, fields, academicRecord, filters } = fetcher.data ?? loaderData;
   const page = Number(fetcher.formData?.get("page") ?? filters.page);
   const expanded = fetcher.formData?.get("expanded") ?? filters.expanded;
-  const expandedSubject = academicRecord.subjects.find((subject) => String(subject.id) === expanded) || null;
+  const expandedIndex = expanded === "" ? null : Number(expanded);
   const pageCount = Math.max(1, Math.ceil(academicRecord.recordsAmount / MAX_TABLE_ROWS));
   const submitFilters = (nextPage, nextExpanded) => {
     const params = new URLSearchParams({ page: String(nextPage) });
-    if (nextExpanded) params.set("expanded", nextExpanded);
+    if (nextExpanded !== "") params.set("expanded", nextExpanded);
     fetcher.submit(params, { method: "get" });
   };
 
@@ -76,7 +76,7 @@ export default function StudentDetail() {
               onPageChange={(nextPage) => submitFilters(nextPage, expanded)}>
               <GradesTable rows={academicRecord.rows} subjects={academicRecord.subjects}
                 years={academicRecord.years} fields={academicRecord.fields} statuses={academicRecord.statuses}
-                expandedSubject={expandedSubject} isEditing={false} selectable={false} showPeriod
+                expandedIndex={expandedIndex} isEditing={false} selectable={false} showPeriod
                 className="max-h-[55vh] overflow-auto"
                 onExpandedChange={(nextExpanded) => submitFilters(page, nextExpanded)} />
             </TableControl>

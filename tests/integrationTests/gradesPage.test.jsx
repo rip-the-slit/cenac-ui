@@ -272,6 +272,24 @@ describe("Grades page", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("cycles expanded subjects by index within the first and last bounds", async () => {
+    const user = userEvent.setup();
+    const { loader } = renderGrades("/periodo/2025/notas?expanded=0");
+    const table = await screen.findByRole("table");
+    expect(within(table).getByRole("button", { name: "Materia anterior" })).toBeDisabled();
+    await user.click(within(table).getByRole("button", { name: "Materia siguiente" }));
+    await waitFor(() => expect(latestLoaderUrl(loader).searchParams.get("expanded")).toBe("1"));
+    expect(within(table).getByRole("button", { name: "Castellano" })).toBeInTheDocument();
+    expect(within(table).getByRole("button", { name: "Materia siguiente" })).toBeDisabled();
+    expect(getSelectByOption("Todas las materias")).toHaveValue("1");
+    await user.click(within(table).getByRole("button", { name: "Materia anterior" }));
+    await waitFor(() => expect(latestLoaderUrl(loader).searchParams.get("expanded")).toBe("0"));
+    expect(within(table).getByRole("button", { name: "Materia anterior" })).toBeDisabled();
+    await user.click(within(table).getByRole("button", { name: "Volver" }));
+    await screen.findByRole("button", { name: "MAT" });
+    expect(within(table).queryByRole("button", { name: "Materia siguiente" })).not.toBeInTheDocument();
+  });
+
   it("opens a subject detail view and shows its grades for every term", async () => {
     renderGrades();
     const subject = gradesResponse.subjects[0];
@@ -410,7 +428,7 @@ describe("Grades page", () => {
     const selectedYear = gradesResponse.years[0].id;
     const selectedClass = gradesResponse.classesByYear[selectedYear][0];
     const selectedStatus = gradesResponse.statuses[0];
-    const selectedSubject = gradesResponse.subjects[0].id;
+    const selectedSubject = "0";
     const searchQuery = gradesResponse.rows[0].fullName.split(" ")[0];
 
     expect(searchFilter).toBeInTheDocument();
@@ -589,7 +607,7 @@ describe("Grades page", () => {
 
   it.each([false, true])("preserves applied filters with allSelected=%s", async (allSelected) => {
     const user = userEvent.setup();
-    const { router } = renderGrades("/periodo/2025/notas?q=Ana&year=1&class=1-A&status=pending&expanded=math&page=2");
+    const { router } = renderGrades("/periodo/2025/notas?q=Ana&year=1&class=1-A&status=pending&expanded=0&page=2");
     await screen.findByRole("checkbox", { name: "Seleccionar todos" });
     const checkbox = allSelected
       ? screen.getByRole("checkbox", { name: "Seleccionar todos" })

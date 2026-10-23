@@ -81,7 +81,7 @@ export function createFilterSearchParams({ q, year, classId, status, expanded, p
   if (year) params.set("year", year);
   if (year && classId) params.set("class", classId);
   if (status) params.set("status", status);
-  if (expanded) params.set("expanded", expanded);
+  if (expanded !== "" && expanded != null) params.set("expanded", expanded);
   if (page) params.set("page", page);
   return params;
 }
