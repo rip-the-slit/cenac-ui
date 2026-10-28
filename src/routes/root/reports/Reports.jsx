@@ -170,7 +170,7 @@ export default function Reports() {
         >
           <div className="loading-logo h-40 w-40" />
         </div>
-        <div className="h-[75vh] overflow-auto" ref={docxPreviewRef}></div>
+        <div id="docx-preview" className="h-[75vh] overflow-auto" ref={docxPreviewRef}></div>
       </div>
     </PageLayout>
   );
