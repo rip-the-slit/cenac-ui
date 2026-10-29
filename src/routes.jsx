@@ -14,6 +14,7 @@ import ClassLoader, {
   classLoader,
   guardianSuggestionsLoader,
 } from "./routes/root/load/class/ClassLoader";
+import { placesLoader } from "./routes/root/load/class/BirthPlaceInput";
 import { ErrorDialogProvider } from "./context/ErrorDialogContext";
 import PeriodOverview, { periodOverviewAction, periodOverviewLoader } from "./routes/root/PeriodOverview";
 import Grades, { gradesAction, gradesLoader } from "./routes/root/grades/Grades";
@@ -66,6 +67,10 @@ export default [
     ),
     errorElement: <ErrorBoundary />,
     children: [
+      {
+        path: "api/periods/places",
+        loader: placesLoader,
+      },
       {
         path: "api/guardians",
         loader: guardianSuggestionsLoader,

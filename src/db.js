@@ -86,6 +86,11 @@ export async function getYears() {
   return request("/years");
 }
 
+export async function getPlaces(filters = {}, options = {}) {
+  const params = new URLSearchParams(filters);
+  return request(`/periods/places?${params}`, options);
+}
+
 export async function archivePeriod(periodId, supersede) {
   return request(`/periods/${periodId}/archive`, {
     method: "POST",

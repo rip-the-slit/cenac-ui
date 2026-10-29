@@ -14,6 +14,7 @@ import {
   getSubjectSuggestions,
   getGuardians,
   getPeriodList,
+  getPlaces,
   getStudents,
   getSubjects,
   getYears,
@@ -34,6 +35,7 @@ import ClassLoader, {
   guardianSuggestionsLoader,
 } from "../../src/routes/root/load/class/ClassLoader";
 import { studentsLoader } from "../../src/routes/root/students/Students";
+import { placesLoader } from "../../src/routes/root/load/class/BirthPlaceInput";
 
 vi.mock("../../src/db", () => ({
   clearCache: vi.fn(),
@@ -43,6 +45,7 @@ vi.mock("../../src/db", () => ({
   getSubjectSuggestions: vi.fn(),
   getGuardians: vi.fn(),
   getPeriodList: vi.fn(),
+  getPlaces: vi.fn(),
   getStudents: vi.fn(),
   getSubjects: vi.fn(),
   getYears: vi.fn(),
@@ -172,6 +175,10 @@ function renderClassLoader() {
       {
         path: "/api/guardians",
         loader: guardianSuggestionsLoader,
+      },
+      {
+        path: "/api/periods/places",
+        loader: placesLoader,
       },
       {
         path: "/periodo/:periodId/estudiantes",
@@ -396,6 +403,49 @@ describe("Data loading pages", () => {
         ])
       )
     );
+  });
+
+  it("locks historical birthplaces and saves a new birthplace selected by country, state and municipality", async () => {
+    const user = userEvent.setup();
+    cache.class_students = null;
+    getClassSuggestions.mockResolvedValue({
+      students: [{ ...students[0], birthPlace: "Venezuela, Miranda, Sucre" }],
+      studentClass,
+      fields: {
+        student: fieldDefinitions({ ...studentFieldLabels, birthPlace: "Lugar de nacimiento" }),
+        guardian: fieldDefinitions(guardianFieldLabels),
+      },
+      guardianClass,
+    });
+    const places = {
+      country: { id: 1, iso2: "VE", name: "Venezuela" },
+      state: { id: 10, country: "VE", name: "Miranda" },
+      municipality: { id: 20, country: "VE", state: 10, name: "Sucre" },
+    };
+    getPlaces.mockImplementation(async ({ type }) => ({ rows: [places[type]] }));
+    renderClassLoader();
+
+    await user.click(await screen.findByRole("button", { name: "Editar estudiante Ana Pérez" }));
+    for (const name of ["País", "Estado", "Municipio"]) {
+      expect(screen.getByRole("combobox", { name })).toBeDisabled();
+    }
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+    await user.click(screen.getByRole("button", { name: "Añadir Estudiante" }));
+    await user.type(screen.getByRole("textbox", { name: "Nombre" }), "Luis");
+    await user.type(screen.getByRole("textbox", { name: "Apellido" }), "Sol");
+    for (const [name, place] of [["País", "Venezuela"], ["Estado", "Miranda"], ["Municipio", "Sucre"]]) {
+      await user.type(screen.getByRole("combobox", { name }), place);
+      await user.click(await screen.findByRole("option", { name: place }));
+    }
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    expect(screen.getByText("Luis")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await waitFor(() => expect(saveCache).toHaveBeenCalledWith(
+      "class_students",
+      expect.arrayContaining([expect.objectContaining({
+        id: "V-30000000", firstName: "Luis", birthPlace: "Venezuela, Miranda, Sucre",
+      })])
+    ));
   });
 
   it("validates cédula uniqueness locally before committing the modal", async () => {

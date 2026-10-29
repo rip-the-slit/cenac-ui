@@ -12,6 +12,7 @@ import {
 import EnrollmentEditor from "./EnrollmentEditor";
 import GuardianEditor from "./GuardianEditor";
 import IdInput from "./IdInput";
+import BirthPlaceInput from "./BirthPlaceInput";
 import { normalizeId } from "./classLoaderUtils";
 
 const StudentEditorContext = createContext(null);
@@ -229,7 +230,19 @@ function StudentEditorModal({ editor, config, onClose }) {
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          {studentSchema.attributes.map((field) => (
+          {studentSchema.attributes.map((field) => field === "birthPlace" ? (
+            <BirthPlaceInput
+              key={field}
+              value={draft[field] ?? ""}
+              label={studentSchema.fields[field]?.label || field}
+              placeholder={studentSchema.fields[field]?.placeholder}
+              required={studentSchema.fields[field]?.required}
+              disabled={locked}
+              className="sm:col-span-2"
+              onChange={(value) => updateField(field, value)}
+              onError={emitError}
+            />
+          ) : (
             <FormField
               key={field}
               label={studentSchema.fields[field]?.label || field}

@@ -11,6 +11,11 @@ import { normalizeId } from "./classLoaderUtils";
 
 const MAX_SUGGESTIONS = 5;
 const MIN_OVERLAY_WIDTH = 256;
+const EMPTY_PARAMS = {};
+
+function hasIdQuery(value) {
+  return /\d/.test(value);
+}
 
 function getPosition(anchor) {
   const rect = anchor.getBoundingClientRect();
@@ -29,18 +34,41 @@ export default function useSuggestions({
   endpoint,
   query,
   onSelect,
+  onClose,
+  queryParam = "id",
+  queryParams = EMPTY_PARAMS,
+  idAttribute = "id",
+  normalizeQuery = normalizeId,
+  isQueryValid = hasIdQuery,
+  autoSelectExactMatch = true,
 }) {
   const { data, load, state } = useFetcher();
   const overlayRef = useRef(null);
   const autoSelectedRef = useRef("");
+  const callbacksRef = useRef(null);
+  callbacksRef.current = { onSelect, onClose };
   const [position, setPosition] = useState(null);
   const [results, setResults] = useState([]);
   const [resultQuery, setResultQuery] = useState("");
-  const normalizedQuery = normalizeId(query);
+  const normalizedQuery = normalizeQuery(query);
   const deferredQuery = useDeferredValue(normalizedQuery);
-  const hasQuery = /\d/.test(normalizedQuery);
+  const hasQuery = isQueryValid(normalizedQuery);
+  const params = new URLSearchParams(queryParams);
+  params.set(queryParam, deferredQuery);
+  params.set("page", "1");
+  params.set("limit", String(MAX_SUGGESTIONS));
+  const requestUrl = `${endpoint}?${params}`;
 
-  const close = useCallback(() => setPosition(null), []);
+  const close = useCallback((reason = "dismiss") => {
+    setPosition(null);
+    callbacksRef.current.onClose?.(reason);
+  }, []);
+
+  const select = useCallback((record) => {
+    callbacksRef.current.onSelect(record);
+    anchorRef.current?.querySelector("input")?.focus();
+    close("select");
+  }, [anchorRef, close]);
 
   useEffect(() => {
     const anchor = anchorRef.current;
@@ -53,21 +81,15 @@ export default function useSuggestions({
   }, [anchorRef, hasQuery, normalizedQuery]);
 
   useEffect(() => {
-    if (!deferredQuery || !/\d/.test(deferredQuery)) {
+    if (!isQueryValid(deferredQuery)) {
       return;
     }
-
-    const params = new URLSearchParams({
-      id: deferredQuery,
-      page: "1",
-      limit: String(MAX_SUGGESTIONS),
-    });
-    load(`${endpoint}?${params}`);
-  }, [deferredQuery, endpoint, load]);
+    load(requestUrl);
+  }, [deferredQuery, isQueryValid, load, requestUrl]);
 
   useEffect(() => {
-    const responseQuery = query;
-    if (responseQuery !== deferredQuery || !Array.isArray(data?.rows)) {
+    const responseQuery = data?.filters?.[queryParam] ?? deferredQuery;
+    if (state !== "idle" || responseQuery !== deferredQuery || !Array.isArray(data?.rows)) {
       autoSelectedRef.current = "";
       return;
     }
@@ -78,17 +100,18 @@ export default function useSuggestions({
 
     const exactMatch =
       nextResults.length === 1 &&
-      normalizeId(nextResults[0].id) === normalizeId(responseQuery);
+      autoSelectExactMatch &&
+      normalizedQuery === deferredQuery &&
+      normalizeQuery(nextResults[0][idAttribute]) === normalizedQuery;
     const signature = exactMatch
-      ? `${responseQuery}:\0${nextResults[0].id}`
+      ? `${responseQuery}:\0${nextResults[0][idAttribute]}`
       : "";
 
     if (exactMatch && autoSelectedRef.current !== signature) {
       autoSelectedRef.current = signature;
-      onSelect(nextResults[0]);
-      close();
+      select(nextResults[0]);
     }
-  }, [close, data, deferredQuery, onSelect]);
+  }, [autoSelectExactMatch, data, deferredQuery, idAttribute, normalizeQuery, normalizedQuery, queryParam, select, state]);
 
   useEffect(() => {
     const anchor = anchorRef.current;
@@ -113,9 +136,28 @@ export default function useSuggestions({
     }
 
     function closeFromKeyboard(event) {
+      if (!anchor.contains(document.activeElement) &&
+          !overlayRef.current?.contains(document.activeElement)) return;
       if (event.key === "Escape") {
-        close();
+        event.preventDefault();
+        event.stopPropagation();
         anchor.querySelector("input")?.focus();
+        close();
+      } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        const options = Array.from(overlayRef.current?.querySelectorAll('[role="option"]') || []);
+        if (!options.length) return;
+        event.preventDefault();
+        const index = options.indexOf(document.activeElement);
+        const nextIndex = event.key === "ArrowDown"
+          ? (index + 1) % options.length
+          : (index <= 0 ? options.length - 1 : index - 1);
+        options[nextIndex].focus();
+      } else if (event.key === "Enter" && anchor.contains(event.target)) {
+        const option = overlayRef.current?.querySelector('[role="option"]');
+        if (option) {
+          event.preventDefault();
+          option.click();
+        }
       }
     }
 
@@ -123,14 +165,14 @@ export default function useSuggestions({
     window.addEventListener("scroll", reposition, true);
     document.addEventListener("pointerdown", closeFromOutside);
     document.addEventListener("focusin", closeFromOutside);
-    document.addEventListener("keydown", closeFromKeyboard);
+    document.addEventListener("keydown", closeFromKeyboard, true);
 
     return () => {
       window.removeEventListener("resize", reposition);
       window.removeEventListener("scroll", reposition, true);
       document.removeEventListener("pointerdown", closeFromOutside);
       document.removeEventListener("focusin", closeFromOutside);
-      document.removeEventListener("keydown", closeFromKeyboard);
+      document.removeEventListener("keydown", closeFromKeyboard, true);
     };
   }, [anchorRef, close, position]);
 
@@ -145,6 +187,7 @@ export default function useSuggestions({
     overlayRef,
     position,
     results,
+    select,
     visible: Boolean(position && hasQuery && results.length > 0),
   };
 }

@@ -10,12 +10,20 @@ export default function Suggestions({
   label = "Sugerencias",
   query,
   onSelect,
+  onClose,
+  idAttribute = "id",
+  displayAttribute = idAttribute,
+  listId,
+  ...searchOptions
 }) {
   const suggestions = useSuggestions({
     anchorRef,
     endpoint,
     query,
     onSelect,
+    onClose,
+    idAttribute,
+    ...searchOptions,
   });
 
   if (!suggestions.visible) {
@@ -25,6 +33,7 @@ export default function Suggestions({
   return createPortal(
     <FloatingOverlay
       ref={suggestions.overlayRef}
+      id={listId}
       role="listbox"
       aria-label={label}
       aria-busy={suggestions.isPending ? "true" : "false"}
@@ -48,19 +57,16 @@ export default function Suggestions({
         {suggestions.results.map((record) => {
           return (
             <button
-              key={record.id}
+              key={record[idAttribute]}
               type="button"
               role="option"
               aria-selected="false"
               className="block w-full px-4 py-2 text-left bg-white hover:brightness-[0.95] focus:brightness-[0.95] focus:outline-none"
               onMouseDown={(event) => event.preventDefault()}
-              onClick={() => {
-                onSelect(record);
-                suggestions.close();
-              }}
+              onClick={() => suggestions.select(record)}
             >
               <span className="block font-medium text-gray-800">
-                {record.id}
+                {record[displayAttribute]}
               </span>
             </button>
           );
