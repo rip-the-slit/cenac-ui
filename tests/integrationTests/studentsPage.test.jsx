@@ -193,6 +193,13 @@ describe("Students page", () => {
     );
   });
 
+  it("shows an empty message across the student table", async () => {
+    getStudents.mockResolvedValue({ ...studentsResponse, rows: [], recordsAmount: 0 });
+    renderStudents();
+    const message = await screen.findByRole("cell", { name: "No hay registros para mostrar." });
+    expect(message).toHaveAttribute("colspan", "9");
+  });
+
   it("submits all filters, resets pagination, and limits classes by year", async () => {
     const user = userEvent.setup();
     const { loader } = renderStudents("/periodo/2025/estudiantes?page=2");

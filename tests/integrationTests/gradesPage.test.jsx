@@ -235,6 +235,24 @@ describe("Grades page", () => {
     }
   });
 
+  it.each([
+    ["/periodo/2025/notas", 1 + 4 + gradesResponse.subjects.length + 1],
+    ["/periodo/all/notas?expanded=0", 1 + 4 + 1 + 3 * 5 + 1 + 1],
+  ])("shows a full-width empty message at %s", async (url, span) => {
+    getGrades.mockResolvedValue({ ...gradesResponse, rows: [], recordsAmount: 0 });
+    renderGrades(url);
+    const message = await screen.findByRole("cell", { name: "No hay registros para mostrar." });
+    expect(message).toHaveAttribute("colspan", String(span));
+  });
+
+  it("keeps the empty message aligned when there are no subjects", async () => {
+    getGrades.mockResolvedValue({ ...gradesResponse, subjects: [], rows: [], recordsAmount: 0 });
+    renderGrades();
+    const message = await screen.findByRole("cell", { name: "No hay registros para mostrar." });
+    expect(message).toHaveAttribute("colspan", "7");
+    expect(screen.getByRole("columnheader", { name: "Sin materias" })).toBeInTheDocument();
+  });
+
   it("shows a period column when viewing grades across all periods", async () => {
     studentGradesFieldLabels.period = "Periodo Escolar";
     gradesResponse.fields.period = { label: studentGradesFieldLabels.period };

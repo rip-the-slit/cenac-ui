@@ -1,5 +1,6 @@
 import {
   DataTable,
+  EmptyTableMessage,
   HeadCell,
   TableBody,
   TableContainer,
@@ -45,6 +46,7 @@ export default function StudentsTable({
           </tr>
         </TableHead>
         <TableBody>
+          {rows.length === 0 && <EmptyTableMessage colSpan={9} />}
           {rows.map((student) => (
             <StudentsTableRow
               key={student.id}

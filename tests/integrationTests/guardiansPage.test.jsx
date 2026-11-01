@@ -99,6 +99,13 @@ describe("Representantes page", () => {
     );
   });
 
+  it("shows an empty message across the guardian table", async () => {
+    getGuardians.mockResolvedValue({ ...response, rows: [], recordsAmount: 0 });
+    renderGuardians();
+    const message = await screen.findByRole("cell", { name: "No hay registros para mostrar." });
+    expect(message).toHaveAttribute("colspan", String(Object.keys(guardianFieldLabels).length + 2));
+  });
+
   it("auto-applies guardian and represented-student filters", async () => {
     const { loader } = renderGuardians();
     const firstName = await screen.findByLabelText("Nombres");

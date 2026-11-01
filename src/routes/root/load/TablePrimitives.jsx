@@ -44,3 +44,13 @@ export function BodyCell({ children, className = "", noPadding, ...props }) {
     </td>
   );
 }
+
+export function EmptyTableMessage({ colSpan, children = "No hay registros para mostrar." }) {
+  return (
+    <tr>
+      <td colSpan={colSpan} className="p-6 text-center text-sm text-gray-500">
+        {children}
+      </td>
+    </tr>
+  );
+}

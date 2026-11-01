@@ -1,5 +1,6 @@
 import {
   DataTable,
+  EmptyTableMessage,
   HeadCell,
   TableBody,
   TableContainer,
@@ -39,6 +40,7 @@ export default function GuardiansTable({
           </tr>
         </TableHead>
         <TableBody>
+          {rows.length === 0 && <EmptyTableMessage colSpan={GUARDIAN_FIELDS.length + 2} />}
           {rows.map((guardian) => (
             <GuardiansTableRow
               key={guardian.id}

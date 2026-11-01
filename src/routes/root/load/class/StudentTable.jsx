@@ -5,6 +5,7 @@ import { Button } from "../../../../components/Button";
 import TableControl from "../../components/TableControl";
 import {
   DataTable,
+  EmptyTableMessage,
   HeadCell,
   TableBody,
   TableContainer,
@@ -198,6 +199,9 @@ export default function StudentTable({ yearId, classId, students }) {
               </tr>
             </TableHead>
             <TableBody>
+              {visibleStudents.length === 0 && (
+                <EmptyTableMessage colSpan={studentSchema.attributes.length + 5} />
+              )}
               {visibleStudents.map((student) => {
                 const studentId = normalizeId(student.id);
 

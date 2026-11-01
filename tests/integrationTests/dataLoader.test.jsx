@@ -1120,6 +1120,9 @@ describe("Data loading pages", () => {
       "true"
     );
     expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "No hay registros para mostrar." })).toHaveAttribute(
+      "colspan", String(Object.keys(studentFieldLabels).length + 5)
+    );
 
     await user.click(
       screen.getByRole("button", { name: "Eliminar sección a" })

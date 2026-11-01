@@ -1,6 +1,7 @@
 import { ArrowLeft, ArrowRight, X } from "lucide-react";
 import {
   DataTable,
+  EmptyTableMessage,
   HeadCell,
   TableBody,
   TableContainer,
@@ -30,6 +31,11 @@ export default function GradesTable({
   const expandedSubject = expandedIndex === null ? null : subjects[expandedIndex];
   const visibleSubjects = expandedSubject ? [expandedSubject] : subjects;
   const rowSpan = expandedSubject ? 4 : 2;
+  const fixedColumnCount = 4 + Number(Boolean(selectable)) + Number(Boolean(showPeriod)) + 1;
+  const gradeColumnCount = expandedSubject
+    ? TERM_COUNT * GRADE_SLOTS_PER_TERM + 1
+    : Math.max(subjects.length, 1);
+  const emptyColSpan = fixedColumnCount + gradeColumnCount;
   const allSelected =
     selectedIds.all &&
     !Object.values(selectedIds).some((selected) => selected === false);
@@ -57,7 +63,7 @@ export default function GradesTable({
             )}
             <HeadCell rowSpan={rowSpan}>{fields.status?.label}</HeadCell>
             {!expandedSubject && (
-              <HeadCell className="text-center" colSpan={subjects.length}>
+              <HeadCell className="text-center" colSpan={Math.max(subjects.length, 1)}>
                 Areas de Formación
               </HeadCell>
             )}
@@ -68,6 +74,9 @@ export default function GradesTable({
             )}
           </tr>
           <tr>
+            {visibleSubjects.length === 0 && (
+              <HeadCell aria-label="Sin materias" />
+            )}
             {visibleSubjects.map((subject, i) => (
               <HeadCell
                 key={subject.id}
@@ -167,6 +176,7 @@ export default function GradesTable({
           )}
         </TableHead>
         <TableBody>
+          {rows.length === 0 && <EmptyTableMessage colSpan={emptyColSpan} />}
           {rows.map((row) => (
             <GradesTableRow
               key={`${row.id}-${row.period}-${row.yearId}-${row.className}`}
