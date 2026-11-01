@@ -5,11 +5,13 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Guardians, { guardiansLoader } from "../../src/routes/root/guardians/Guardians";
 import GuardianDetail, { guardianDetailLoader } from "../../src/routes/root/guardians/GuardianDetail";
-import { getGuardianById, getGuardians } from "../../src/db";
+import { editGuardian, getGuardianById, getGuardians } from "../../src/db";
+import { ErrorDialogProvider } from "../../src/context/ErrorDialogContext";
 
 vi.mock("../../src/db", () => ({
   getGuardianById: vi.fn(),
   getGuardians: vi.fn(),
+  editGuardian: vi.fn(),
 }));
 
 const guardianFieldLabels = {
@@ -62,7 +64,7 @@ function renderGuardians(initialEntry = "/periodo/2025/representantes") {
     ],
     { initialEntries: [initialEntry] }
   );
-  render(<RouterProvider router={router} />);
+  render(<ErrorDialogProvider><RouterProvider router={router} /></ErrorDialogProvider>);
   return { loader, router };
 }
 
@@ -123,11 +125,57 @@ describe("Representantes page", () => {
     await user.click(await screen.findByRole("link", { name: "María" }));
 
     expect(await screen.findByRole("heading", { name: "Detalle del Representante" })).toBeInTheDocument();
-    expect(screen.getByDisplayValue("V-9001")).toHaveAttribute("readonly");
+    expect(screen.getByText("V-9001")).toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ana Pérez" })).toHaveAttribute("href", "/periodo/2025/estudiantes/V-1001");
     expect(screen.queryByRole("button", { name: /guardar/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("link", { name: "Volver a la lista de representantes" }));
     expect(await screen.findByRole("table")).toBeInTheDocument();
+  });
+
+  it("edits guardian fields with the cédula disabled and refreshes the displayed text", async () => {
+    const user = userEvent.setup();
+    editGuardian.mockImplementation(async () => {
+      getGuardianById.mockResolvedValue({
+        guardian: { ...guardian, phone: "04269999999" },
+        fields: fieldDefinitions(guardianFieldLabels),
+      });
+    });
+    renderGuardians("/periodo/2025/representantes/V-9001");
+    await user.click(await screen.findByRole("button", { name: "Editar representante" }));
+    const editor = within(screen.getByRole("dialog", { name: "Editar representante" }));
+    expect(editor.getByRole("textbox", { name: "Cédula" })).toBeDisabled();
+    expect(editor.getByRole("combobox", { name: "Cédula: tipo" })).toBeDisabled();
+    const phone = editor.getByRole("textbox", { name: "Teléfono" });
+    await user.clear(phone);
+    await user.type(phone, "04269999999");
+    await user.click(editor.getByRole("button", { name: "Aceptar" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(await screen.findByText("04269999999")).toBeInTheDocument();
+    expect(editGuardian).toHaveBeenCalledWith(guardian.id, {
+      firstName: guardian.firstName, lastName: guardian.lastName,
+      birthDate: guardian.birthDate, legalRole: guardian.legalRole,
+      phone: "04269999999", address: guardian.address,
+    });
+    expect(screen.getByRole("link", { name: "Ana Pérez" })).toBeInTheDocument();
+  });
+
+  it("preserves guardian changes on failure and cancels without updating the detail", async () => {
+    const user = userEvent.setup();
+    editGuardian.mockRejectedValue(new Error("No se pudo guardar el representante"));
+    renderGuardians("/periodo/2025/representantes/V-9001");
+    await user.click(await screen.findByRole("button", { name: "Editar representante" }));
+    const editor = within(screen.getByRole("dialog", { name: "Editar representante" }));
+    const address = editor.getByRole("textbox", { name: "Dirección" });
+    await user.clear(address);
+    await user.type(address, "Maracay");
+    await user.click(editor.getByRole("button", { name: "Aceptar" }));
+    expect(await screen.findByText("No se pudo guardar el representante")).toBeInTheDocument();
+    expect(address).toHaveValue("Maracay");
+    await user.click(screen.getByRole("button", { name: "Cerrar error" }));
+    await user.click(editor.getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText("Caracas")).toBeInTheDocument();
   });
 });

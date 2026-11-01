@@ -1,4 +1,4 @@
-import { UserRound } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { Link, useParams } from "react-router";
 
 export default function RelationshipLinks({ records = [], entity }) {
@@ -11,10 +11,10 @@ export default function RelationshipLinks({ records = [], entity }) {
         <Link
           key={record.id}
           to={`/periodo/${encodeURIComponent(periodId)}/${entity}/${encodeURIComponent(record.id)}`}
-          className="inline-flex items-center gap-1 underline decoration-emerald-500 decoration-dotted underline-offset-4"
+          className="inline-flex items-center gap-1 text-gray-800 bg-gray-200 px-2 rounded-full"
         >
-          <UserRound aria-hidden="true" className="h-4 w-4" />
           {`${record.firstName || ""} ${record.lastName || ""}`.trim() || record.id}
+          <ArrowUpRight className="w-4 h-4" />
         </Link>
       ))}
     </div>

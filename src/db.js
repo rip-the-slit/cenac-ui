@@ -7,7 +7,7 @@ export async function request(path, options = {}) {
   });
   if (!res.ok) {
     const err = await res.json();
-    throw new Error(err.message, { cause: res });
+    throw new Error(err.message || err.error || res.statusText, { cause: res });
   }
   return res.json();
 }
@@ -26,6 +26,13 @@ export async function getSubjectSuggestions() {
 
 export async function getStudentById(periodId, studentId) {
   return request(`/periods/${periodId}/students/${studentId}`);
+}
+
+export async function editStudent(studentId, changes) {
+  return request(`/periods/all/students/${encodeURIComponent(studentId)}/edit`, {
+    method: "POST",
+    body: JSON.stringify(changes),
+  });
 }
 
 export async function getStudents(periodId, filters = {}) {
@@ -182,4 +189,11 @@ export async function createGuardian(guardian) {
 
 export async function getGuardianById(guardianId) {
   return request(`/guardians/${guardianId}`);
+}
+
+export async function editGuardian(guardianId, changes) {
+  return request(`/guardians/${encodeURIComponent(guardianId)}/edit`, {
+    method: "POST",
+    body: JSON.stringify(changes),
+  });
 }

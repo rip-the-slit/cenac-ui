@@ -1,11 +1,9 @@
 import FieldInput from "../../../../components/FieldInput";
 import { createContext, useContext, useState } from "react";
-import { createPortal } from "react-dom";
 import { BookOpenCheck, ChevronRight, UserRound, X } from "lucide-react";
 
 import { Button, PrimaryButton } from "../../../../components/Button";
 import {
-  Card,
   CardHeader,
   FormField,
 } from "../../../../components/Layout";
@@ -14,8 +12,10 @@ import GuardianEditor from "./GuardianEditor";
 import IdInput from "./IdInput";
 import BirthPlaceInput from "./BirthPlaceInput";
 import { normalizeId } from "./classLoaderUtils";
+import EditorDialog from "../../../../components/EditorDialog";
 
 const StudentEditorContext = createContext(null);
+const NO_DISABLED_FIELDS = new Set();
 
 export function useStudentEditor() {
   const context = useContext(StudentEditorContext);
@@ -25,12 +25,13 @@ export function useStudentEditor() {
   return context;
 }
 
-function SectionLink({ description, icon, label, onClick }) {
+function SectionLink({ description, disabled, icon, label, onClick }) {
   return (
     <Button
       type="button"
       className="w-full justify-between text-left"
       onClick={onClick}
+      disabled={disabled}
     >
       <span className="flex items-center gap-3">
         {icon}
@@ -46,7 +47,7 @@ function SectionLink({ description, icon, label, onClick }) {
   );
 }
 
-function StudentEditorModal({ editor, config, onClose }) {
+export function StudentEditorModal({ editor, config, onClose, disabledFields = NO_DISABLED_FIELDS }) {
   const {
     emitError,
     enrollment,
@@ -67,6 +68,7 @@ function StudentEditorModal({ editor, config, onClose }) {
     editor.student._locked === true ? editor.student : null
   );
   const [page, setPage] = useState(editor.initialPage || "details");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const locked = lockedIdentity !== null;
   const directSection = Boolean(
     editor.initialPage && editor.initialPage !== "details"
@@ -79,10 +81,12 @@ function StudentEditorModal({ editor, config, onClose }) {
       : (<>Editar estudiante <span className="text-gray-500 font-normal">{studentName ? `${studentName}` : ""}</span></>);
 
   function updateField(field, value) {
+    if (disabledFields.has(field)) return;
     setDraft((current) => ({ ...current, [field]: value }));
   }
 
   function handleIdChange(value) {
+    if (disabledFields.has("id")) return;
     if (lockedIdentity) {
       setLockedIdentity(null);
     }
@@ -135,21 +139,29 @@ function StudentEditorModal({ editor, config, onClose }) {
         student[field] = String(identity[field] ?? "").trim();
       }
     }
-
+    
     return student;
   }
 
-  function commitStudent(source) {
-    const committed = onCommit({
-      mode: editor.mode,
-      originalId: editor.originalId,
-      initialClass: editor.student._class,
-      student: buildStudent(source),
-    });
+  async function commitStudent(source) {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const committed = await onCommit({
+        mode: editor.mode,
+        originalId: editor.originalId,
+        initialClass: editor.student._class,
+        student: buildStudent(source),
+      });
 
-    if (committed !== false) {
-      editor.onCommitted?.();
-      onClose();
+      if (committed !== false) {
+        editor.onCommitted?.();
+        onClose();
+      }
+    } catch (error) {
+      emitError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -159,6 +171,7 @@ function StudentEditorModal({ editor, config, onClose }) {
   }
 
   function confirmEnrollment(enrollmentValues) {
+    if (disabledFields.has("enrollment")) return;
     const nextDraft = { ...draft, ...enrollmentValues };
     if (directSection) {
       commitStudent(nextDraft);
@@ -178,20 +191,8 @@ function StudentEditorModal({ editor, config, onClose }) {
     setPage("details");
   }
 
-  function handleKeyDown(event) {
-    if (event.key === "Escape") {
-      onClose();
-    }
-  }
-
-  function handleBackdropMouseDown(event) {
-    if (event.target === event.currentTarget) {
-      onClose();
-    }
-  }
-
   let content;
-  if (page === "enrollment") {
+  if (page === "enrollment" && !disabledFields.has("enrollment")) {
     content = (
       <EnrollmentEditor
         enrollment={enrollment}
@@ -223,13 +224,14 @@ function StudentEditorModal({ editor, config, onClose }) {
               aria-label="Cerrar"
               className="rounded-md p-2 text-gray-500 hover:bg-gray-100"
               onClick={onClose}
+              disabled={isSubmitting}
             >
               <X aria-hidden="true" className="h-5 w-5" />
             </button>
           }
         />
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <fieldset disabled={isSubmitting} className="grid gap-4 sm:grid-cols-2">
           {studentSchema.attributes.map((field) => field === "birthPlace" ? (
             <BirthPlaceInput
               key={field}
@@ -237,7 +239,7 @@ function StudentEditorModal({ editor, config, onClose }) {
               label={studentSchema.fields[field]?.label || field}
               placeholder={studentSchema.fields[field]?.placeholder}
               required={studentSchema.fields[field]?.required}
-              disabled={locked}
+              disabled={locked || disabledFields.has(field)}
               className="sm:col-span-2"
               onChange={(value) => updateField(field, value)}
               onError={emitError}
@@ -251,6 +253,7 @@ function StudentEditorModal({ editor, config, onClose }) {
                 <div className="rounded-lg border border-gray-300 px-2 py-2">
                   <IdInput
                     value={draft.id}
+                    disabled={disabledFields.has("id")}
                     label={studentSchema.fields[field]?.label || field}
                     required={studentSchema.fields[field].required}
                     onChange={handleIdChange}
@@ -261,7 +264,7 @@ function StudentEditorModal({ editor, config, onClose }) {
                 <FieldInput
                   definition={studentSchema.fields[field]}
                   value={draft[field] ?? ""}
-                  disabled={locked}
+                  disabled={locked || disabledFields.has(field)}
                   onChange={(event) =>
                     updateField(field, event.target.value)
                   }
@@ -269,7 +272,7 @@ function StudentEditorModal({ editor, config, onClose }) {
               )}
             </FormField>
           ))}
-        </div>
+        </fieldset>
 
         <nav
           aria-label="Secciones del formulario del estudiante"
@@ -283,6 +286,7 @@ function StudentEditorModal({ editor, config, onClose }) {
               />
             }
             label="Inscripción"
+            disabled={isSubmitting || disabledFields.has("enrollment")}
             description="Sección y materias pendientes"
             onClick={() => setPage("enrollment")}
           />
@@ -294,6 +298,7 @@ function StudentEditorModal({ editor, config, onClose }) {
               />
             }
             label="Representantes"
+            disabled={isSubmitting || disabledFields.has("assignedGuardians")}
             description={`${draft.assignedGuardians.length} asignados`}
             onClick={() => setPage("guardians")}
           />
@@ -308,38 +313,32 @@ function StudentEditorModal({ editor, config, onClose }) {
         )}
 
         <div className="flex justify-end gap-3">
-          <Button type="button" onClick={onClose}>
+          <Button type="button" onClick={onClose} disabled={isSubmitting}>
             Cancelar
           </Button>
-          <PrimaryButton type="submit">Aceptar</PrimaryButton>
+          <PrimaryButton type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Guardando..." : "Aceptar"}
+          </PrimaryButton>
         </div>
       </form>
     );
   }
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4"
-      role="presentation"
-      onKeyDown={handleKeyDown}
-      onMouseDown={handleBackdropMouseDown}
+  return (
+    <EditorDialog
+      label={editor.mode === "create" ? "Añadir estudiante" : `Editar estudiante ${studentName}`.trim()}
+      busy={isSubmitting}
+      onClose={onClose}
     >
-      <Card
-        as="div"
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto"
-      >
-        <div role="dialog" aria-modal="true" aria-label={editorTitle}>
-          {content}
-        </div>
-      </Card>
-    </div>,
-    document.body
+      {content}
+    </EditorDialog>
   );
 }
 
 export default function StudentEditorProvider({
   children,
   editorConfig,
+  disabledFields = NO_DISABLED_FIELDS,
 }) {
   const [editor, setEditor] = useState(null);
 
@@ -396,6 +395,7 @@ export default function StudentEditorProvider({
           key={`${editor.mode}:${editor.originalId ?? editor.student.id}:${editor.initialPage ?? "details"}`}
           editor={editor}
           config={editorConfig}
+          disabledFields={disabledFields}
           onClose={() => setEditor(null)}
         />
       )}

@@ -1,14 +1,19 @@
 import RelationshipLinks from "../components/RelationshipLinks";
-import { useLoaderData } from "react-router";
-import { getGuardianById } from "../../../db";
+import { useState } from "react";
+import { useLoaderData, useRevalidator } from "react-router";
+import { editGuardian, getGuardianById } from "../../../db";
 import {
   Card,
   CardHeader,
-  FormField,
   PageLayout,
-  TextInput,
 } from "../../../components/Layout";
-import { GUARDIAN_FIELDS } from "./guardiansUtils";
+import DetailFields from "../components/DetailFields";
+import EditorDialog from "../../../components/EditorDialog";
+import { EditButton } from "../../../components/Button";
+import { GuardianForm } from "../load/class/GuardianEditor";
+import { useErrorDialog } from "../../../context/ErrorDialogContext";
+
+const DISABLED_FIELDS = new Set(["id"]);
 
 export async function guardianDetailLoader({ params }) {
   const data = await getGuardianById(params.guardianId);
@@ -18,6 +23,33 @@ export async function guardianDetailLoader({ params }) {
 
 export default function GuardianDetail() {
   const { guardian, fields } = useLoaderData();
+  const { revalidate } = useRevalidator();
+  const { emitError } = useErrorDialog();
+  const [editorGuardian, setEditorGuardian] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const attributes = Object.keys(fields).filter((field) => field !== "assignedStudents");
+
+  async function commitGuardian({ guardian: draft }) {
+    setIsSubmitting(true);
+    try {
+      const changes = Object.fromEntries(attributes
+        .filter((field) => field !== "id")
+        .map((field) => [field, draft[field]]));
+      await editGuardian(editorGuardian.id, changes);
+      await revalidate();
+      setEditorGuardian(null);
+      return true;
+    } catch (error) {
+      emitError(error.message);
+      return false;
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  function closeEditor() {
+    if (!isSubmitting) setEditorGuardian(null);
+  }
   return (
     <PageLayout title="Representantes">
       <Card>
@@ -25,24 +57,27 @@ export default function GuardianDetail() {
           title="Detalle del Representante"
           backTo=".."
           backLabel="Volver a la lista de representantes"
+          actions={<EditButton aria-label="Editar representante" onClick={() => setEditorGuardian({ ...guardian })} />}
         />
-        <div className="grid gap-5 sm:grid-cols-2">
-          {GUARDIAN_FIELDS.map((field) => (
-            <FormField key={field} label={fields[field]?.label || field}>
-              <TextInput
-                  value={fields[field]?.options?.find(
-                    (option) => String(option.value) === String(guardian[field])
-                  )?.label ?? guardian[field] ?? ""}
-                  readOnly
-                />
-            </FormField>
-          ))}
-          <div className="space-y-2 sm:col-span-2">
-            <h2 className="text-sm font-medium text-gray-700">Estudiantes representados</h2>
+        <div className="space-y-5">
+          <DetailFields record={guardian} fields={fields} />
+          <div className="space-y-2">
+            <h2 className="text-lg font-medium text-gray-700">Estudiantes representados</h2>
             <RelationshipLinks records={guardian.assignedStudents} entity="estudiantes" />
           </div>
         </div>
       </Card>
+      {editorGuardian && (
+        <EditorDialog label="Editar representante" busy={isSubmitting} onClose={closeEditor}>
+          <GuardianForm
+            guardian={editorGuardian}
+            guardianSchema={{ template: editorGuardian, fields, attributes }}
+            disabledFields={DISABLED_FIELDS}
+            onBack={closeEditor}
+            onCommit={commitGuardian}
+          />
+        </EditorDialog>
+      )}
     </PageLayout>
   );
 }

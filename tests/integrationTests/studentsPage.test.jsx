@@ -1,6 +1,7 @@
 import { fieldDefinitions } from "../fieldFixtures";
 import {
   fireEvent,
+  act,
   render,
   screen,
   waitFor,
@@ -18,6 +19,8 @@ import StudentDetail, {
 } from "../../src/routes/root/students/StudentDetail";
 import {
   getGrades,
+  getPlaces,
+  editStudent,
   getPeriodList,
   getStudentById,
   getStudents,
@@ -26,6 +29,8 @@ import { ErrorDialogProvider } from "../../src/context/ErrorDialogContext";
 
 vi.mock("../../src/db", () => ({
   getGrades: vi.fn(),
+  getPlaces: vi.fn(),
+  editStudent: vi.fn(),
   getPeriodList: vi.fn(),
   getStudentById: vi.fn(),
   getStudents: vi.fn(),
@@ -80,6 +85,16 @@ const studentsResponse = {
     },
   ],
 };
+const editorFields = fieldDefinitions({
+  id: studentFieldLabels.id,
+  firstName: studentFieldLabels.firstName,
+  lastName: studentFieldLabels.lastName,
+  birthDate: studentFieldLabels.birthDate,
+  birthPlace: studentFieldLabels.birthPlace,
+});
+const detailFields = { student: editorFields, guardian: fieldDefinitions({
+  id: "Cédula", firstName: "Nombres", lastName: "Apellidos", legalRole: "Rol Legal",
+}) };
 
 function renderStudents(initialEntry = "/periodo/2025/estudiantes") {
   const loader = vi.fn(studentsLoader);
@@ -134,11 +149,12 @@ describe("Students page", () => {
     ]);
     getStudents.mockResolvedValue(studentsResponse);
     getGrades.mockResolvedValue({ recordsAmount: 0, rows: [], subjects: [] });
+    getPlaces.mockResolvedValue({ rows: [] });
     getStudentById.mockImplementation(async (_periodId, studentId) => ({
       student:
         studentsResponse.rows.find((student) => student.id === studentId) ||
         studentsResponse.rows[0],
-      fields: fieldDefinitions(studentFieldLabels),
+      fields: detailFields,
     }));
   });
 
@@ -351,7 +367,82 @@ describe("Students page", () => {
     expect(
       await screen.findByRole("heading", { name: "Detalle del Estudiante" })
     ).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Luis")).toBeInTheDocument();
+    expect(screen.getByText("Luis")).toBeInTheDocument();
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
     expect(screen.queryByRole("table")).toBeNull();
+  });
+
+  it("edits student information with cédula and enrollment disabled and refreshes the detail", async () => {
+    const user = userEvent.setup();
+    const original = studentsResponse.rows[0];
+    getStudentById.mockResolvedValue({ student: { ...original, _locked: true }, fields: detailFields });
+    let finishSaving;
+    editStudent.mockImplementation(() => new Promise((resolve) => {
+      finishSaving = () => {
+        getStudentById.mockResolvedValue({ student: { ...original, firstName: "Ana María" }, fields: detailFields });
+        resolve();
+      };
+    }));
+    renderStudents("/periodo/2025/estudiantes/V-1001");
+    await user.click(await screen.findByRole("button", { name: "Editar estudiante" }));
+    const editor = within(await screen.findByRole("dialog", { name: "Editar estudiante Ana Pérez" }));
+    expect(editor.getByRole("textbox", { name: "C.I." })).toBeDisabled();
+    expect(editor.getByRole("combobox", { name: "C.I.: tipo" })).toBeDisabled();
+    expect(editor.getByRole("button", { name: /^Inscripción/ })).toBeDisabled();
+    const name = editor.getByRole("textbox", { name: "Nombres" });
+    expect(name).toBeEnabled();
+    await user.clear(name);
+    await user.type(name, "Ana María");
+    await user.click(editor.getByRole("button", { name: "Aceptar" }));
+    expect(editor.getByRole("button", { name: "Guardando..." })).toBeDisabled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    await act(async () => finishSaving());
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(await screen.findByText("Ana María")).toBeInTheDocument();
+    expect(editStudent).toHaveBeenCalledWith(original.id, {
+      firstName: "Ana María", lastName: original.lastName,
+      birthDate: original.birthDate, birthPlace: original.birthPlace,
+      assignedGuardians: [{ id: "V-9001" }],
+    });
+  });
+
+  it("keeps unsaved student changes in the editor when saving fails and supports canceling", async () => {
+    const user = userEvent.setup();
+    editStudent.mockRejectedValue(new Error("No se pudo guardar el estudiante"));
+    renderStudents("/periodo/2025/estudiantes/V-1001");
+    await user.click(await screen.findByRole("button", { name: "Editar estudiante" }));
+    const editor = within(await screen.findByRole("dialog", { name: "Editar estudiante Ana Pérez" }));
+    const name = editor.getByRole("textbox", { name: "Nombres" });
+    await user.clear(name);
+    await user.type(name, "Cambio pendiente");
+    await user.click(editor.getByRole("button", { name: "Aceptar" }));
+    expect(await screen.findByText("No se pudo guardar el estudiante")).toBeInTheDocument();
+    expect(name).toHaveValue("Cambio pendiente");
+    await user.click(screen.getByRole("button", { name: "Cerrar error" }));
+    await user.click(editor.getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByText("Ana")).toBeInTheDocument();
+  });
+
+  it("cancels student editing without submitting changes", async () => {
+    const user = userEvent.setup();
+    renderStudents("/periodo/2025/estudiantes/V-1001");
+    await user.click(await screen.findByRole("button", { name: "Editar estudiante" }));
+    const editor = within(await screen.findByRole("dialog"));
+    await user.type(editor.getByRole("textbox", { name: "Nombres" }), " provisional");
+    await user.click(editor.getByRole("button", { name: "Cancelar" }));
+    expect(editStudent).not.toHaveBeenCalled();
+    expect(screen.getByText("Ana")).toBeInTheDocument();
+  });
+
+  it("uses the detail response's guardian fields when adding a representative", async () => {
+    const user = userEvent.setup();
+    renderStudents("/periodo/2025/estudiantes/V-1001");
+    await user.click(await screen.findByRole("button", { name: "Editar estudiante" }));
+    const editor = within(await screen.findByRole("dialog"));
+    await user.click(editor.getByRole("button", { name: /^Representantes/ }));
+    await user.click(editor.getByRole("button", { name: "Agregar representante" }));
+    expect(editor.getByRole("textbox", { name: "Cédula" })).toBeInTheDocument();
+    expect(editor.getByRole("textbox", { name: "Rol Legal" })).toBeInTheDocument();
   });
 });
