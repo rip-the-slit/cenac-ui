@@ -172,18 +172,16 @@ describe("Students page", () => {
     }
 
     for (const student of studentsResponse.rows) {
+      const row = within(table).getByRole("link", { name: student.id }).closest("tr");
+      const statusName = studentsResponse.statuses.find(
+        (status) => status.value === student.status
+      ).name;
+      expect(within(row).getByRole("img", { name: statusName })).toHaveAttribute("title", statusName);
       expect(
         within(table).getByRole("link", { name: student.id })
       ).toHaveAttribute("href", "/periodo/2025/estudiantes/" + student.id);
       expect(within(table).getByText(student.firstName)).toBeInTheDocument();
       expect(within(table).getByText(student.lastName)).toBeInTheDocument();
-      expect(
-        within(table).getByText(
-          studentsResponse.statuses.find(
-            (status) => status.value === student.status
-          ).name
-        )
-      ).toBeInTheDocument();
     }
     expect(within(table).getByText("Primer año Sección 1-A")).toBeInTheDocument();
     expect(within(table).getByText("Segundo año Sección 2-A")).toBeInTheDocument();

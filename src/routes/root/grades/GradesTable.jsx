@@ -28,12 +28,14 @@ export default function GradesTable({
   onSelectRow,
   showPeriod,
 }) {
-  const expandedSubject = expandedIndex === null ? null : subjects[expandedIndex];
+  const expandedSubject =
+    expandedIndex === null ? null : subjects[expandedIndex];
   const visibleSubjects = expandedSubject ? [expandedSubject] : subjects;
   const rowSpan = expandedSubject ? 4 : 2;
-  const fixedColumnCount = 4 + Number(Boolean(selectable)) + Number(Boolean(showPeriod)) + 1;
+  const fixedColumnCount =
+    4 + Number(Boolean(selectable)) + Number(Boolean(showPeriod)) + 1;
   const gradeColumnCount = expandedSubject
-    ? TERM_COUNT * GRADE_SLOTS_PER_TERM + 1
+    ? TERM_COUNT * (GRADE_SLOTS_PER_TERM + 1) + 1
     : Math.max(subjects.length, 1);
   const emptyColSpan = fixedColumnCount + gradeColumnCount;
   const allSelected =
@@ -46,7 +48,7 @@ export default function GradesTable({
         <TableHead>
           <tr>
             {selectable && (
-              <HeadCell rowSpan={rowSpan} className="text-center">
+              <HeadCell rowSpan={rowSpan} className="text-center sticky">
                 <input
                   type="checkbox"
                   aria-label="Seleccionar todos"
@@ -55,15 +57,18 @@ export default function GradesTable({
                 />
               </HeadCell>
             )}
-            <HeadCell rowSpan={rowSpan}>{fields.id?.label}</HeadCell>
-            <HeadCell rowSpan={rowSpan}>{fields.fullName?.label}</HeadCell>
+            <HeadCell className="sticky" rowSpan={rowSpan}>{fields.id?.label}</HeadCell>
+            <HeadCell className="sticky" rowSpan={rowSpan}>{fields.fullName?.label}</HeadCell>
             <HeadCell rowSpan={rowSpan}>{fields.class?.label}</HeadCell>
             {showPeriod && (
               <HeadCell rowSpan={rowSpan}>{fields.period?.label}</HeadCell>
             )}
             <HeadCell rowSpan={rowSpan}>{fields.status?.label}</HeadCell>
             {!expandedSubject && (
-              <HeadCell className="text-center" colSpan={Math.max(subjects.length, 1)}>
+              <HeadCell
+                className="text-center"
+                colSpan={Math.max(subjects.length, 1)}
+              >
                 Areas de Formación
               </HeadCell>
             )}
@@ -82,7 +87,9 @@ export default function GradesTable({
                 key={subject.id}
                 className="text-center relative"
                 colSpan={
-                  expandedSubject ? TERM_COUNT * GRADE_SLOTS_PER_TERM + 1 : 1
+                  expandedSubject
+                    ? TERM_COUNT * (GRADE_SLOTS_PER_TERM + 1) + 1
+                    : 1
                 }
                 title={expandedSubject ? "Materia expandida" : subject.name}
               >
@@ -112,9 +119,7 @@ export default function GradesTable({
                 <button
                   type="button"
                   className="underline decoration-dotted"
-                  onClick={() =>
-                    onExpandedChange(expandedSubject ? "" : i)
-                  }
+                  onClick={() => onExpandedChange(expandedSubject ? "" : i)}
                 >
                   {expandedSubject
                     ? subject.name
@@ -144,13 +149,22 @@ export default function GradesTable({
           {expandedSubject && (
             <tr>
               {Array.from({ length: TERM_COUNT }, (_, termIndex) => (
-                <HeadCell
-                  key={`l${termIndex + 1}`}
-                  className="text-center"
-                  colSpan={GRADE_SLOTS_PER_TERM}
-                >
-                  L{termIndex + 1}
-                </HeadCell>
+                <>
+                  <HeadCell
+                    key={`l${termIndex + 1}`}
+                    className="text-center"
+                    colSpan={GRADE_SLOTS_PER_TERM}
+                  >
+                    L{termIndex + 1}
+                  </HeadCell>
+                  <HeadCell
+                    key={`l${termIndex + 1}-average`}
+                    className="text-center"
+                    rowSpan={2}
+                  >
+                    Promedio
+                  </HeadCell>
+                </>
               ))}
               <HeadCell className="text-center" rowSpan={2}>
                 Revisión
@@ -159,8 +173,8 @@ export default function GradesTable({
           )}
           {expandedSubject && (
             <tr>
-              {Array.from({ length: TERM_COUNT }, (_, termIndex) =>
-                Array.from(
+              {Array.from({ length: TERM_COUNT }, (_, termIndex) => [
+                ...Array.from(
                   { length: GRADE_SLOTS_PER_TERM },
                   (_, gradeIndex) => (
                     <HeadCell
@@ -170,8 +184,8 @@ export default function GradesTable({
                       E{gradeIndex + 1}
                     </HeadCell>
                   )
-                )
-              )}
+                ),
+              ])}
             </tr>
           )}
         </TableHead>

@@ -63,6 +63,7 @@ const gradesResponse = {
       subjectAverages: { math: 15.5, language: 17 },
       subjectDetails: {
         math: {
+          termAverages: [13, 15, 14, 0],
           terms: [
             [10, 11, 12, 13, 14],
             [14, 15, 16, 17, 18],
@@ -71,6 +72,7 @@ const gradesResponse = {
           ],
         },
         language: {
+          termAverages: [14, 16, 12, 17],
           terms: [
             [11, 12, 13, 14, 15],
             [15, 16, 17, 18, 19],
@@ -92,6 +94,7 @@ const gradesResponse = {
       subjectAverages: { math: 12, language: 13.5 },
       subjectDetails: {
         math: {
+          termAverages: [8, 12, 0, 13],
           terms: [
             [8],
             [12],
@@ -210,6 +213,10 @@ describe("Grades page", () => {
 
     for (const record of gradesResponse.rows) {
       const row = within(getRecordRow(record.id));
+      const statusName = gradesResponse.statuses.find(
+        (status) => status.value === record.status
+      ).name;
+      expect(row.getByRole("img", { name: statusName })).toHaveAttribute("title", statusName);
       const expectedGrades = Object.values(record.subjectAverages).map(
         (grade) => grade.toFixed(1)
       );
@@ -217,10 +224,6 @@ describe("Grades page", () => {
         record.id,
         record.fullName,
         `${gradesResponse.years.find((year) => String(year.id) === String(record.yearId)).name} ${record.className === "z" ? "Sección Flotante" : `Sección ${record.className}`}`,
-        gradesResponse.statuses.find(
-          (status) => status.value === record.status
-        ).name,
-        ...expectedGrades,
         (
           expectedGrades.reduce((sum, grade) => sum + parseFloat(grade), 0) /
           expectedGrades.length
@@ -237,7 +240,7 @@ describe("Grades page", () => {
 
   it.each([
     ["/periodo/2025/notas", 1 + 4 + gradesResponse.subjects.length + 1],
-    ["/periodo/all/notas?expanded=0", 1 + 4 + 1 + 3 * 5 + 1 + 1],
+    ["/periodo/all/notas?expanded=0", 1 + 4 + 1 + TERM_COUNT * (GRADE_SLOTS_PER_TERM + 1) + 1 + 1],
   ])("shows a full-width empty message at %s", async (url, span) => {
     getGrades.mockResolvedValue({ ...gradesResponse, rows: [], recordsAmount: 0 });
     renderGrades(url);
@@ -324,6 +327,7 @@ describe("Grades page", () => {
         name: `E${GRADE_SLOTS_PER_TERM}`,
       })
     ).toHaveLength(TERM_COUNT);
+    expect(screen.getAllByRole("columnheader", { name: "Promedio" })).toHaveLength(TERM_COUNT);
     expect(screen.getByRole("columnheader", { name: "Revisión" })).toHaveAttribute(
       "rowspan",
       "2"
@@ -342,9 +346,11 @@ describe("Grades page", () => {
       screen.getByRole("columnheader", { name: "Nota Final" })
     ).toBeInTheDocument();
 
-    const expectedGrades = record.subjectDetails[subject.id].terms
-      .flat()
-      .map((grade) => grade.toFixed(1));
+    const { terms, termAverages } = record.subjectDetails[subject.id];
+    const expectedGrades = terms.flatMap((grades, index) => [
+      ...grades.map((grade) => grade.toFixed(1)),
+      ...(index < TERM_COUNT ? [termAverages[index].toFixed(1)] : []),
+    ]);
     expectedGrades.push(record.subjectAverages[subject.id].toFixed(1));
     const cells = within(getRecordRow(record.id))
       .getAllByRole("cell")
@@ -360,9 +366,26 @@ describe("Grades page", () => {
     const row = within(getRecordRow("V-1002"));
     expect(row.getByText("Primer año Sección Flotante")).toBeInTheDocument();
     expect(row.getAllByLabelText("Sin estrategia")).toHaveLength(12);
+    const { terms, termAverages } = gradesResponse.rows[1].subjectDetails.math;
+    const expectedGrades = terms.flatMap((grades, index) => [
+      ...grades.map((grade) => grade.toFixed(1)),
+      ...(index < TERM_COUNT ? [...Array(GRADE_SLOTS_PER_TERM - 1).fill("—"), termAverages[index].toFixed(1)] : []),
+    ]);
+    expectedGrades.push(gradesResponse.rows[1].subjectAverages.math.toFixed(1));
+    expect(row.getAllByRole("cell").map((cell) => cell.textContent).slice(-expectedGrades.length)).toEqual(expectedGrades);
     for (const grade of ["8.0", "12.0", "16.0", "13.0"]) {
       expect(row.getAllByText(grade, { exact: true }).length).toBeGreaterThan(0);
     }
+  });
+
+  it("keeps term averages visible and read-only while editing grades", async () => {
+    renderGrades();
+    await expandSubject(gradesResponse.subjects[0].id);
+    await userEvent.click(screen.getByRole("button", { name: "Editar" }));
+
+    const row = within(getRecordRow(gradesResponse.rows[1].id));
+    expect(row.getByText("0.0")).toBeInTheDocument();
+    expect(row.getAllByRole("spinbutton")).toHaveLength(TERM_COUNT + 1);
   });
 
   it("closes subject detail view", async () => {
