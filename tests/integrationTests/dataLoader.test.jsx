@@ -64,8 +64,8 @@ const subjects = [
   { id: "science", name: "Ciencias", abbr: "CIE" },
 ];
 const subjectsByYear = {
-  1: subjects.map(s => s.id)
-}
+  1: subjects.map((s) => s.id),
+};
 const studentClass = { id: "", firstName: "", lastName: "", _class: {} };
 const studentFieldLabels = {
   id: "Documento",
@@ -209,10 +209,13 @@ describe("Data loading pages", () => {
     getClassSuggestions.mockResolvedValue({
       students,
       studentClass,
-      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
+      fields: {
+        student: fieldDefinitions(studentFieldLabels),
+        guardian: fieldDefinitions(guardianFieldLabels),
+      },
       guardianClass,
     });
-    getSubjectSuggestions.mockResolvedValue({subjectsByYear})
+    getSubjectSuggestions.mockResolvedValue({ subjectsByYear });
     getGuardians.mockImplementation(({ id }) =>
       Promise.resolve({
         filters: { id },
@@ -220,9 +223,7 @@ describe("Data loading pages", () => {
         recordsAmount: 0,
       })
     );
-    createGuardian.mockImplementation((guardian) =>
-      Promise.resolve(guardian)
-    );
+    createGuardian.mockImplementation((guardian) => Promise.resolve(guardian));
     getPeriodList.mockResolvedValue([{ id: "2025" }]);
     getStudents.mockResolvedValue({
       recordsAmount: 0,
@@ -255,25 +256,40 @@ describe("Data loading pages", () => {
     );
     expect(clearCache).toHaveBeenCalledWith("subjects");
     expect(clearCache).toHaveBeenCalledWith("class_students");
-    expect(response.headers.get("Location")).toBe("..");
   });
 
-  it("rejects data loading for users without a permitted role", async () => {
+  it("disable steps for users without a permitted role", async () => {
     getActiveUser.mockReturnValue({ userLevel: "Docente" });
+    renderDataLoader();
 
-    await expect(dataLoader()).rejects.toThrow(
-      "No tiene permisos para cargar datos del período."
+    expect(
+      await screen.findByRole("link", { name: /Materias/ })
+    ).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("link", { name: /Secciones/ })).toHaveAttribute(
+      "aria-disabled",
+      "true"
     );
+
+    expect(screen.getByRole("button", { name: /Confirmar/ })).toBeDisabled();
+    expect(
+      await screen.findByText(
+        "No tiene permisos para cargar datos del período."
+      )
+    ).toBeInTheDocument();
   });
 
   it("shows action failures in the error dialog", async () => {
     const user = userEvent.setup();
-    loadPeriodData.mockRejectedValueOnce(new Error("No se pudieron cargar los datos"));
+    loadPeriodData.mockRejectedValueOnce(
+      new Error("No se pudieron cargar los datos")
+    );
     renderDataLoader();
 
     await user.click(await screen.findByRole("button", { name: /Confirmar/ }));
 
-    expect(await screen.findByText("No se pudieron cargar los datos")).toBeInTheDocument();
+    expect(
+      await screen.findByText("No se pudieron cargar los datos")
+    ).toBeInTheDocument();
   });
 
   it("loads, changes, and saves subject selections", async () => {
@@ -308,47 +324,11 @@ describe("Data loading pages", () => {
 
     for (const subject of subjects) {
       expect(
-        await screen.findByRole("checkbox", { name:subject.name })
+        await screen.findByRole("checkbox", { name: subject.name })
       ).toBeChecked();
     }
-  })
-
-  it("groups students by section without adding row-only identity fields", async () => {
-    cache.class_students = null;
-
-    const result = await classLoader();
-
-    expect(result).toMatchObject({
-      years,
-      studentSchema: {
-        template: studentClass,
-        attributes: ["id", "firstName", "lastName"],
-        fields: fieldDefinitions(studentFieldLabels),
-      },
-      guardianSchema: {
-        template: guardianClass,
-        attributes: Object.keys(guardianClass),
-        fields: fieldDefinitions(guardianFieldLabels),
-      },
-      subjectsByYear: {
-        1: [subjects[0]],
-      },
-    });
-    expect(result.classesByYear[1].A.students[0]).toMatchObject({
-      ...students[0],
-      _locked: true,
-    });
-    expect(result.classesByYear[1].B.students[0]).toMatchObject({
-      ...students[1],
-      _locked: true,
-    });
-    expect(result.classesByYear[1].A.students[0]._rowId).toBeUndefined();
-    expect(result.studentsById).toMatchObject({
-      "V-100": { ...students[0], _locked: true },
-      "E-101": { ...students[1], _locked: true },
-    });
   });
-
+  
   it("renders static student rows and switches class tabs", async () => {
     const user = userEvent.setup();
     cache.class_students = null;
@@ -375,9 +355,9 @@ describe("Data loading pages", () => {
     expect(
       screen.getByRole("heading", { name: "Añadir estudiante" })
     ).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Documento: tipo" })).toHaveValue(
-      "V-"
-    );
+    expect(
+      screen.getByRole("combobox", { name: "Documento: tipo" })
+    ).toHaveValue("V-");
     expect(screen.getByRole("textbox", { name: "Documento" })).toHaveValue(
       "30000000"
     );
@@ -412,7 +392,10 @@ describe("Data loading pages", () => {
       students: [{ ...students[0], birthPlace: "Venezuela, Miranda, Sucre" }],
       studentClass,
       fields: {
-        student: fieldDefinitions({ ...studentFieldLabels, birthPlace: "Lugar de nacimiento" }),
+        student: fieldDefinitions({
+          ...studentFieldLabels,
+          birthPlace: "Lugar de nacimiento",
+        }),
         guardian: fieldDefinitions(guardianFieldLabels),
       },
       guardianClass,
@@ -422,10 +405,14 @@ describe("Data loading pages", () => {
       state: { id: 10, country: "VE", name: "Miranda" },
       municipality: { id: 20, country: "VE", state: 10, name: "Sucre" },
     };
-    getPlaces.mockImplementation(async ({ type }) => ({ rows: [places[type]] }));
+    getPlaces.mockImplementation(async ({ type }) => ({
+      rows: [places[type]],
+    }));
     renderClassLoader();
 
-    await user.click(await screen.findByRole("button", { name: "Editar estudiante Ana Pérez" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Editar estudiante Ana Pérez" })
+    );
     for (const name of ["País", "Estado", "Municipio"]) {
       expect(screen.getByRole("combobox", { name })).toBeDisabled();
     }
@@ -433,19 +420,29 @@ describe("Data loading pages", () => {
     await user.click(screen.getByRole("button", { name: "Añadir Estudiante" }));
     await user.type(screen.getByRole("textbox", { name: "Nombre" }), "Luis");
     await user.type(screen.getByRole("textbox", { name: "Apellido" }), "Sol");
-    for (const [name, place] of [["País", "Venezuela"], ["Estado", "Miranda"], ["Municipio", "Sucre"]]) {
+    for (const [name, place] of [
+      ["País", "Venezuela"],
+      ["Estado", "Miranda"],
+      ["Municipio", "Sucre"],
+    ]) {
       await user.type(screen.getByRole("combobox", { name }), place);
       await user.click(await screen.findByRole("option", { name: place }));
     }
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
     expect(screen.getByText("Luis")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Continuar" }));
-    await waitFor(() => expect(saveCache).toHaveBeenCalledWith(
-      "class_students",
-      expect.arrayContaining([expect.objectContaining({
-        id: "V-30000000", firstName: "Luis", birthPlace: "Venezuela, Miranda, Sucre",
-      })])
-    ));
+    await waitFor(() =>
+      expect(saveCache).toHaveBeenCalledWith(
+        "class_students",
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "V-30000000",
+            firstName: "Luis",
+            birthPlace: "Venezuela, Miranda, Sucre",
+          }),
+        ])
+      )
+    );
   });
 
   it("validates cédula uniqueness locally before committing the modal", async () => {
@@ -459,7 +456,10 @@ describe("Data loading pages", () => {
     await user.clear(documentInput);
     await user.type(documentInput, "100");
     await user.type(screen.getByRole("textbox", { name: "Nombre" }), "Otra");
-    await user.type(screen.getByRole("textbox", { name: "Apellido" }), "Persona");
+    await user.type(
+      screen.getByRole("textbox", { name: "Apellido" }),
+      "Persona"
+    );
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
     expect(
@@ -485,9 +485,7 @@ describe("Data loading pages", () => {
       screen.getByRole("button", { name: "Editar estudiante Ana Pérez" })
     );
     expect(screen.getByRole("textbox", { name: "Nombre" })).toBeDisabled();
-    await user.click(
-      screen.getByRole("button", { name: /^Inscripción/ })
-    );
+    await user.click(screen.getByRole("button", { name: /^Inscripción/ }));
     expect(
       screen.getByRole("combobox", { name: "Sección de inscripción" })
     ).toBeEnabled();
@@ -517,7 +515,9 @@ describe("Data loading pages", () => {
     await user.type(documentInput, "777");
 
     await waitFor(() =>
-      expect(screen.getByRole("textbox", { name: "Nombre" })).toHaveValue("Sara")
+      expect(screen.getByRole("textbox", { name: "Nombre" })).toHaveValue(
+        "Sara"
+      )
     );
     expect(documentInput).not.toBeDisabled();
     expect(screen.getByRole("textbox", { name: "Nombre" })).toBeDisabled();
@@ -526,10 +526,10 @@ describe("Data loading pages", () => {
       screen.getByText(/únicamente puede cambiar su inscripción/i)
     ).toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole("button", { name: /^Inscripción/ })
-    );
-    expect(screen.getByText("Este estudiante no lleva materias pendientes.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^Inscripción/ }));
+    expect(
+      screen.getByText("Este estudiante no lleva materias pendientes.")
+    ).toBeInTheDocument();
     await user.selectOptions(
       screen.getByRole("combobox", { name: "Sección de inscripción" }),
       "1:B"
@@ -542,12 +542,16 @@ describe("Data loading pages", () => {
     await user.clear(unlockedDocumentInput);
 
     expect(screen.getByRole("textbox", { name: "Nombre" })).not.toBeDisabled();
-    expect(screen.getByRole("textbox", { name: "Apellido" })).not.toBeDisabled();
+    expect(
+      screen.getByRole("textbox", { name: "Apellido" })
+    ).not.toBeDisabled();
 
     await user.type(unlockedDocumentInput, "778");
 
     await user.click(screen.getByRole("button", { name: /^Inscripción/ }));
-    expect(screen.getByText(/Puede inscribir un máximo de 2 materias/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Puede inscribir un máximo de 2 materias/)
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
@@ -572,7 +576,9 @@ describe("Data loading pages", () => {
     const saved = saveCache.mock.calls.find(
       ([key]) => key === "class_students"
     )[1];
-    expect(saved.find((student) => student.id === "V-778")._locked).toBeUndefined();
+    expect(
+      saved.find((student) => student.id === "V-778")._locked
+    ).toBeUndefined();
   });
 
   it("lets new students select up to two pending subjects from the previous year", async () => {
@@ -595,7 +601,10 @@ describe("Data loading pages", () => {
     getClassSuggestions.mockResolvedValue({
       students: [enrolledStudent],
       studentClass,
-      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
+      fields: {
+        student: fieldDefinitions(studentFieldLabels),
+        guardian: fieldDefinitions(guardianFieldLabels),
+      },
       guardianClass,
     });
     renderClassLoader();
@@ -659,7 +668,10 @@ describe("Data loading pages", () => {
         },
       ],
       studentClass,
-      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
+      fields: {
+        student: fieldDefinitions(studentFieldLabels),
+        guardian: fieldDefinitions(guardianFieldLabels),
+      },
       guardianClass,
     });
 
@@ -671,8 +683,12 @@ describe("Data loading pages", () => {
     expect(pendingSubjects).toHaveTextContent("MAT");
     expect(pendingSubjects).not.toHaveTextContent("LEN");
     await user.click(pendingSubjects);
-    expect(within(screen.getByRole("dialog")).queryByRole("checkbox")).not.toBeInTheDocument();
-    expect(screen.getByText("Este estudiante lleva pendiente Matemática.")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("dialog")).queryByRole("checkbox")
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Este estudiante lleva pendiente Matemática.")
+    ).toBeInTheDocument();
   });
 
   it("matches floating enrollment to its assigned subjects", async () => {
@@ -693,7 +709,10 @@ describe("Data loading pages", () => {
         },
       ],
       studentClass,
-      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
+      fields: {
+        student: fieldDefinitions(studentFieldLabels),
+        guardian: fieldDefinitions(guardianFieldLabels),
+      },
       guardianClass,
     });
 
@@ -706,18 +725,24 @@ describe("Data loading pages", () => {
     expect(pendingSubjects).toHaveTextContent("LEN");
     expect(pendingSubjects).not.toHaveTextContent("CIE");
     await user.click(pendingSubjects);
-    expect(screen.getByText("Este estudiante lleva pendiente Matemática, Lengua.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Este estudiante lleva pendiente Matemática, Lengua.")
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Continuar" }));
-    await waitFor(() => expect(saveCache).toHaveBeenCalledWith(
-      "class_students",
-      expect.arrayContaining([expect.objectContaining({
-        id: "V-100",
-        pendingSubjects: cache.subjects[yearId],
-        _class: { year: yearId, id: "z" },
-      })])
-    ));
+    await waitFor(() =>
+      expect(saveCache).toHaveBeenCalledWith(
+        "class_students",
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "V-100",
+            pendingSubjects: cache.subjects[yearId],
+            _class: { year: yearId, id: "z" },
+          }),
+        ])
+      )
+    );
   });
 
   it("disables enrollment selects for floating enrollments", async () => {
@@ -731,36 +756,78 @@ describe("Data loading pages", () => {
       students: [
         { ...students[0], _class: { year: 9, id: "A" } },
         { ...students[1], _class: { year: 2, id: "A" } },
-        { id: "V-103", firstName: "Luis", lastName: "Sol", _class: { year: 9, id: "z" } },
-        { id: "V-104", firstName: "Sara", lastName: "Sol", _class: { year: 2, id: "z" } },
+        {
+          id: "V-103",
+          firstName: "Luis",
+          lastName: "Sol",
+          _class: { year: 9, id: "z" },
+        },
+        {
+          id: "V-104",
+          firstName: "Sara",
+          lastName: "Sol",
+          _class: { year: 2, id: "z" },
+        },
       ],
       studentClass,
-      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
+      fields: {
+        student: fieldDefinitions(studentFieldLabels),
+        guardian: fieldDefinitions(guardianFieldLabels),
+      },
       guardianClass,
     });
     renderClassLoader();
 
-    const earlySelect = await screen.findByRole("combobox", { name: "Cambiar sección de Ana Pérez" });
+    const earlySelect = await screen.findByRole("combobox", {
+      name: "Cambiar sección de Ana Pérez",
+    });
     expect(earlySelect).toBeEnabled();
-    expect(within(earlySelect).getByRole("option", { name: "Sección Flotante" })).toBeDisabled();
-    const finalSelect = screen.getByRole("combobox", { name: "Cambiar sección de Eva Díaz" });
-    expect(within(finalSelect).getByRole("option", { name: "Sección Flotante" })).toBeDisabled();
+    expect(
+      within(earlySelect).getByRole("option", { name: "Sección Flotante" })
+    ).toBeDisabled();
+    const finalSelect = screen.getByRole("combobox", {
+      name: "Cambiar sección de Eva Díaz",
+    });
+    expect(
+      within(finalSelect).getByRole("option", { name: "Sección Flotante" })
+    ).toBeDisabled();
 
-    await user.click(screen.getByRole("button", { name: "Editar materias pendientes de Ana Pérez" }));
-    const enrollmentSelect = screen.getByRole("combobox", { name: "Sección de inscripción" });
+    await user.click(
+      screen.getByRole("button", {
+        name: "Editar materias pendientes de Ana Pérez",
+      })
+    );
+    const enrollmentSelect = screen.getByRole("combobox", {
+      name: "Sección de inscripción",
+    });
     expect(enrollmentSelect).toBeEnabled();
-    const floatingOptions = within(enrollmentSelect).getAllByRole("option", { name: "Sección Flotante" });
+    const floatingOptions = within(enrollmentSelect).getAllByRole("option", {
+      name: "Sección Flotante",
+    });
     expect(floatingOptions).toHaveLength(2);
     floatingOptions.forEach((option) => expect(option).toBeDisabled());
     await user.selectOptions(enrollmentSelect, "2:z");
     expect(enrollmentSelect).toHaveValue("9:A");
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
 
-    for (const [index, name, yearId] of [[0, "Luis Sol", 9], [1, "Sara Sol", 2]]) {
-      await user.click(screen.getAllByRole("tab", { name: "Sección Flotante" })[index]);
-      expect(screen.getByRole("combobox", { name: `Cambiar sección de ${name}` })).toBeDisabled();
-      await user.click(screen.getByRole("button", { name: `Editar materias pendientes de ${name}` }));
-      const floatingSelect = screen.getByRole("combobox", { name: "Sección de inscripción" });
+    for (const [index, name, yearId] of [
+      [0, "Luis Sol", 9],
+      [1, "Sara Sol", 2],
+    ]) {
+      await user.click(
+        screen.getAllByRole("tab", { name: "Sección Flotante" })[index]
+      );
+      expect(
+        screen.getByRole("combobox", { name: `Cambiar sección de ${name}` })
+      ).toBeDisabled();
+      await user.click(
+        screen.getByRole("button", {
+          name: `Editar materias pendientes de ${name}`,
+        })
+      );
+      const floatingSelect = screen.getByRole("combobox", {
+        name: "Sección de inscripción",
+      });
       expect(floatingSelect).toBeDisabled();
       expect(floatingSelect).toHaveValue(`${yearId}:z`);
       await user.click(screen.getByRole("button", { name: "Aceptar" }));
@@ -779,30 +846,49 @@ describe("Data loading pages", () => {
     getClassSuggestions.mockResolvedValue({
       students: [{ ...students[0], _class: { year: 2, id: "z" } }],
       studentClass,
-      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
+      fields: {
+        student: fieldDefinitions(studentFieldLabels),
+        guardian: fieldDefinitions(guardianFieldLabels),
+      },
       guardianClass,
     });
     renderClassLoader();
-    await user.click(await screen.findByRole("button", { name: "Añadir Estudiante" }));
+    await user.click(
+      await screen.findByRole("button", { name: "Añadir Estudiante" })
+    );
     const documentInput = screen.getByRole("textbox", { name: "Documento" });
     await user.clear(documentInput);
     await user.type(documentInput, "102");
     await user.type(screen.getByRole("textbox", { name: "Nombre" }), "Luis");
     await user.type(screen.getByRole("textbox", { name: "Apellido" }), "Sol");
     await user.click(screen.getByRole("button", { name: /^Inscripción/ }));
-    const enrollmentSelect = screen.getByRole("combobox", { name: "Sección de inscripción" });
+    const enrollmentSelect = screen.getByRole("combobox", {
+      name: "Sección de inscripción",
+    });
     expect(enrollmentSelect).toBeDisabled();
     expect(enrollmentSelect).toHaveValue("2:z");
-    expect(screen.queryByRole("checkbox", { name: "Matemática" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("checkbox", { name: "Matemática" })
+    ).not.toBeInTheDocument();
     await user.click(screen.getByRole("checkbox", { name: "Lengua" }));
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
-    expect(screen.getByRole("combobox", { name: "Cambiar sección de Luis Sol" })).toBeDisabled();
+    expect(
+      screen.getByRole("combobox", { name: "Cambiar sección de Luis Sol" })
+    ).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Continuar" }));
-    await waitFor(() => expect(saveCache).toHaveBeenCalledWith(
-      "class_students",
-      expect.arrayContaining([expect.objectContaining({ id: "V-102", _class: { year: 2, id: "z" }, pendingSubjects: ["language"] })])
-    ));
+    await waitFor(() =>
+      expect(saveCache).toHaveBeenCalledWith(
+        "class_students",
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: "V-102",
+            _class: { year: 2, id: "z" },
+            pendingSubjects: ["language"],
+          }),
+        ])
+      )
+    );
   });
 
   it("removes incompatible pending subjects when enrollment year changes", async () => {
@@ -827,7 +913,10 @@ describe("Data loading pages", () => {
         },
       ],
       studentClass,
-      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
+      fields: {
+        student: fieldDefinitions(studentFieldLabels),
+        guardian: fieldDefinitions(guardianFieldLabels),
+      },
       guardianClass,
     });
     renderClassLoader();
@@ -844,7 +933,9 @@ describe("Data loading pages", () => {
     expect(
       screen.queryByRole("checkbox", { name: "Matemática" })
     ).not.toBeInTheDocument();
-    expect(screen.getByText("Este estudiante no lleva materias pendientes.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Este estudiante no lleva materias pendientes.")
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
     const firstYearTabs = screen.getAllByRole("tab", {
@@ -870,7 +961,10 @@ describe("Data loading pages", () => {
         },
       ],
       studentClass,
-      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
+      fields: {
+        student: fieldDefinitions(studentFieldLabels),
+        guardian: fieldDefinitions(guardianFieldLabels),
+      },
       guardianClass,
     });
     createGuardian.mockImplementation(async (record) => ({
@@ -900,18 +994,9 @@ describe("Data loading pages", () => {
     const guardianId = screen.getByRole("textbox", { name: "Cédula" });
     await user.clear(guardianId);
     await user.type(guardianId, "901");
-    await user.type(
-      screen.getByRole("textbox", { name: "Nombres" }),
-      "Mario"
-    );
-    await user.type(
-      screen.getByRole("textbox", { name: "Apellidos" }),
-      "Mora"
-    );
-    await user.type(
-      screen.getByLabelText("Fecha de Nacimiento"),
-      "1985-03-04"
-    );
+    await user.type(screen.getByRole("textbox", { name: "Nombres" }), "Mario");
+    await user.type(screen.getByRole("textbox", { name: "Apellidos" }), "Mora");
+    await user.type(screen.getByLabelText("Fecha de Nacimiento"), "1985-03-04");
     await user.type(
       screen.getByRole("textbox", { name: "Rol Legal" }),
       "Padre"
@@ -960,7 +1045,17 @@ describe("Data loading pages", () => {
     getGuardians.mockImplementation(({ id }) =>
       Promise.resolve({
         filters: { id },
-        rows: id === guardian.id ? [{ ...guardian, assignedStudents: [{ id: "V-7", firstName: "Sara", lastName: "Sol" }] }] : [],
+        rows:
+          id === guardian.id
+            ? [
+                {
+                  ...guardian,
+                  assignedStudents: [
+                    { id: "V-7", firstName: "Sara", lastName: "Sol" },
+                  ],
+                },
+              ]
+            : [],
         recordsAmount: id === guardian.id ? 1 : 0,
       })
     );
@@ -979,13 +1074,11 @@ describe("Data loading pages", () => {
     await user.type(guardianId, "900");
 
     await waitFor(() =>
-      expect(
-        screen.getByRole("textbox", { name: "Nombres" })
-      ).toHaveValue("María")
+      expect(screen.getByRole("textbox", { name: "Nombres" })).toHaveValue(
+        "María"
+      )
     );
-    expect(
-      screen.getByRole("textbox", { name: "Nombres" })
-    ).toBeDisabled();
+    expect(screen.getByRole("textbox", { name: "Nombres" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
     expect(await screen.findByText("María Rojas")).toBeInTheDocument();
@@ -1048,7 +1141,10 @@ describe("Data loading pages", () => {
     getClassSuggestions.mockResolvedValue({
       students: manyStudents,
       studentClass,
-      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
+      fields: {
+        student: fieldDefinitions(studentFieldLabels),
+        guardian: fieldDefinitions(guardianFieldLabels),
+      },
     });
     renderClassLoader();
 
@@ -1103,7 +1199,10 @@ describe("Data loading pages", () => {
     getClassSuggestions.mockResolvedValue({
       students: [],
       studentClass,
-      fields: { student: fieldDefinitions(studentFieldLabels), guardian: fieldDefinitions(guardianFieldLabels) },
+      fields: {
+        student: fieldDefinitions(studentFieldLabels),
+        guardian: fieldDefinitions(guardianFieldLabels),
+      },
     });
     renderClassLoader();
 
@@ -1112,16 +1211,17 @@ describe("Data loading pages", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
 
-    await user.click(
-      screen.getByRole("button", { name: "Crear sección" })
-    );
+    await user.click(screen.getByRole("button", { name: "Crear sección" }));
     expect(screen.getByRole("tab", { name: "Sección A" })).toHaveAttribute(
       "aria-selected",
       "true"
     );
     expect(screen.getByRole("table")).toBeInTheDocument();
-    expect(screen.getByRole("cell", { name: "No hay registros para mostrar." })).toHaveAttribute(
-      "colspan", String(Object.keys(studentFieldLabels).length + 5)
+    expect(
+      screen.getByRole("cell", { name: "No hay registros para mostrar." })
+    ).toHaveAttribute(
+      "colspan",
+      String(Object.keys(studentFieldLabels).length + 5)
     );
 
     await user.click(

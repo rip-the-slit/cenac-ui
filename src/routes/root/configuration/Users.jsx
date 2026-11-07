@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import {
   Form,
+  redirect,
   useActionData,
   useLoaderData,
   useNavigation,
@@ -68,14 +69,15 @@ function serializeChanges(draftUsers, baselineUsers, deletedIds) {
   return { created, updated, deleted: deletedIds };
 }
 
-export async function usersLoader() {
+export async function usersLoader({params}) {
   const users = await getUsers();
   const activeUser = getActiveUser();
   const userLevel = activeUser?.userLevel ?? activeUser?.userlevel;
 
   if (userLevel !== "Administrador") {
-    throw new Error("No tiene permisos para administrar usuarios.");
+    redirect(`/periodo/${encodeURIComponent(params.periodId)}/configuracion`)
   }
+  
   return { users };
 }
 

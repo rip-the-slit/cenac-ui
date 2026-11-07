@@ -23,6 +23,7 @@ import {
 } from "./classLoaderModel";
 import StudentEditorProvider from "./StudentEditor";
 import { getEnrollmentSubjects, normalizeId } from "./classLoaderUtils";
+import { getActiveUser } from "../../../../auth";
 
 const MAX_GUARDIAN_SUGGESTIONS = 5;
 
@@ -71,9 +72,7 @@ export async function classAction({ request }) {
         );
       }
 
-      const classValue = String(
-        formData.get(`_class-${studentId}`) || ""
-      );
+      const classValue = String(formData.get(`_class-${studentId}`) || "");
       const [yearId, classId] = classValue.split("-");
       student._class = { year: Number(yearId), id: classId };
       return student;
@@ -94,7 +93,13 @@ function normalizeGuardian(guardian) {
   };
 }
 
-export async function classLoader() {
+export async function classLoader({params}) {
+  const activeUser = getActiveUser();
+
+  if (!["Administrador", "Coordinador"].includes(activeUser?.userLevel)) {
+    return redirect(`/periodo/${encodeURIComponent(params.periodId)}/cargar`);
+  }
+
   const cachedStudents = getCache("class_students");
   const cachedSubjectIds = getCache("subjects");
   const [years, subjects, suggestions] = await Promise.all([
@@ -112,9 +117,7 @@ export async function classLoader() {
     Array.isArray(cachedStudents) && cachedStudents.length > 0
       ? cachedStudents
       : suggestedStudents;
-  const classesByYear = Object.fromEntries(
-    years.map((year) => [year.id, {}])
-  );
+  const classesByYear = Object.fromEntries(years.map((year) => [year.id, {}]));
   const studentsById = {};
   const subjectsById = Object.fromEntries(
     subjects.map((subject) => [String(subject.id), subject])
@@ -124,9 +127,7 @@ export async function classLoader() {
 
   for (const year of years) {
     const selectedSubjectIds =
-      cachedSubjectIds?.[year.id] ??
-      cachedSubjectIds?.[String(year.id)] ??
-      [];
+      cachedSubjectIds?.[year.id] ?? cachedSubjectIds?.[String(year.id)] ?? [];
     subjectsByYear[year.id] = (
       Array.isArray(selectedSubjectIds) ? selectedSubjectIds : []
     )
@@ -205,8 +206,7 @@ function validateStudentChange({
   }
 
   const duplicate =
-    studentsById[studentId] &&
-    (mode === "create" || studentId !== originalId);
+    studentsById[studentId] && (mode === "create" || studentId !== originalId);
   if (duplicate) {
     return "Ya existe un estudiante con esta cédula.";
   }
@@ -235,9 +235,7 @@ function validateStudentChange({
     )
   );
   if (
-    pendingSubjects.some(
-      (subjectId) => !allowedPendingSubjects.has(subjectId)
-    )
+    pendingSubjects.some((subjectId) => !allowedPendingSubjects.has(subjectId))
   ) {
     return student._class.id === "z"
       ? "Las materias pendientes deben pertenecer al último año."

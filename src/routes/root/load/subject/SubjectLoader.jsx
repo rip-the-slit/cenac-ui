@@ -13,6 +13,7 @@ import {
 } from "../../../../db";
 import CollapsibleSection from "../CollapsibleSection";
 import SubjectSelector from "./SubjectSelector";
+import { getActiveUser } from "../../../../auth";
 
 export async function subjectAction({ request }) {
   try {
@@ -49,14 +50,20 @@ export async function subjectAction({ request }) {
   }
 }
 
-export async function subjectLoader() {
+export async function subjectLoader({params}) {
+  const activeUser = getActiveUser();
+  
+  if (!["Administrador", "Coordinador"].includes(activeUser?.userLevel)) {
+    return redirect(`/periodo/${encodeURIComponent(params.periodId)}/cargar`);
+  }
+
   const cachedSubjects = getCache("subjects");
   const [years, subjects, suggestions] = await Promise.all([
     getYears(),
     getSubjects(),
     getSubjectSuggestions(),
   ]);
-  const {subjectsByYear: suggestedSubjects} = suggestions
+  const { subjectsByYear: suggestedSubjects } = suggestions;
 
   const subjectsPerYear =
     Object.prototype.toString.call(cachedSubjects) === "[object Object]" &&
