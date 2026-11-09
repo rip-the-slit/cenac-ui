@@ -16,12 +16,15 @@ export async function getPeriodList() {
   return request("/periods");
 }
 
-export async function getClassSuggestions() {
-  return request("/periods/suggestions");
+export async function getClassSuggestions(studentId) {
+  const params = new URLSearchParams();
+  if (studentId) params.set("studentId", studentId);
+  const qs = params.toString();
+  return request(`/periods/suggestions${qs ? `?${qs}` : ""}`);
 }
 
 export async function getSubjectSuggestions() {
-  return request("/subjects/suggestions")
+  return request("/subjects/suggestions");
 }
 
 export async function getStudentById(periodId, studentId) {
@@ -29,25 +32,28 @@ export async function getStudentById(periodId, studentId) {
 }
 
 export async function editStudent(studentId, changes) {
-  return request(`/periods/all/students/${encodeURIComponent(studentId)}/edit`, {
-    method: "POST",
-    body: JSON.stringify(changes),
-  });
+  return request(
+    `/periods/all/students/${encodeURIComponent(studentId)}/edit`,
+    {
+      method: "POST",
+      body: JSON.stringify(changes),
+    }
+  );
 }
 
 export async function getStudents(periodId, filters = {}) {
   const params = new URLSearchParams();
-  if (filters.id)          params.set("id",          filters.id);
-  if (filters.firstName)   params.set("firstName",   filters.firstName);
-  if (filters.lastName)    params.set("lastName",     filters.lastName);
-  if (filters.birthDate)   params.set("dateOfBirth",  filters.birthDate);
-  if (filters.birthPlace)  params.set("birthPlace",   filters.birthPlace);
-  if (filters.guardianQ)   params.set("guardianQ",    filters.guardianQ);
-  if (filters.year)        params.set("year",         filters.year);
-  if (filters.classId)     params.set("class",        filters.classId);
-  if (filters.status)      params.set("status",       filters.status);
-  if (filters.page)        params.set("page",         filters.page);
-  if (filters.limit)       params.set("limit",        filters.limit);
+  if (filters.id) params.set("id", filters.id);
+  if (filters.firstName) params.set("firstName", filters.firstName);
+  if (filters.lastName) params.set("lastName", filters.lastName);
+  if (filters.birthDate) params.set("dateOfBirth", filters.birthDate);
+  if (filters.birthPlace) params.set("birthPlace", filters.birthPlace);
+  if (filters.guardianQ) params.set("guardianQ", filters.guardianQ);
+  if (filters.year) params.set("year", filters.year);
+  if (filters.classId) params.set("class", filters.classId);
+  if (filters.status) params.set("status", filters.status);
+  if (filters.page) params.set("page", filters.page);
+  if (filters.limit) params.set("limit", filters.limit);
   const qs = params.toString();
   return request(`/periods/${periodId}/students${qs ? `?${qs}` : ""}`);
 }
@@ -71,14 +77,22 @@ export async function loadPeriodData(periodId, students, subjects) {
   });
 }
 
-export async function getGrades(periodId, yearId, classId, status, q, page, limit) {
+export async function getGrades(
+  periodId,
+  yearId,
+  classId,
+  status,
+  q,
+  page,
+  limit
+) {
   const params = new URLSearchParams({ periodId });
-  if (yearId)    params.set("yearId",    yearId);
-  if (classId)   params.set("classId",   classId);
-  if (status)    params.set("status", status);
-  if (q)         params.set("q",         q);
-  if (page)      params.set("page",       page);
-  if (limit)     params.set("limit",      limit);
+  if (yearId) params.set("yearId", yearId);
+  if (classId) params.set("classId", classId);
+  if (status) params.set("status", status);
+  if (q) params.set("q", q);
+  if (page) params.set("page", page);
+  if (limit) params.set("limit", limit);
   return request(`/grades?${params.toString()}`);
 }
 
@@ -102,7 +116,7 @@ export async function archivePeriod(periodId, supersede) {
   return request(`/periods/${periodId}/archive`, {
     method: "POST",
     body: JSON.stringify({ supersede }),
-  })
+  });
 }
 
 export async function getSubjects() {

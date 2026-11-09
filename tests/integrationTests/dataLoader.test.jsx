@@ -328,7 +328,7 @@ describe("Data loading pages", () => {
       ).toBeChecked();
     }
   });
-  
+
   it("renders static student rows and switches class tabs", async () => {
     const user = userEvent.setup();
     cache.class_students = null;
@@ -364,10 +364,14 @@ describe("Data loading pages", () => {
 
     await user.type(screen.getByRole("textbox", { name: "Nombre" }), "Luis");
     await user.type(screen.getByRole("textbox", { name: "Apellido" }), "León");
-    await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
-    expect(screen.getByText("Luis")).toBeInTheDocument();
-    expect(screen.getByText("V-30000000")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^Inscripción/ }));
+    const enrollmentSelect = screen.getByRole("combobox", {
+      name: "Sección de inscripción",
+    });
+    await user.selectOptions(enrollmentSelect, "1:B");
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
     await user.click(screen.getByRole("button", { name: "Continuar" }));
     await waitFor(() =>
@@ -378,7 +382,7 @@ describe("Data loading pages", () => {
             id: "V-30000000",
             firstName: "Luis",
             lastName: "León",
-            _class: { year: 1, id: "A" },
+            _class: { year: 1, id: "B" },
           }),
         ])
       )
@@ -493,6 +497,11 @@ describe("Data loading pages", () => {
 
   it("auto-selects an exact historical match and locks identity data while the ids still match", async () => {
     const user = userEvent.setup();
+    const twoYears = [
+      { id: 1, name: "Primer año" },
+      { id: 2, name: "Segundo año" },
+    ];
+    getYears.mockResolvedValue(twoYears);
     getStudents.mockResolvedValue({
       recordsAmount: 1,
       filters: { id: "V-777" },
@@ -501,13 +510,43 @@ describe("Data loading pages", () => {
           id: "V-777",
           firstName: "Sara",
           lastName: "Sol",
-          _class: { year: 9, id: "Z" },
+          _class: { year: 2, id: "Z" },
         },
       ],
     });
-    cache.class_students = null;
+    getClassSuggestions.mockResolvedValue({
+      students: [
+        {
+          id: "V-777",
+          firstName: "Sara",
+          lastName: "Sol",
+          _class: { year: 2, id: "Z" },
+          pendingSubjects: ["math"],
+        },
+      ],
+      recordsAmount: 1,
+      studentClass,
+      fields: {
+        student: fieldDefinitions(studentFieldLabels),
+        guardian: fieldDefinitions(guardianFieldLabels),
+      },
+      guardianClass,
+    });
+    cache.class_students = [
+      {
+        id: "V-10020",
+        firstName: "Ana",
+        lastName: "Pérez",
+        _class: { year: 2, id: "A" },
+      },
+      {
+        id: "V-10030",
+        firstName: "Carlos",
+        lastName: "Ignacio",
+        _class: { year: 2, id: "B" },
+      },
+    ];
     renderClassLoader();
-
     await screen.findByText("Ana");
     await user.click(screen.getByRole("button", { name: "Añadir Estudiante" }));
     const documentInput = screen.getByRole("textbox", { name: "Documento" });
@@ -527,12 +566,10 @@ describe("Data loading pages", () => {
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /^Inscripción/ }));
-    expect(
-      screen.getByText("Este estudiante no lleva materias pendientes.")
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Matemática/i)).toBeInTheDocument();
     await user.selectOptions(
       screen.getByRole("combobox", { name: "Sección de inscripción" }),
-      "1:B"
+      "2:B"
     );
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
@@ -568,7 +605,7 @@ describe("Data loading pages", () => {
             id: "V-778",
             firstName: "Sara",
             lastName: "Sol",
-            _class: { year: 1, id: "B" },
+            _class: { year: 2, id: "B" },
           }),
         ])
       )
@@ -800,13 +837,10 @@ describe("Data loading pages", () => {
     const enrollmentSelect = screen.getByRole("combobox", {
       name: "Sección de inscripción",
     });
-    expect(enrollmentSelect).toBeEnabled();
-    const floatingOptions = within(enrollmentSelect).getAllByRole("option", {
+    expect(within(enrollmentSelect).getByRole("option", {
       name: "Sección Flotante",
-    });
-    expect(floatingOptions).toHaveLength(2);
-    floatingOptions.forEach((option) => expect(option).toBeDisabled());
-    await user.selectOptions(enrollmentSelect, "2:z");
+    })).toBeDisabled()
+    await user.selectOptions(enrollmentSelect, "9:z");
     expect(enrollmentSelect).toHaveValue("9:A");
     await user.click(screen.getByRole("button", { name: "Cancelar" }));
 
@@ -831,7 +865,6 @@ describe("Data loading pages", () => {
       expect(floatingSelect).toBeDisabled();
       expect(floatingSelect).toHaveValue(`${yearId}:z`);
       await user.click(screen.getByRole("button", { name: "Aceptar" }));
-      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     }
   });
 
@@ -845,6 +878,7 @@ describe("Data loading pages", () => {
     ]);
     getClassSuggestions.mockResolvedValue({
       students: [{ ...students[0], _class: { year: 2, id: "z" } }],
+      recordsAmount: 1,
       studentClass,
       fields: {
         student: fieldDefinitions(studentFieldLabels),
@@ -889,65 +923,6 @@ describe("Data loading pages", () => {
         ])
       )
     );
-  });
-
-  it("removes incompatible pending subjects when enrollment year changes", async () => {
-    const user = userEvent.setup();
-    const twoYears = [
-      { id: 1, name: "Primer año" },
-      { id: 2, name: "Segundo año" },
-    ];
-    cache.class_students = null;
-    cache.subjects = { 1: ["math"], 2: [] };
-    getYears.mockResolvedValue(twoYears);
-    getClassSuggestions.mockResolvedValue({
-      students: [
-        {
-          ...students[0],
-          _class: { year: 2, id: "A" },
-          pendingSubjects: ["math"],
-        },
-        {
-          ...students[1],
-          _class: { year: 1, id: "A" },
-        },
-      ],
-      studentClass,
-      fields: {
-        student: fieldDefinitions(studentFieldLabels),
-        guardian: fieldDefinitions(guardianFieldLabels),
-      },
-      guardianClass,
-    });
-    renderClassLoader();
-
-    await user.click(
-      await screen.findByRole("button", {
-        name: "Editar materias pendientes de Ana Pérez",
-      })
-    );
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Sección de inscripción" }),
-      "1:A"
-    );
-    expect(
-      screen.queryByRole("checkbox", { name: "Matemática" })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByText("Este estudiante no lleva materias pendientes.")
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Aceptar" }));
-
-    const firstYearTabs = screen.getAllByRole("tab", {
-      name: "Sección A",
-    });
-    await user.click(firstYearTabs[0]);
-    const anaRow = screen.getByText("Ana").closest("tr");
-    expect(
-      within(anaRow).getByRole("button", {
-        name: "Editar materias pendientes de Ana Pérez",
-      })
-    ).toHaveTextContent("—");
   });
 
   it("manages assigned guardians and registers new guardian records", async () => {

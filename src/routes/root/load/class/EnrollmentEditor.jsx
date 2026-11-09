@@ -34,6 +34,9 @@ export default function EnrollmentEditor({
     availableSubjects.map((subject) => String(subject.id))
   );
   const selectedClass = `${studentClass.year ?? ""}:${studentClass.id ?? ""}`;
+  const yearClasses = Object.values(
+    enrollment.classesByYear[student._class.year] || {}
+  );
   const pendingSubjectNames = availableSubjects
     .filter((subject) => pendingSubjects.includes(String(subject.id)))
     .map((subject) => subject.name);
@@ -96,22 +99,14 @@ export default function EnrollmentEditor({
           required
           onChange={handleClassChange}
         >
-          <option value="" disabled>
-            Seleccione una sección
-          </option>
-          {enrollment.years.map((year) => (
-            <optgroup label={year.name} key={year.id}>
-              {Object.values(enrollment.classesByYear[year.id] || {})
-                .map((classGroup) => (
-                  <option
-                    key={classGroup.className}
-                    value={`${year.id}:${classGroup.className}`}
-                    disabled={classGroup.className === "z"}
-                  >
-                    {formatClassName(classGroup.className)}
-                  </option>
-                ))}
-            </optgroup>
+          {yearClasses.map((classGroup) => (
+            <option
+              key={classGroup.className}
+              value={`${student._class.year}:${classGroup.className}`}
+              disabled={classGroup.className === "z"}
+            >
+              {formatClassName(classGroup.className)}
+            </option>
           ))}
         </select>
       </FormField>

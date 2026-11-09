@@ -93,7 +93,7 @@ function normalizeGuardian(guardian) {
   };
 }
 
-export async function classLoader({params}) {
+export async function classLoader({ params }) {
   const activeUser = getActiveUser();
 
   if (!["Administrador", "Coordinador"].includes(activeUser?.userLevel)) {
@@ -191,7 +191,7 @@ export async function classLoader({params}) {
   };
 }
 
-function validateStudentChange({
+async function validateStudentChange({
   change,
   classesByYear,
   studentsById,
@@ -255,6 +255,17 @@ function validateStudentChange({
     return "No se encontró el estudiante que intenta editar.";
   }
 
+  if (student._locked) {
+    const suggestion = (await getClassSuggestions(studentId)).students[0];
+    if (!suggestion) {
+      return "El estudiante ya cursó todos los años académicos.";
+    } else if (suggestion._class.year !== student._class.year) {
+      return `El estudiante corresponde a ${years.find(({id}) => id === suggestion._class.year).abbr} año.`;
+    } else if (suggestion._class.id === "z" && suggestion._class.id !== student._class.id) {
+      return "El estudiante corresponde a la sección flotante."
+    }
+  }
+
   return null;
 }
 
@@ -278,8 +289,8 @@ export default function ClassLoader() {
     }
   }, [actionData, emitError]);
 
-  function handleStudentCommit(change) {
-    const error = validateStudentChange({
+  async function handleStudentCommit(change) {
+    const error = await validateStudentChange({
       change,
       classesByYear: state.classesByYear,
       studentsById: studentsRef.current,

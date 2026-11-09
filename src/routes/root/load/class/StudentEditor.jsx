@@ -3,16 +3,14 @@ import { createContext, useContext, useState } from "react";
 import { BookOpenCheck, ChevronRight, UserRound, X } from "lucide-react";
 
 import { Button, PrimaryButton } from "../../../../components/Button";
-import {
-  CardHeader,
-  FormField,
-} from "../../../../components/Layout";
+import { CardHeader, FormField } from "../../../../components/Layout";
 import EnrollmentEditor from "./EnrollmentEditor";
 import GuardianEditor from "./GuardianEditor";
 import IdInput from "./IdInput";
 import BirthPlaceInput from "./BirthPlaceInput";
 import { normalizeId } from "./classLoaderUtils";
 import EditorDialog from "../../../../components/EditorDialog";
+import { getClassSuggestions } from "../../../../db";
 
 const StudentEditorContext = createContext(null);
 const NO_DISABLED_FIELDS = new Set();
@@ -20,7 +18,9 @@ const NO_DISABLED_FIELDS = new Set();
 export function useStudentEditor() {
   const context = useContext(StudentEditorContext);
   if (!context) {
-    throw new Error("useStudentEditor must be used inside StudentEditorProvider");
+    throw new Error(
+      "useStudentEditor must be used inside StudentEditorProvider"
+    );
   }
   return context;
 }
@@ -47,7 +47,12 @@ function SectionLink({ description, disabled, icon, label, onClick }) {
   );
 }
 
-export function StudentEditorModal({ editor, config, onClose, disabledFields = NO_DISABLED_FIELDS }) {
+export function StudentEditorModal({
+  editor,
+  config,
+  onClose,
+  disabledFields = NO_DISABLED_FIELDS,
+}) {
   const {
     emitError,
     enrollment,
@@ -73,12 +78,18 @@ export function StudentEditorModal({ editor, config, onClose, disabledFields = N
   const directSection = Boolean(
     editor.initialPage && editor.initialPage !== "details"
   );
-  const studentName =
-    `${draft.firstName ?? ""} ${draft.lastName ?? ""}`.trim();
+  const studentName = `${draft.firstName ?? ""} ${draft.lastName ?? ""}`.trim();
   const editorTitle =
-    editor.mode === "create"
-      ? "Añadir estudiante"
-      : (<>Editar estudiante <span className="text-gray-500 font-normal">{studentName ? `${studentName}` : ""}</span></>);
+    editor.mode === "create" ? (
+      "Añadir estudiante"
+    ) : (
+      <>
+        Editar estudiante{" "}
+        <span className="inline-flex flex-col pl-2 text-gray-500 font-normal truncate max-w-[30ch]">
+          {studentName ? `${studentName}` : ""}
+        </span>
+      </>
+    );
 
   function updateField(field, value) {
     if (disabledFields.has(field)) return;
@@ -94,30 +105,35 @@ export function StudentEditorModal({ editor, config, onClose, disabledFields = N
   }
 
   function populateHistoricalStudent(student) {
-    const nextStudent = {
-      ...draft,
-      pendingSubjects: Array.isArray(student.pendingSubjects)
-        ? student.pendingSubjects.map(String)
-        : [],
-      assignedGuardians: Array.isArray(student.assignedGuardians)
-        ? student.assignedGuardians.map((guardian) => ({
-            ...guardian,
-            id: normalizeId(guardian.id),
-            _locked: true,
-          }))
-        : [],
-    };
+    getClassSuggestions(student.id).then((suggestion) => {
+      suggestion = suggestion && suggestion.students[0];
+      if (suggestion?.pendingSubjects)
+        student.pendingSubjects = suggestion.pendingSubjects;
+      const nextStudent = {
+        ...draft,
+        pendingSubjects: Array.isArray(student.pendingSubjects)
+          ? student.pendingSubjects.map(String)
+          : [],
+        assignedGuardians: Array.isArray(student.assignedGuardians)
+          ? student.assignedGuardians.map((guardian) => ({
+              ...guardian,
+              id: normalizeId(guardian.id),
+              _locked: true,
+            }))
+          : [],
+      };
 
-    for (const field of studentSchema.attributes) {
-      nextStudent[field] =
-        field === "id"
-          ? normalizeId(student[field])
-          : String(student[field] ?? "");
-    }
+      for (const field of studentSchema.attributes) {
+        nextStudent[field] =
+          field === "id"
+            ? normalizeId(student[field])
+            : String(student[field] ?? "");
+      }
 
-    nextStudent._locked = true;
-    setLockedIdentity(nextStudent);
-    setDraft(nextStudent);
+      nextStudent._locked = true;
+      setLockedIdentity(nextStudent);
+      setDraft(nextStudent);
+    }, (e) => emitError("Ocurrió un error inesperado al cargar estudiante histórico."));
   }
 
   function buildStudent(source) {
@@ -127,9 +143,9 @@ export function StudentEditorModal({ editor, config, onClose, disabledFields = N
       ...identity,
       _class: { ...source._class },
       pendingSubjects: [...(source.pendingSubjects || [])],
-      assignedGuardians: (source.assignedGuardians || []).map(
-        (guardian) => ({ ...guardian })
-      ),
+      assignedGuardians: (source.assignedGuardians || []).map((guardian) => ({
+        ...guardian,
+      })),
       id: normalizeId(identity.id),
       _locked: locked,
     };
@@ -139,7 +155,7 @@ export function StudentEditorModal({ editor, config, onClose, disabledFields = N
         student[field] = String(identity[field] ?? "").trim();
       }
     }
-    
+
     return student;
   }
 
@@ -232,46 +248,46 @@ export function StudentEditorModal({ editor, config, onClose, disabledFields = N
         />
 
         <fieldset disabled={isSubmitting} className="grid gap-4 sm:grid-cols-2">
-          {studentSchema.attributes.map((field) => field === "birthPlace" ? (
-            <BirthPlaceInput
-              key={field}
-              value={draft[field] ?? ""}
-              label={studentSchema.fields[field]?.label || field}
-              placeholder={studentSchema.fields[field]?.placeholder}
-              required={studentSchema.fields[field]?.required}
-              disabled={locked || disabledFields.has(field)}
-              className="sm:col-span-2"
-              onChange={(value) => updateField(field, value)}
-              onError={emitError}
-            />
-          ) : (
-            <FormField
-              key={field}
-              label={studentSchema.fields[field]?.label || field}
-            >
-              {field === "id" ? (
-                <div className="rounded-lg border border-gray-300 px-2 py-2">
-                  <IdInput
-                    value={draft.id}
-                    disabled={disabledFields.has("id")}
-                    label={studentSchema.fields[field]?.label || field}
-                    required={studentSchema.fields[field].required}
-                    onChange={handleIdChange}
-                    onSuggestionSelect={populateHistoricalStudent}
+          {studentSchema.attributes.map((field) =>
+            field === "birthPlace" ? (
+              <BirthPlaceInput
+                key={field}
+                value={draft[field] ?? ""}
+                label={studentSchema.fields[field]?.label || field}
+                placeholder={studentSchema.fields[field]?.placeholder}
+                required={studentSchema.fields[field]?.required}
+                disabled={locked || disabledFields.has(field)}
+                className="sm:col-span-2"
+                onChange={(value) => updateField(field, value)}
+                onError={emitError}
+              />
+            ) : (
+              <FormField
+                key={field}
+                label={studentSchema.fields[field]?.label || field}
+              >
+                {field === "id" ? (
+                  <div className="rounded-lg border border-gray-300 px-2 py-2">
+                    <IdInput
+                      value={draft.id}
+                      disabled={disabledFields.has("id")}
+                      label={studentSchema.fields[field]?.label || field}
+                      required={studentSchema.fields[field].required}
+                      onChange={handleIdChange}
+                      onSuggestionSelect={populateHistoricalStudent}
+                    />
+                  </div>
+                ) : (
+                  <FieldInput
+                    definition={studentSchema.fields[field]}
+                    value={draft[field] ?? ""}
+                    disabled={locked || disabledFields.has(field)}
+                    onChange={(event) => updateField(field, event.target.value)}
                   />
-                </div>
-              ) : (
-                <FieldInput
-                  definition={studentSchema.fields[field]}
-                  value={draft[field] ?? ""}
-                  disabled={locked || disabledFields.has(field)}
-                  onChange={(event) =>
-                    updateField(field, event.target.value)
-                  }
-                />
-              )}
-            </FormField>
-          ))}
+                )}
+              </FormField>
+            )
+          )}
         </fieldset>
 
         <nav
@@ -326,7 +342,11 @@ export function StudentEditorModal({ editor, config, onClose, disabledFields = N
 
   return (
     <EditorDialog
-      label={editor.mode === "create" ? "Añadir estudiante" : `Editar estudiante ${studentName}`.trim()}
+      label={
+        editor.mode === "create"
+          ? "Añadir estudiante"
+          : `Editar estudiante ${studentName}`.trim()
+      }
       busy={isSubmitting}
       onClose={onClose}
     >
@@ -349,9 +369,11 @@ export default function StudentEditorProvider({
       onCommitted,
       student: {
         ...editorConfig.studentSchema.template,
-        ...Object.fromEntries(Object.entries(editorConfig.studentSchema.fields)
-          .filter(([, definition]) => definition.default !== undefined)
-          .map(([name, definition]) => [name, definition.default])),
+        ...Object.fromEntries(
+          Object.entries(editorConfig.studentSchema.fields)
+            .filter(([, definition]) => definition.default !== undefined)
+            .map(([name, definition]) => [name, definition.default])
+        ),
         id: editorConfig.getNextStudentId(),
         _class: { year: yearId, id: classId },
         pendingSubjects: [],
@@ -392,7 +414,9 @@ export default function StudentEditorProvider({
       {children}
       {editor && (
         <StudentEditorModal
-          key={`${editor.mode}:${editor.originalId ?? editor.student.id}:${editor.initialPage ?? "details"}`}
+          key={`${editor.mode}:${editor.originalId ?? editor.student.id}:${
+            editor.initialPage ?? "details"
+          }`}
           editor={editor}
           config={editorConfig}
           disabledFields={disabledFields}

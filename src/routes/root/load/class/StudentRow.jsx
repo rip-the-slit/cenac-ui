@@ -36,7 +36,7 @@ export default function StudentRow({ student, selected, actions }) {
     });
   const guardians = student.assignedGuardians || [];
 
-  function handleSectionChange(event) {
+  function handleClassChange(event) {
     actions.move(event.target.value);
   }
 
@@ -55,7 +55,7 @@ export default function StudentRow({ student, selected, actions }) {
           {attribute === "id" ? (
             <button
               type="button"
-              className="text-left underline decoration-emerald-500 decoration-dotted underline-offset-4"
+              className="text-left underline decoration-emerald-500 decoration-wavy"
               aria-label={`Editar cédula de ${studentName}`}
               onClick={() => openEdit(student)}
             >
@@ -104,7 +104,7 @@ export default function StudentRow({ student, selected, actions }) {
           className="w-[15ch] rounded border border-gray-200 bg-white px-2 py-1"
           value={student._class.id}
           disabled={student._class.id === "z"}
-          onChange={handleSectionChange}
+          onChange={handleClassChange}
         >
           {yearClasses.map((classGroup) => (
             <option
