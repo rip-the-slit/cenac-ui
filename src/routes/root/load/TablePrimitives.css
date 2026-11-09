@@ -1,0 +1,92 @@
+.data-table {
+  --selection-column-width: 6ch;
+  --id-column-width: 12ch;
+}
+
+/* The first header row matches the body columns, even in multi-row headers. */
+.data-table :is(thead > tr:first-child > th, tbody > tr > td:not([colspan])):nth-child(-n + 2),
+.data-table:has(> thead > tr:first-child > th:first-child > input[type="checkbox"])
+  :is(thead > tr:first-child > th, tbody > tr > td:not([colspan])):nth-child(3) {
+  position: sticky;
+  z-index: 10;
+}
+
+.data-table tbody > tr > td:nth-child(-n + 3):not([colspan]) {
+  background-color: inherit;
+}
+
+.data-table :is(thead > tr:first-child > th, tbody > tr > td:not([colspan])):first-child {
+  left: 0;
+  width: var(--id-column-width);
+  min-width: var(--id-column-width);
+  max-width: var(--id-column-width);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-table :is(thead > tr:first-child > th, tbody > tr > td:not([colspan])):nth-child(2) {
+  left: var(--id-column-width);
+}
+
+/* Selection adds a narrow column before the ID and name columns. */
+.data-table:has(> thead > tr:first-child > th:first-child > input[type="checkbox"])
+  :is(thead > tr:first-child > th, tbody > tr > td:not([colspan])):first-child {
+  width: var(--selection-column-width);
+  min-width: var(--selection-column-width);
+  max-width: var(--selection-column-width);
+}
+
+.data-table:has(> thead > tr:first-child > th:first-child > input[type="checkbox"])
+  :is(thead > tr:first-child > th, tbody > tr > td:not([colspan])):nth-child(2) {
+  left: var(--selection-column-width);
+  width: var(--id-column-width);
+  min-width: var(--id-column-width);
+  max-width: var(--id-column-width);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-table:has(> thead > tr:first-child > th:first-child > input[type="checkbox"])
+  :is(thead > tr:first-child > th, tbody > tr > td:not([colspan])):nth-child(3) {
+  left: calc(var(--selection-column-width) + var(--id-column-width));
+}
+
+/* Keep the edge above scrolling cells and draw its shadow outside the cell. */
+.data-table:not(:has(> thead > tr:first-child > th:first-child > input[type="checkbox"]))
+  :is(thead > tr:first-child > th, tbody > tr > td:not([colspan])):nth-child(2),
+.data-table:has(> thead > tr:first-child > th:first-child > input[type="checkbox"])
+  :is(thead > tr:first-child > th, tbody > tr > td:not([colspan])):nth-child(3) {
+  z-index: 20;
+  overflow: visible;
+}
+
+.data-table:not(:has(> thead > tr:first-child > th:first-child > input[type="checkbox"]))
+  :is(thead > tr:first-child > th, tbody > tr > td:not([colspan])):nth-child(2)::after,
+.data-table:has(> thead > tr:first-child > th:first-child > input[type="checkbox"])
+  :is(thead > tr:first-child > th, tbody > tr > td:not([colspan])):nth-child(3)::after {
+  content: "";
+  position: absolute;
+  inset: 0 -13px 0 auto;
+  width: 13px;
+  pointer-events: none;
+  background: linear-gradient(to right, rgb(0 0 0 / 0.08), transparent);
+  opacity: 0;
+}
+
+@supports (animation-timeline: scroll()) and (animation-range: 0px 1px) {
+  .data-table:not(:has(> thead > tr:first-child > th:first-child > input[type="checkbox"]))
+    :is(thead > tr:first-child > th, tbody > tr > td:not([colspan])):nth-child(2)::after,
+  .data-table:has(> thead > tr:first-child > th:first-child > input[type="checkbox"])
+    :is(thead > tr:first-child > th, tbody > tr > td:not([colspan])):nth-child(3)::after {
+    animation: reveal-sticky-shadow 1ms linear both;
+    animation-timeline: scroll(nearest inline);
+    animation-range: 0px 1px;
+  }
+}
+
+@keyframes reveal-sticky-shadow {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

@@ -1,17 +1,23 @@
+import "./TablePrimitives.css";
+
 export function TableContainer({ children, className = "" }) {
   return (
-    <div className={`overflow-x-auto relative border-gray-200 outline outline-gray-200 -outline-offset-1 rounded-lg ${className}`}>
+    <div className={`overflow-x-auto relative border-gray-200 outline outline-gray-200 -outline-offset-1 rounded-lg shadow-md ${className}`}>
       {children}
     </div>
   );
 }
 
 export function DataTable({ children, className = "" }) {
-  return <table className={`w-full table-auto border-collapse rounded-lg text-sm ${className}`}>{children}</table>;
+  return (
+    <table className={`data-table w-full table-auto border-collapse rounded-lg text-sm ${className}`}>
+      {children}
+    </table>
+  );
 }
 
 export function TableHead({ children, className = "" }) {
-  return <thead className={`sticky top-0 z-10 bg-gray-100 text-left shadow-md ${className}`}>{children}</thead>;
+  return <thead className={`sticky top-0 z-30 bg-gray-100 text-left shadow-md ${className}`}>{children}</thead>;
 }
 
 export function TableBody({ children, className = "" }) {
@@ -39,7 +45,7 @@ export function BodyRow({ children, className = "", ...props }) {
 
 export function BodyCell({ children, className = "", noPadding, ...props }) {
   return (
-    <td className={`${noPadding ? "" : "p-2"} border whitespace-nowrap [&:has(input[type="number"]:focus)]:outline [&:has(input[type="text"]:focus)]:outline -outline-offset-2 outline-emerald-400 ${className}`} {...props}>
+    <td className={`${noPadding ? "" : "p-2"} border truncate max-w-[25ch] [&>*]:truncate [&:has(input[type="number"]:focus)]:outline [&:has(input[type="text"]:focus)]:outline -outline-offset-2 outline-emerald-400 ${className}`} {...props}>
       {children}
     </td>
   );
