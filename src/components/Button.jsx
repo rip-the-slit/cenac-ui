@@ -37,7 +37,7 @@ export const DeleteButton = (props) => {
   return (
     <button
       type="button"
-      className="rounded-md p-2 text-red-500 hover:bg-red-50"
+      className="rounded-md p-2 text-red-500 hover:bg-red-50 disabled:cursor-not-allowed disabled:text-gray-400 disabled:bg-gray-100"
       {...props}
     >
       <Trash2 aria-hidden="true" className="h-4 w-4" />

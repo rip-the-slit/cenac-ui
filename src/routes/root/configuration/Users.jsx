@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Pencil, Plus, Save, Trash2 } from "lucide-react";
+import { Check, Circle, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import {
   Form,
   redirect,
@@ -18,7 +18,11 @@ import {
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
 import { UserOption } from "../../login/UserSelector";
 import { CardHeader, FormField, TextInput } from "../../../components/Layout";
-import { DeleteButton, EditButton, PrimaryButton } from "../../../components/Button";
+import {
+  DeleteButton,
+  EditButton,
+  PrimaryButton,
+} from "../../../components/Button";
 
 const userLevels = ["Administrador", "Coordinador", "Profesor"];
 
@@ -69,16 +73,16 @@ function serializeChanges(draftUsers, baselineUsers, deletedIds) {
   return { created, updated, deleted: deletedIds };
 }
 
-export async function usersLoader({params}) {
+export async function usersLoader({ params }) {
   const users = await getUsers();
   const activeUser = getActiveUser();
   const userLevel = activeUser?.userLevel ?? activeUser?.userlevel;
 
   if (userLevel !== "Administrador") {
-    redirect(`/periodo/${encodeURIComponent(params.periodId)}/configuracion`)
+    redirect(`/periodo/${encodeURIComponent(params.periodId)}/configuracion`);
   }
-  
-  return { users };
+
+  return { users, activeUser };
 }
 
 export async function usersAction({ request }) {
@@ -99,11 +103,25 @@ export async function usersAction({ request }) {
   }
 }
 
-function UserForm({ editor, onCancel, onConfirm }) {
+const passwordRequirements = [
+  { label: "Mayúsculas", pattern: /[A-Z]/ },
+  { label: "Minúsculas", pattern: /[a-z]/ },
+  { label: "Números", pattern: /\d/ },
+  { label: "Símbolos", pattern: /[._+\-*()\[\]¡!¿?#$%&="']/ },
+];
+
+function UserForm({ editor, disableUserLevelSelect, onCancel, onConfirm }) {
   const [user, setUser] = useState(editor.user);
+  const passwordInputRef = useRef(null);
   const isNew = editor.mode === "add";
 
   function update(field, value) {
+    if (
+      field === "password" &&
+      passwordRequirements.every((r) => !value.match(r.pattern)) &&
+      value.length > 0
+    )
+      return;
     setUser((current) => ({ ...current, [field]: value }));
   }
 
@@ -111,6 +129,14 @@ function UserForm({ editor, onCancel, onConfirm }) {
     <form
       onSubmit={(event) => {
         event.preventDefault();
+        const password = new FormData(event.target).get("password");
+        if ((isNew || password.length > 0) && !passwordRequirements.every((r) => password.match(r.pattern))) {
+          passwordInputRef.current.focus();
+          passwordInputRef.current.setCustomValidity(
+            "La contraseña debe contener de 4 a 64 caracteres y los caracteres especificados."
+          );
+          return;
+        }
         onConfirm(user);
       }}
     >
@@ -137,6 +163,7 @@ function UserForm({ editor, onCancel, onConfirm }) {
           <select
             name="userLevel"
             value={user.userLevel}
+            disabled={disableUserLevelSelect}
             onChange={(event) => update("userLevel", event.target.value)}
             required
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 font-normal h-full"
@@ -151,6 +178,7 @@ function UserForm({ editor, onCancel, onConfirm }) {
 
         <FormField label="Contraseña" className="sm:col-span-2">
           <TextInput
+            ref={passwordInputRef}
             name="password"
             type="password"
             value={user.password}
@@ -165,6 +193,24 @@ function UserForm({ editor, onCancel, onConfirm }) {
             }
           />
         </FormField>
+        {user.password.length ? (
+          <div>
+            <p className="text-sm text-gray-500 font-semibold mb-2">La contraseña debe contener:</p>
+            <ul className="text-md">
+              {passwordRequirements.map((r) => {
+                const match = user.password.match(r.pattern)
+                return (
+                  <li key={r.label + "-requirement"} className={"flex items-center justify-start gap-2 " + (match ? "text-emerald-600" : "text-gray-600")}>
+                    {match ? <Check className="w-4 h-4" /> : <Circle className="w-4 h-3" />}
+                    <span className="font-bold" aria-checked={Boolean(match)}>{r.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : (
+          ""
+        )}
       </div>
 
       <button
@@ -231,6 +277,7 @@ export default function Users() {
     return (
       <UserForm
         editor={editor}
+        disableUserLevelSelect={editor?.user?.id === loaderData.activeUser.id}
         onCancel={() => setEditor(null)}
         onConfirm={(user) => {
           if (editor.mode === "add") {
@@ -292,6 +339,7 @@ export default function Users() {
                     );
                   }
                 }}
+                disabled={user.id === loaderData.activeUser.id}
                 aria-label={`Eliminar usuario ${user.name}`}
               />
             </div>
@@ -306,10 +354,7 @@ export default function Users() {
           value={JSON.stringify(changes)}
           readOnly
         />
-        <PrimaryButton
-          type="submit"
-          disabled={!hasChanges || isSubmitting}
-        >
+        <PrimaryButton type="submit" disabled={!hasChanges || isSubmitting}>
           <Save aria-hidden="true" className="h-5 w-5" />
           {isSubmitting ? "Guardando..." : "Guardar"}
         </PrimaryButton>

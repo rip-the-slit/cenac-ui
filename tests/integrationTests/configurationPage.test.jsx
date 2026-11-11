@@ -1,10 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import {
-  createMemoryRouter,
-  Outlet,
-  RouterProvider,
-} from "react-router";
+import { createMemoryRouter, Outlet, RouterProvider } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -103,7 +99,9 @@ describe("configuration page", () => {
     expect(
       await screen.findByRole("heading", { name: "Configuración" })
     ).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Usuarios" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Usuarios" })
+    ).not.toBeInTheDocument();
   });
 
   it("shows the users section links to administrators", async () => {
@@ -125,6 +123,9 @@ describe("configuration page", () => {
       initialEntry: "/periodo/2025/configuracion/usuarios",
     });
 
+    expect(
+      await screen.findByRole("button", { name: "Eliminar usuario Ana" })
+    ).toBeDisabled();
     await user.click(
       await screen.findByRole("button", { name: "Editar usuario Ana" })
     );
@@ -133,6 +134,9 @@ describe("configuration page", () => {
     const nameInput = screen.getByRole("textbox", { name: "Nombre" });
     await user.clear(nameInput);
     await user.type(nameInput, "Ana Editada");
+    expect(
+      screen.getByRole("combobox", { name: "Nivel de usuario" })
+    ).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
     await user.click(screen.getByRole("button", { name: "Agregar usuario" }));
@@ -141,7 +145,7 @@ describe("configuration page", () => {
       screen.getByRole("combobox", { name: "Nivel de usuario" }),
       "Coordinador"
     );
-    await user.type(screen.getByLabelText("Contraseña"), "secreto");
+    await user.type(screen.getByLabelText("Contraseña"), "104Pj.245");
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
     await user.click(
@@ -162,7 +166,7 @@ describe("configuration page", () => {
       });
       expect(register).toHaveBeenCalledWith({
         name: "Marta",
-        password: "secreto",
+        password: "104Pj.245",
         userLevel: "Coordinador",
       });
       expect(deleteUser).toHaveBeenCalledWith("teacher-1");
@@ -178,7 +182,7 @@ describe("configuration page", () => {
     await user.click(
       await screen.findByRole("button", { name: "Editar usuario Luis" })
     );
-    await user.type(screen.getByLabelText("Contraseña"), "nueva-clave");
+    await user.type(screen.getByLabelText("Contraseña"), "aB.1947");
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
     await user.click(screen.getByRole("button", { name: "Guardar" }));
 
@@ -186,9 +190,56 @@ describe("configuration page", () => {
       expect(editUser).toHaveBeenCalledWith({
         id: "teacher-1",
         name: "Luis",
-        password: "nueva-clave",
+        password: "aB.1947",
         userLevel: "Docente",
       });
     });
+  });
+
+  it("validate password creation", async () => {
+    const user = userEvent.setup();
+    const requirements = ["Mayúsculas", "Minúsculas", "Números", "Símbolos"];
+
+    renderConfiguration({
+      initialEntry: "/periodo/2025/configuracion/usuarios",
+    });
+
+    await user.click(await screen.findByRole("button", { name: "Agregar usuario" }));
+    await user.type(screen.getByRole("textbox", { name: "Nombre" }), "Mateo");
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Nivel de usuario" }),
+      "Coordinador"
+    );
+    await user.type(screen.getByLabelText("Contraseña"), "1234");
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+
+    expect(screen.getByRole("textbox", { name: "Nombre" })).toBeInTheDocument();
+
+    for (const r of requirements)
+      expect(screen.getByText(r)).toHaveAttribute(
+        "aria-checked",
+        ["Números"].includes(r) ? "true" : "false"
+      );
+
+    await user.type(screen.getByLabelText("Contraseña"), "1234A");
+    for (const r of requirements)
+      expect(screen.getByText(r)).toHaveAttribute(
+        "aria-checked",
+        ["Números", "Mayúsculas"].includes(r) ? "true" : "false"
+      );
+
+    await user.type(screen.getByLabelText("Contraseña"), "1234Aa");
+    for (const r of requirements)
+      expect(screen.getByText(r)).toHaveAttribute(
+        "aria-checked",
+        ["Números", "Mayúsculas", "Minúsculas"].includes(r) ? "true" : "false"
+      );
+
+    await user.type(screen.getByLabelText("Contraseña"), "1234Aa.");
+    for (const r of requirements)
+      expect(screen.getByText(r)).toHaveAttribute(
+        "aria-checked",
+        "true"
+      );
   });
 });

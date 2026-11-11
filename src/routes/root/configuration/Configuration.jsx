@@ -77,11 +77,13 @@ export default function Configuration() {
             allowedUserLevels={["Profesor", "Coordinador", "Administrador"]}
           />
           {tabsData.map((tab, i) => (
-            <Tab key={i} {...tab} />
+            <Tab key={i.to + "-tab"} {...tab} />
           ))}
         </nav>
         <Card className="rounded-tl-none">
+          <div className="max-w-[600px] m-auto">
           <Outlet />
+          </div>
         </Card>
       </div>
     </PageLayout>
