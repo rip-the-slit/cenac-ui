@@ -6,16 +6,16 @@ import FloatingOverlay from "../root/components/FloatingOverlay";
 export function UserOption({ name = "Usuario", type = "Personal" }) {
   return (
     <div className="flex items-center space-x-3 text-left">
-      <User className="w-12 h-12 bg-gray-100 rounded-full p-2 text-gray-400" />
+      <User className="w-12 h-12 bg-gray-200 rounded-full p-2 text-gray-500" />
       <div>
         <p className="text-md font-semibold text-gray-700">{name}</p>
-        <p className="text-sm text-gray-500">{type}</p>
+        <p className="text-sm text-gray-600">{type}</p>
       </div>
     </div>
   );
 }
 
-export default function UserSelector({ users, userId, setUserId }) {
+export default function UserSelector({ users, userId, setUserId, footer }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const user = users.find((u) => u.id === userId) ?? users[0];
@@ -59,6 +59,7 @@ export default function UserSelector({ users, userId, setUserId }) {
               </li>
             ))}
           </ul>
+          {footer}
         </FloatingOverlay>
       )}
     </div>
