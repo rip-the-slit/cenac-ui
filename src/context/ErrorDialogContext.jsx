@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from "react";
 import { X } from "lucide-react";
+import { createPortal } from "react-dom";
 
 const ErrorDialogContext = createContext(null);
 
@@ -16,9 +17,9 @@ function ErrorDialog({ message, onClose }) {
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white shadow-lg">
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-end justify-end p-8" role="presentation" >
+      <div className="w-full max-w-md rounded-md border border-gray-200 bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-gray-100 p-4">
           <h2 className="text-base font-semibold text-gray-900">Error</h2>
           <button
@@ -41,7 +42,8 @@ function ErrorDialog({ message, onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -51,7 +53,10 @@ export function ErrorDialogProvider({ children }) {
   return (
     <ErrorDialogContext.Provider value={{ emitError: setErrorMessage }}>
       {children}
-      <ErrorDialog message={errorMessage} onClose={() => setErrorMessage(null)} />
+      <ErrorDialog
+        message={errorMessage}
+        onClose={() => setErrorMessage(null)}
+      />
     </ErrorDialogContext.Provider>
   );
 }

@@ -12,7 +12,7 @@ export default function EditorDialog({ label, busy = false, onClose, children })
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/35 p-4"
       role="presentation"
       onKeyDown={handleKeyDown}
       onMouseDown={handleBackdropMouseDown}
