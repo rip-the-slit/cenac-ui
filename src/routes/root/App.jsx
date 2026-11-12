@@ -31,8 +31,11 @@ export async function appLoader({ params, request }) {
   const periodData = await getPeriodStats(periodId);
 
   const url = new URL(request.url);
-  if (periodData.stats === null && !url.pathname.includes("cargar"))
+  if (periodData.stats === null && !url.pathname.includes("cargar")) {
     return redirect(`/periodo/${periodId}/cargar`);
+  } else if (periodData.stats && url.pathname.includes("cargar")) {
+    return redirect(`/periodo/${periodId}`);
+  }
 
   return { list: periodList, data: periodData, periodId: periodId, url };
 }
@@ -112,7 +115,7 @@ export default function App() {
   return (
     <div className="flex h-screen bg-gray-200">
       <aside className="w-64 border-r border-gray-200 flex flex-col flex-shrink-0">
-        <Logo/>
+        <Logo />
         <div className="w-full h-[1px] bg-gray-300 px-5 bg-clip-content" />
         <UserSelector
           users={users}
@@ -121,7 +124,13 @@ export default function App() {
             await logout();
             navigate(`/ingresar?usuario=${encodeURIComponent(userId)}`);
           }}
-          footer={<div className="flex justify-end text-sm text-emerald-600 p-2 [&>a]:underline [&>a]: [&>a]:decoration-wavy"><Link to="/ingresar" onClick={() => logout()}>Cerrar sesión</Link></div>}
+          footer={
+            <div className="flex justify-end text-sm text-emerald-600 p-2 [&>a]:underline [&>a]: [&>a]:decoration-wavy">
+              <Link to="/ingresar" onClick={() => logout()}>
+                Cerrar sesión
+              </Link>
+            </div>
+          }
         />
         <div
           className={
