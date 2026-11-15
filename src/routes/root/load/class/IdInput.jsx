@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 
 import Suggestions from "./Suggestions";
+import FieldInput from "../../../../components/FieldInput";
 import {
   normalizeId,
   sanitizeIdNumber,
@@ -10,12 +11,15 @@ import {
 export { normalizeId } from "./classLoaderUtils";
 
 export default function IdInput({
+  definition = {},
   value = "",
   disabled = false,
   required = true,
   label = "Documento",
   onChange,
   onSuggestionSelect,
+  validationMessages = definition.validationMessages,
+  validationKey,
   suggestionsEndpoint = "/periodo/all/estudiantes",
   suggestionsLabel = "Sugerencias de estudiantes",
 }) {
@@ -40,7 +44,11 @@ export default function IdInput({
         <option value="V-">V-</option>
         <option value="E-">E-</option>
       </select>
-      <input
+      <FieldInput
+        replaceClassName
+        validationMessages={validationMessages}
+        validationKey={validationKey}
+        placeholder={definition.placeholder}
         type="text"
         aria-label={label}
         className="min-w-0 w-full border-0 bg-transparent px-1 outline-none disabled:text-gray-400"
@@ -53,7 +61,7 @@ export default function IdInput({
         }
         inputMode="numeric"
         maxLength={8}
-        pattern="[1-9][0-9]{0,7}"
+        pattern={definition.pattern?.[prefix === "V-" ? "v" : "e"]}
         required={required}
         onChange={(event) =>
           emitValue(prefix, sanitizeIdNumber(event.target.value))

@@ -7,6 +7,7 @@ import { CardHeader, FormField } from "../../../../components/Layout";
 import EnrollmentEditor from "./EnrollmentEditor";
 import GuardianEditor from "./GuardianEditor";
 import IdInput from "./IdInput";
+import PhoneInput from "./PhoneInput";
 import BirthPlaceInput from "./BirthPlaceInput";
 import { normalizeId } from "./classLoaderUtils";
 import EditorDialog from "../../../../components/EditorDialog";
@@ -74,6 +75,7 @@ export function StudentEditorModal({
   );
   const [page, setPage] = useState(editor.initialPage || "details");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationVersion, setValidationVersion] = useState(0);
   const locked = lockedIdentity !== null;
   const directSection = Boolean(
     editor.initialPage && editor.initialPage !== "details"
@@ -133,6 +135,7 @@ export function StudentEditorModal({
       nextStudent._locked = true;
       setLockedIdentity(nextStudent);
       setDraft(nextStudent);
+      setValidationVersion((version) => version + 1);
     }, (e) => emitError("Ocurrió un error inesperado al cargar estudiante histórico."));
   }
 
@@ -183,6 +186,10 @@ export function StudentEditorModal({
 
   function handleDetailsSubmit(event) {
     event.preventDefault();
+    if (!event.currentTarget.checkValidity()) {
+      event.currentTarget.querySelector(":invalid")?.focus();
+      return;
+    }
     commitStudent(draft);
   }
 
@@ -231,7 +238,7 @@ export function StudentEditorModal({
     );
   } else {
     content = (
-      <form className="space-y-6" onSubmit={handleDetailsSubmit}>
+      <form noValidate className="space-y-6" onSubmit={handleDetailsSubmit}>
         <CardHeader
           title={editorTitle}
           actions={
@@ -251,6 +258,8 @@ export function StudentEditorModal({
           {studentSchema.attributes.map((field) =>
             field === "birthPlace" ? (
               <BirthPlaceInput
+                validationKey={validationVersion}
+                validationMessages={studentSchema.fields[field]?.validationMessages}
                 key={field}
                 value={draft[field] ?? ""}
                 label={studentSchema.fields[field]?.label || field}
@@ -269,6 +278,8 @@ export function StudentEditorModal({
                 {field === "id" ? (
                   <div className="rounded-lg border border-gray-300 px-2 py-2">
                     <IdInput
+                      validationKey={validationVersion}
+                      definition={studentSchema.fields[field]}
                       value={draft.id}
                       disabled={disabledFields.has("id")}
                       label={studentSchema.fields[field]?.label || field}
@@ -277,8 +288,17 @@ export function StudentEditorModal({
                       onSuggestionSelect={populateHistoricalStudent}
                     />
                   </div>
+                ) : field === "phone" ? (
+                  <PhoneInput
+                    validationKey={validationVersion}
+                    definition={studentSchema.fields[field]}
+                    value={draft[field] ?? ""}
+                    disabled={locked || disabledFields.has(field)}
+                    onChange={(value) => updateField(field, value)}
+                  />
                 ) : (
                   <FieldInput
+                    validationKey={validationVersion}
                     definition={studentSchema.fields[field]}
                     value={draft[field] ?? ""}
                     disabled={locked || disabledFields.has(field)}

@@ -9,6 +9,7 @@ import {
   getCache,
   getClassSuggestions,
   getGuardians,
+  getGuardianById,
   getSubjects,
   getYears,
   saveCache,
@@ -201,14 +202,20 @@ async function validateStudentChange({
   const { mode, originalId, initialClass, student } = change;
   const studentId = normalizeId(student.id);
 
-  if (!/^[VE]-[1-9]\d{0,7}$/.test(studentId)) {
-    return "Ingrese una cédula válida.";
-  }
-
   const duplicate =
     studentsById[studentId] && (mode === "create" || studentId !== originalId);
   if (duplicate) {
-    return "Ya existe un estudiante con esta cédula.";
+    return "Ya está inscrito en este periodo un estudiante con esta cédula.";
+  }
+
+  let guardian;
+  try {
+    guardian = await getGuardianById(studentId);
+  } catch (error) {
+    if (error.cause?.status !== 404) throw error;
+  }
+  if (normalizeId(guardian?.guardian?.id ?? guardian?.id) === studentId) {
+    return "Esta cédula ya está registrada como representante.";
   }
 
   if (!classesByYear[student._class?.year]?.[student._class?.id]) {

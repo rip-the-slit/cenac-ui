@@ -17,7 +17,8 @@ import {
 } from "../../../auth";
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
 import { UserOption } from "../../login/UserSelector";
-import { CardHeader, FormField, TextInput } from "../../../components/Layout";
+import { CardHeader, FormField } from "../../../components/Layout";
+import FieldInput from "../../../components/FieldInput";
 import {
   DeleteButton,
   EditButton,
@@ -112,7 +113,6 @@ const passwordRequirements = [
 
 function UserForm({ editor, disableUserLevelSelect, onCancel, onConfirm }) {
   const [user, setUser] = useState(editor.user);
-  const passwordInputRef = useRef(null);
   const isNew = editor.mode === "add";
 
   function update(field, value) {
@@ -127,14 +127,11 @@ function UserForm({ editor, disableUserLevelSelect, onCancel, onConfirm }) {
 
   return (
     <form
+      noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        const password = new FormData(event.target).get("password");
-        if ((isNew || password.length > 0) && !passwordRequirements.every((r) => password.match(r.pattern))) {
-          passwordInputRef.current.focus();
-          passwordInputRef.current.setCustomValidity(
-            "La contraseña debe contener de 4 a 64 caracteres y los caracteres especificados."
-          );
+        if (!event.currentTarget.checkValidity()) {
+          event.currentTarget.querySelector(":invalid")?.focus();
           return;
         }
         onConfirm(user);
@@ -148,8 +145,9 @@ function UserForm({ editor, disableUserLevelSelect, onCancel, onConfirm }) {
 
       <div className="grid gap-5 sm:grid-cols-2">
         <FormField label="Nombre">
-          <TextInput
+          <FieldInput
             name="name"
+            aria-label="Nombre"
             value={user.name}
             placeholder="Nombre del usuario"
             onChange={(event) => update("name", event.target.value)}
@@ -160,26 +158,27 @@ function UserForm({ editor, disableUserLevelSelect, onCancel, onConfirm }) {
         </FormField>
 
         <FormField label="Nivel de usuario">
-          <select
+          <FieldInput
+            definition={{ type: "select", options: userLevels.map((value) => ({ value, label: value })) }}
             name="userLevel"
+            aria-label="Nivel de usuario"
             value={user.userLevel}
             disabled={disableUserLevelSelect}
             onChange={(event) => update("userLevel", event.target.value)}
             required
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 font-normal h-full"
-          >
-            {userLevels.map((userLevel) => (
-              <option key={userLevel} value={userLevel}>
-                {userLevel}
-              </option>
-            ))}
-          </select>
+          />
         </FormField>
 
         <FormField label="Contraseña" className="sm:col-span-2">
-          <TextInput
-            ref={passwordInputRef}
+          <FieldInput
+            definition={{
+              type: "password",
+              pattern: "(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*(?:[._¡!¿?#$%&=\"']|\\+|-|\\*|\\(|\\)|\\[|\\])).{4,64}",
+              validationMessages: { patternMismatch: "La contraseña debe contener de 4 a 64 caracteres y los caracteres especificados." },
+            }}
             name="password"
+            aria-label="Contraseña"
             type="password"
             value={user.password}
             onChange={(event) => update("password", event.target.value)}
@@ -267,7 +266,7 @@ export default function Users() {
         clientKey,
         name: "",
         password: "",
-        userLevel: "Docente",
+        userLevel: "Profesor",
         isNew: true,
       },
     });

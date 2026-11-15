@@ -29,7 +29,7 @@ vi.mock("../../src/auth", () => ({
 
 const users = [
   { id: "admin-1", name: "Ana", userLevel: "Administrador" },
-  { id: "teacher-1", name: "Luis", userLevel: "Docente" },
+  { id: "teacher-1", name: "Luis", userLevel: "Profesor" },
 ];
 
 function renderConfiguration({
@@ -94,7 +94,7 @@ describe("configuration page", () => {
   });
 
   it("keeps configuration public while hiding the restricted users links", async () => {
-    renderConfiguration({ userLevel: "Docente" });
+    renderConfiguration({ userLevel: "Profesor" });
 
     expect(
       await screen.findByRole("heading", { name: "Configuración" })
@@ -191,7 +191,7 @@ describe("configuration page", () => {
         id: "teacher-1",
         name: "Luis",
         password: "aB.1947",
-        userLevel: "Docente",
+        userLevel: "Profesor",
       });
     });
   });

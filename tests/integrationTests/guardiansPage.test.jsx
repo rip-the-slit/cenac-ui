@@ -156,7 +156,8 @@ describe("Representantes page", () => {
     expect(editor.getByRole("combobox", { name: "Cédula: tipo" })).toBeDisabled();
     const phone = editor.getByRole("textbox", { name: "Teléfono" });
     await user.clear(phone);
-    await user.type(phone, "04269999999");
+    await user.type(phone, "9999999");
+    await user.selectOptions(editor.getByRole("combobox", { name: "Teléfono: prefijo" }), "0426");
     await user.click(editor.getByRole("button", { name: "Aceptar" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(await screen.findByText("04269999999")).toBeInTheDocument();

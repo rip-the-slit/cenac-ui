@@ -2,7 +2,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { X } from "lucide-react";
 
 import { getPlaces } from "../../../../db";
-import { FormField, TextInput } from "../../../../components/Layout";
+import { FormField } from "../../../../components/Layout";
+import FieldInput from "../../../../components/FieldInput";
 import Suggestions from "./Suggestions";
 
 const PLACES_ENDPOINT = "/api/periods/places";
@@ -29,6 +30,8 @@ function PlaceSelect({
   disabled,
   required,
   placeholder,
+  validationMessages,
+  validationKey,
   search,
   onSelect,
   onSearching,
@@ -68,7 +71,10 @@ function PlaceSelect({
   return (
     <div ref={anchorRef} className="relative">
       <FormField label={label}>
-        <TextInput
+        <FieldInput
+          validationKey={`${validationKey ?? ""}:${value}`}
+          aria-label={label}
+          validationMessages={validationMessages}
           role="combobox"
           aria-autocomplete="list"
           aria-expanded={open}
@@ -123,6 +129,8 @@ export default function BirthPlaceInput({
   label = "Lugar de nacimiento",
   placeholder = "Venezuela, Guárico, Municipio Leonardo Infante",
   className = "",
+  validationMessages,
+  validationKey,
   onChange,
   onError,
 }) {
@@ -205,6 +213,8 @@ export default function BirthPlaceInput({
       <legend className="px-1 text-sm font-medium text-gray-700">{label}</legend>
       <div className="grid gap-3 sm:grid-cols-3">
         <PlaceSelect
+          validationMessages={validationMessages}
+          validationKey={validationKey}
           label="País"
           value={country}
           disabled={disabled}
@@ -215,6 +225,8 @@ export default function BirthPlaceInput({
           onSearching={setSearching}
         />
         <PlaceSelect
+          validationMessages={validationMessages}
+          validationKey={validationKey}
           key={`state:${country}`}
           label="Estado"
           value={state}
@@ -226,6 +238,8 @@ export default function BirthPlaceInput({
           onSearching={setSearching}
         />
         <PlaceSelect
+          validationMessages={validationMessages}
+          validationKey={validationKey}
           key={`municipality:${country}:${state}`}
           label="Municipio"
           value={municipality}

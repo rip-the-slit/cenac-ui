@@ -1,5 +1,5 @@
 import { fieldDefinitions } from "../fieldFixtures";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,6 +13,8 @@ import {
   getClassSuggestions,
   getSubjectSuggestions,
   getGuardians,
+  getGuardianById,
+  getStudentById,
   getPeriodList,
   getPlaces,
   getStudents,
@@ -44,6 +46,8 @@ vi.mock("../../src/db", () => ({
   getClassSuggestions: vi.fn(),
   getSubjectSuggestions: vi.fn(),
   getGuardians: vi.fn(),
+  getGuardianById: vi.fn(),
+  getStudentById: vi.fn(),
   getPeriodList: vi.fn(),
   getPlaces: vi.fn(),
   getStudents: vi.fn(),
@@ -91,7 +95,7 @@ const guardianFieldLabels = {
   address: "Dirección",
 };
 const guardian = {
-  id: "V-900",
+  id: "V-10000900",
   firstName: "María",
   lastName: "Rojas",
   birthDate: "1980-01-02",
@@ -102,13 +106,13 @@ const guardian = {
 
 const students = [
   {
-    id: "V-100",
+    id: "V-10000100",
     firstName: "Ana",
     lastName: "Pérez",
     _class: { year: 1, id: "A" },
   },
   {
-    id: "E-101",
+    id: "E-80000101",
     firstName: "Eva",
     lastName: "Díaz",
     _class: { year: 1, id: "B" },
@@ -199,6 +203,8 @@ function renderClassLoader() {
 describe("Data loading pages", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getGuardianById.mockRejectedValue(new Error("No encontrado", { cause: { status: 404 } }));
+    getStudentById.mockRejectedValue(new Error("No encontrado", { cause: { status: 404 } }));
     cache = {
       subjects: { 1: ["math"] },
       class_students: students,
@@ -429,9 +435,12 @@ describe("Data loading pages", () => {
       ["Estado", "Miranda"],
       ["Municipio", "Sucre"],
     ]) {
+      fireEvent.blur(screen.getByRole("combobox", { name }));
+      expect(screen.getByRole("combobox", { name })).toHaveAttribute("aria-invalid", "true");
       await user.type(screen.getByRole("combobox", { name }), place);
       await user.click(await screen.findByRole("option", { name: place }));
     }
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
     expect(screen.getByText("Luis")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Continuar" }));
@@ -458,7 +467,7 @@ describe("Data loading pages", () => {
     await user.click(screen.getByRole("button", { name: "Añadir Estudiante" }));
     const documentInput = screen.getByRole("textbox", { name: "Documento" });
     await user.clear(documentInput);
-    await user.type(documentInput, "100");
+    await user.type(documentInput, "10000100");
     await user.type(screen.getByRole("textbox", { name: "Nombre" }), "Otra");
     await user.type(
       screen.getByRole("textbox", { name: "Apellido" }),
@@ -467,11 +476,45 @@ describe("Data loading pages", () => {
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
     expect(
-      screen.getByText("Ya existe un estudiante con esta cédula.")
+      screen.getByText("Ya está inscrito en este periodo un estudiante con esta cédula.")
     ).toBeInTheDocument();
     expect(
       screen.getByRole("heading", { name: "Añadir estudiante" })
     ).toBeInTheDocument();
+  });
+
+  it("rejects a student ID already registered as a guardian", async () => {
+    const user = userEvent.setup();
+    getGuardianById.mockResolvedValue({ guardian: { id: "V-30000000" } });
+    cache.class_students = null;
+    renderClassLoader();
+    await user.click(await screen.findByRole("button", { name: "Añadir Estudiante" }));
+    await user.type(screen.getByRole("textbox", { name: "Nombre" }), "Nueva");
+    await user.type(screen.getByRole("textbox", { name: "Apellido" }), "Persona");
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    expect(await screen.findByText("Esta cédula ya está registrada como representante.")).toBeInTheDocument();
+    expect(getGuardianById).toHaveBeenCalledWith("V-30000000");
+    expect(screen.getByRole("heading", { name: "Añadir estudiante" })).toBeInTheDocument();
+  });
+
+  it("rejects a guardian ID already registered as a student", async () => {
+    const user = userEvent.setup();
+    getStudentById.mockResolvedValue({ student: { id: "V-30000000" } });
+    renderClassLoader();
+    await user.click(await screen.findByRole("button", { name: "Editar estudiante Ana Pérez" }));
+    await user.click(screen.getByRole("button", { name: /^Representantes/ }));
+    await user.click(screen.getByRole("button", { name: "Agregar representante" }));
+    await user.type(screen.getByRole("textbox", { name: "Cédula" }), "30000000");
+    await user.type(screen.getByRole("textbox", { name: "Nombres" }), "Nueva");
+    await user.type(screen.getByRole("textbox", { name: "Apellidos" }), "Persona");
+    await user.type(screen.getByLabelText("Fecha de Nacimiento"), "1985-03-04");
+    await user.type(screen.getByLabelText("Rol Legal"), "Madre");
+    await user.type(screen.getByRole("textbox", { name: "Teléfono" }), "1234567");
+    await user.type(screen.getByLabelText("Dirección"), "Caracas");
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    expect(await screen.findByText("Esta cédula ya está registrada como estudiante.")).toBeInTheDocument();
+    expect(getStudentById).toHaveBeenCalledWith("all", "V-30000000");
+    expect(createGuardian).not.toHaveBeenCalled();
   });
 
   it("opens loader students as locked from either edit control", async () => {
@@ -504,10 +547,10 @@ describe("Data loading pages", () => {
     getYears.mockResolvedValue(twoYears);
     getStudents.mockResolvedValue({
       recordsAmount: 1,
-      filters: { id: "V-777" },
+      filters: { id: "V-10000777" },
       rows: [
         {
-          id: "V-777",
+          id: "V-10000777",
           firstName: "Sara",
           lastName: "Sol",
           _class: { year: 2, id: "Z" },
@@ -517,7 +560,7 @@ describe("Data loading pages", () => {
     getClassSuggestions.mockResolvedValue({
       students: [
         {
-          id: "V-777",
+          id: "V-10000777",
           firstName: "Sara",
           lastName: "Sol",
           _class: { year: 2, id: "Z" },
@@ -534,13 +577,13 @@ describe("Data loading pages", () => {
     });
     cache.class_students = [
       {
-        id: "V-10020",
+        id: "V-10010020",
         firstName: "Ana",
         lastName: "Pérez",
         _class: { year: 2, id: "A" },
       },
       {
-        id: "V-10030",
+        id: "V-10010030",
         firstName: "Carlos",
         lastName: "Ignacio",
         _class: { year: 2, id: "B" },
@@ -551,7 +594,9 @@ describe("Data loading pages", () => {
     await user.click(screen.getByRole("button", { name: "Añadir Estudiante" }));
     const documentInput = screen.getByRole("textbox", { name: "Documento" });
     await user.clear(documentInput);
-    await user.type(documentInput, "777");
+    fireEvent.blur(screen.getByRole("textbox", { name: "Nombre" }));
+    expect(screen.getByRole("textbox", { name: "Nombre" })).toHaveAttribute("aria-invalid", "true");
+    await user.type(documentInput, "10000777");
 
     await waitFor(() =>
       expect(screen.getByRole("textbox", { name: "Nombre" })).toHaveValue(
@@ -561,6 +606,7 @@ describe("Data loading pages", () => {
     expect(documentInput).not.toBeDisabled();
     expect(screen.getByRole("textbox", { name: "Nombre" })).toBeDisabled();
     expect(screen.getByRole("textbox", { name: "Apellido" })).toBeDisabled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(
       screen.getByText(/únicamente puede cambiar su inscripción/i)
     ).toBeInTheDocument();
@@ -583,7 +629,7 @@ describe("Data loading pages", () => {
       screen.getByRole("textbox", { name: "Apellido" })
     ).not.toBeDisabled();
 
-    await user.type(unlockedDocumentInput, "778");
+    await user.type(unlockedDocumentInput, "10000778");
 
     await user.click(screen.getByRole("button", { name: /^Inscripción/ }));
     expect(
@@ -602,7 +648,7 @@ describe("Data loading pages", () => {
         "class_students",
         expect.arrayContaining([
           expect.objectContaining({
-            id: "V-778",
+            id: "V-10000778",
             firstName: "Sara",
             lastName: "Sol",
             _class: { year: 2, id: "B" },
@@ -614,7 +660,7 @@ describe("Data loading pages", () => {
       ([key]) => key === "class_students"
     )[1];
     expect(
-      saved.find((student) => student.id === "V-778")._locked
+      saved.find((student) => student.id === "V-10000778")._locked
     ).toBeUndefined();
   });
 
@@ -654,7 +700,7 @@ describe("Data loading pages", () => {
     await user.click(screen.getByRole("button", { name: "Añadir Estudiante" }));
     const documentInput = screen.getByRole("textbox", { name: "Documento" });
     await user.clear(documentInput);
-    await user.type(documentInput, "102");
+    await user.type(documentInput, "10000102");
     await user.type(screen.getByRole("textbox", { name: "Nombre" }), "Luis");
     await user.type(screen.getByRole("textbox", { name: "Apellido" }), "Sol");
     await user.click(screen.getByRole("button", { name: /^Inscripción/ }));
@@ -680,7 +726,7 @@ describe("Data loading pages", () => {
         "class_students",
         expect.arrayContaining([
           expect.objectContaining({
-            id: "V-102",
+            id: "V-10000102",
             pendingSubjects: ["math", "language"],
           }),
         ])
@@ -773,7 +819,7 @@ describe("Data loading pages", () => {
         "class_students",
         expect.arrayContaining([
           expect.objectContaining({
-            id: "V-100",
+            id: "V-10000100",
             pendingSubjects: cache.subjects[yearId],
             _class: { year: yearId, id: "z" },
           }),
@@ -794,13 +840,13 @@ describe("Data loading pages", () => {
         { ...students[0], _class: { year: 9, id: "A" } },
         { ...students[1], _class: { year: 2, id: "A" } },
         {
-          id: "V-103",
+          id: "V-10000103",
           firstName: "Luis",
           lastName: "Sol",
           _class: { year: 9, id: "z" },
         },
         {
-          id: "V-104",
+          id: "V-10000104",
           firstName: "Sara",
           lastName: "Sol",
           _class: { year: 2, id: "z" },
@@ -892,7 +938,7 @@ describe("Data loading pages", () => {
     );
     const documentInput = screen.getByRole("textbox", { name: "Documento" });
     await user.clear(documentInput);
-    await user.type(documentInput, "102");
+    await user.type(documentInput, "10000102");
     await user.type(screen.getByRole("textbox", { name: "Nombre" }), "Luis");
     await user.type(screen.getByRole("textbox", { name: "Apellido" }), "Sol");
     await user.click(screen.getByRole("button", { name: /^Inscripción/ }));
@@ -916,7 +962,7 @@ describe("Data loading pages", () => {
         "class_students",
         expect.arrayContaining([
           expect.objectContaining({
-            id: "V-102",
+            id: "V-10000102",
             _class: { year: 2, id: "z" },
             pendingSubjects: ["language"],
           }),
@@ -944,7 +990,7 @@ describe("Data loading pages", () => {
     });
     createGuardian.mockImplementation(async (record) => ({
       ...record,
-      id: "V-901",
+      id: "V-10000901",
     }));
     renderClassLoader();
 
@@ -968,7 +1014,7 @@ describe("Data loading pages", () => {
 
     const guardianId = screen.getByRole("textbox", { name: "Cédula" });
     await user.clear(guardianId);
-    await user.type(guardianId, "901");
+    await user.type(guardianId, "10000901");
     await user.type(screen.getByRole("textbox", { name: "Nombres" }), "Mario");
     await user.type(screen.getByRole("textbox", { name: "Apellidos" }), "Mora");
     await user.type(screen.getByLabelText("Fecha de Nacimiento"), "1985-03-04");
@@ -978,8 +1024,9 @@ describe("Data loading pages", () => {
     );
     await user.type(
       screen.getByRole("textbox", { name: "Teléfono" }),
-      "04141234567"
+      "1234567"
     );
+    await user.selectOptions(screen.getByRole("combobox", { name: "Teléfono: prefijo" }), "0414");
     await user.type(
       screen.getByRole("textbox", { name: "Dirección" }),
       "Avenida Central"
@@ -996,10 +1043,10 @@ describe("Data loading pages", () => {
         "class_students",
         expect.arrayContaining([
           expect.objectContaining({
-            id: "V-100",
+            id: "V-10000100",
             assignedGuardians: [
               expect.objectContaining({
-                id: "V-901",
+                id: "V-10000901",
                 firstName: "Mario",
                 lastName: "Mora",
               }),
@@ -1026,7 +1073,7 @@ describe("Data loading pages", () => {
                 {
                   ...guardian,
                   assignedStudents: [
-                    { id: "V-7", firstName: "Sara", lastName: "Sol" },
+                    { id: "V-10000007", firstName: "Sara", lastName: "Sol" },
                   ],
                 },
               ]
@@ -1046,7 +1093,9 @@ describe("Data loading pages", () => {
     );
     const guardianId = screen.getByRole("textbox", { name: "Cédula" });
     await user.clear(guardianId);
-    await user.type(guardianId, "900");
+    fireEvent.blur(screen.getByRole("textbox", { name: "Nombres" }));
+    expect(screen.getByRole("textbox", { name: "Nombres" })).toHaveAttribute("aria-invalid", "true");
+    await user.type(guardianId, "10000900");
 
     await waitFor(() =>
       expect(screen.getByRole("textbox", { name: "Nombres" })).toHaveValue(
@@ -1054,6 +1103,7 @@ describe("Data loading pages", () => {
       )
     );
     expect(screen.getByRole("textbox", { name: "Nombres" })).toBeDisabled();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
     expect(await screen.findByText("María Rojas")).toBeInTheDocument();
@@ -1068,8 +1118,8 @@ describe("Data loading pages", () => {
         recordsAmount: 2,
         filters: { id: "V-7" },
         rows: [
-          { id: "V-70", firstName: "Sara", lastName: "Sol" },
-          { id: "V-71", firstName: "Sofía", lastName: "Salas" },
+          { id: "V-10000070", firstName: "Sara", lastName: "Sol" },
+          { id: "V-10000071", firstName: "Sofía", lastName: "Salas" },
         ],
       })
       .mockReturnValueOnce(
@@ -1087,12 +1137,12 @@ describe("Data loading pages", () => {
     await user.type(documentInput, "7");
 
     expect(
-      await screen.findByRole("option", { name: /V-71/ })
+      await screen.findByRole("option", { name: /V-10000071/ })
     ).toBeInTheDocument();
 
     await user.type(documentInput, "2");
     await waitFor(() => expect(getStudents).toHaveBeenCalledTimes(2));
-    expect(screen.getByRole("option", { name: /V-71/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /V-10000071/ })).toBeInTheDocument();
 
     resolveCurrentRequest({
       recordsAmount: 0,

@@ -8,7 +8,9 @@ import {
   FormField,
 } from "../../../../components/Layout";
 import IdInput from "./IdInput";
+import PhoneInput from "./PhoneInput";
 import { normalizeId } from "./classLoaderUtils";
+import { getStudentById } from "../../../../db";
 const NO_DISABLED_FIELDS = new Set();
 
 function guardianName(guardian) {
@@ -36,6 +38,7 @@ export function GuardianForm({
   });
   const [lockedIdentity, setLockedIdentity] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationVersion, setValidationVersion] = useState(0);
   const locked = lockedIdentity !== null;
 
   function updateField(field, value) {
@@ -62,6 +65,7 @@ export function GuardianForm({
     nextGuardian._locked = true;
     setDraft(nextGuardian);
     setLockedIdentity(nextGuardian);
+    setValidationVersion((version) => version + 1);
   }
 
   function buildGuardian() {
@@ -82,6 +86,10 @@ export function GuardianForm({
 
   async function handleSubmit(event) {
     event.preventDefault();
+    if (!event.currentTarget.checkValidity()) {
+      event.currentTarget.querySelector(":invalid")?.focus();
+      return;
+    }
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
@@ -96,7 +104,7 @@ export function GuardianForm({
   }
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
+    <form noValidate className="space-y-6" onSubmit={handleSubmit}>
       <CardHeader
         title={initialGuardian ? "Editar representante" : "Agregar representante"}
         onBack={handleBack}
@@ -113,6 +121,8 @@ export function GuardianForm({
             {field === "id" ? (
               <div className="rounded-lg border border-gray-300 px-2 py-2">
                 <IdInput
+                  validationKey={validationVersion}
+                  definition={guardianSchema.fields[field]}
                   value={draft.id}
                   disabled={disabledFields.has("id")}
                   label={guardianSchema.fields[field]?.label || field}
@@ -123,8 +133,17 @@ export function GuardianForm({
                   suggestionsLabel="Sugerencias de representantes"
                 />
               </div>
+            ) : field === "phone" ? (
+              <PhoneInput
+                validationKey={validationVersion}
+                definition={guardianSchema.fields[field]}
+                value={draft[field] ?? ""}
+                disabled={locked || disabledFields.has(field)}
+                onChange={(value) => updateField(field, value)}
+              />
             ) : (
               <FieldInput
+                validationKey={validationVersion}
                 definition={guardianSchema.fields[field]}
                 value={draft[field] ?? ""}
                 disabled={locked || disabledFields.has(field)}
@@ -174,10 +193,6 @@ export default function GuardianEditor({
 
   async function handleGuardianCommit({ guardian, matched }) {
     const guardianId = normalizeId(guardian.id);
-    if (!/^[VE]-[1-9]\d{0,7}$/.test(guardianId)) {
-      emitError("Ingrese una cédula válida para el representante.");
-      return false;
-    }
 
     if (
       guardians.some(
@@ -189,6 +204,16 @@ export default function GuardianEditor({
     }
 
     try {
+      let student;
+      try {
+        student = await getStudentById("all", guardianId);
+      } catch (error) {
+        if (error.cause?.status !== 404) throw error;
+      }
+      if (normalizeId(student?.student?.id ?? student?.id) === guardianId) {
+        emitError("Esta cédula ya está registrada como estudiante.");
+        return false;
+      }
       const savedGuardian = matched
         ? guardian
         : await onCreateGuardian(guardian);
