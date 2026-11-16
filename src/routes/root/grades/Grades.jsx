@@ -46,15 +46,7 @@ export async function gradesLoader({ params, request }) {
   const q = url.searchParams.get("q") || "";
   const status = url.searchParams.get("status") || "";
   const expanded = url.searchParams.get("expanded") || "";
-  const data = await getGrades(
-    periodId,
-    year,
-    classId,
-    status,
-    q,
-    page,
-    limit
-  );
+  const data = await getGrades(periodId, year, classId, status, q, page, limit);
   const recordsAmount = data.recordsAmount;
   const pageCount = Math.max(1, Math.ceil(recordsAmount / limit));
   const currentPage = Math.min(page, pageCount);
@@ -121,7 +113,8 @@ export default function Grades() {
       )
     );
   }
-  const expandedIndex = viewFilters.expanded === "" ? null : Number(viewFilters.expanded);
+  const expandedIndex =
+    viewFilters.expanded === "" ? null : Number(viewFilters.expanded);
   const expandedSubject = subjects[expandedIndex] || null;
   const page = Number(viewFilters.page);
   const pageCount = Math.max(1, Math.ceil(recordsAmount / MAX_TABLE_ROWS));
@@ -149,8 +142,13 @@ export default function Grades() {
 
   useEffect(() => {
     const form = gradesFormRef.current;
+    const report = () => form?.reportValidity();
     form?.addEventListener("change", markChangedGrade);
-    return () => form?.removeEventListener("change", markChangedGrade);
+    form?.addEventListener("focusout", report);
+    return () => {
+      form?.removeEventListener("change", markChangedGrade);
+      form?.removeEventListener("focusout", report);
+    };
   }, []);
 
   useEffect(() => {
@@ -231,6 +229,7 @@ export default function Grades() {
           pageCount={pageCount}
           recordsAmount={recordsAmount}
           selectedIds={selectedIds}
+          disabled={isEditing}
           bulkActionId="grades-bulk-action"
           bulkActionOptions={BULK_ACTION_OPTIONS}
           onBulkAction={handleBulkAction}

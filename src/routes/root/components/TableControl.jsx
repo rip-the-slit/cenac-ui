@@ -16,6 +16,7 @@ export default function TableControl({
   bulkActionLabel = "Acciones masivas",
   onBulkAction,
   onPageChange,
+  disabled = false
 }) {
   const bulkActionRef = useRef(null);
   const selectedCount = selectedIds.all
@@ -51,7 +52,7 @@ export default function TableControl({
   return (
     <>
       {children}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <div className={"flex flex-wrap items-center justify-between gap-3 px-4 py-3 " + (disabled ? "cursor-not-allowed opacity-50" : "")}>
         <div className="flex items-center gap-2">
           <label className="sr-only" htmlFor={bulkActionId}>
             {bulkActionLabel}
@@ -73,6 +74,7 @@ export default function TableControl({
             type="button"
             onClick={submitBulkAction}
             className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            disabled={disabled}
           >
             Aplicar
             <span
@@ -88,7 +90,7 @@ export default function TableControl({
             type="button"
             className={BUTTON_CLASS_NAME}
             aria-label="Anterior"
-            disabled={page === 1}
+            disabled={disabled || page === 1}
             onClick={() => onPageChange(page - 1)}
           >
             <ChevronLeft className="h-4 w-4" />
@@ -110,6 +112,7 @@ export default function TableControl({
                 if (!Number.isInteger(requestedPage)) return;
                 onPageChange(Math.min(Math.max(requestedPage, 1), pageCount));
               }}
+              disabled={disabled}
             />
             <span>de {pageCount}</span>
           </label>
@@ -117,7 +120,7 @@ export default function TableControl({
             type="button"
             className={BUTTON_CLASS_NAME}
             aria-label="Siguiente"
-            disabled={page === pageCount}
+            disabled={disabled || page === pageCount}
             onClick={() => onPageChange(page + 1)}
           >
             <ChevronRight className="h-4 w-4" />
