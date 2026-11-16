@@ -9,7 +9,13 @@ export const GUARDIAN_FIELDS = [
 ];
 
 export function getGuardianLegalRoles(guardian) {
-  return (guardian.assignedStudents || []).map((student) => student.legalRole).filter(Boolean).join(", ");
+  return [
+    ...new Set(
+      (guardian.assignedStudents || [])
+        .map((student) => student.legalRole)
+        .filter(Boolean)
+    ),
+  ].join(", ");
 }
 
 export function getViewFilters(filters, pendingFormData) {

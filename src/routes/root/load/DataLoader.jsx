@@ -33,7 +33,7 @@ export async function dataLoader({ request }) {
   const subjects = getCache("subjects");
   const classStudents = getCache("class_students");
   const subjectsLoaded = hasData(subjects);
-  const classesLoaded = hasData(classStudents);
+  const classesLoaded = Array.isArray(classStudents);
   return {
     activeUser,
     subjectsLoaded,

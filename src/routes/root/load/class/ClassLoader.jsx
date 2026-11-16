@@ -114,10 +114,8 @@ export async function classLoader({ params }) {
     fields,
     guardianClass = {},
   } = suggestions;
-  const students =
-    Array.isArray(cachedStudents) && cachedStudents.length > 0
-      ? cachedStudents
-      : suggestedStudents;
+  const fromCache = Array.isArray(cachedStudents);
+  const students = fromCache ? cachedStudents : suggestedStudents;
   const classesByYear = Object.fromEntries(years.map((year) => [year.id, {}]));
   const studentsById = {};
   const subjectsById = Object.fromEntries(
@@ -159,7 +157,7 @@ export async function classLoader({ params }) {
             .filter((guardian) => guardian && typeof guardian === "object")
             .map(normalizeGuardian)
         : [],
-      _locked: true,
+      ...(!fromCache ? { _locked: true } : {}),
     };
     studentsById[normalizedStudent.id] = normalizedStudent;
     classesByYear[yearId][className].students.push(normalizedStudent);

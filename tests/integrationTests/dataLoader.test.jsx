@@ -9,6 +9,7 @@ import { getActiveUser } from "../../src/auth";
 import {
   clearCache,
   createGuardian,
+  editGuardian,
   getCache,
   getClassSuggestions,
   getSubjectSuggestions,
@@ -42,6 +43,7 @@ import { placesLoader } from "../../src/routes/root/load/class/BirthPlaceInput";
 vi.mock("../../src/db", () => ({
   clearCache: vi.fn(),
   createGuardian: vi.fn(),
+  editGuardian: vi.fn(),
   getCache: vi.fn(),
   getClassSuggestions: vi.fn(),
   getSubjectSuggestions: vi.fn(),
@@ -230,6 +232,7 @@ describe("Data loading pages", () => {
       })
     );
     createGuardian.mockImplementation((guardian) => Promise.resolve(guardian));
+    editGuardian.mockResolvedValue(undefined);
     getPeriodList.mockResolvedValue([{ id: "2025" }]);
     getStudents.mockResolvedValue({
       recordsAmount: 0,
@@ -348,6 +351,64 @@ describe("Data loading pages", () => {
 
     expect(screen.getByText("Eva")).toBeInTheDocument();
     expect(screen.queryByText("Ana")).not.toBeInTheDocument();
+  });
+
+  it("keeps an explicitly empty student cache empty", async () => {
+    cache.class_students = [];
+    const data = await classLoader({ params: { periodId: "actual" } });
+    expect(data.studentsById).toEqual({});
+    expect(Object.values(data.classesByYear).every((classes) => Object.keys(classes).length === 0)).toBe(true);
+    expect(await dataLoader({})).toMatchObject({ classesLoaded: true, canConfirm: true });
+  });
+
+  it.each([true, false])("only locks students supplied by the server (cached: %s)", async (cached) => {
+    cache.class_students = cached ? students : null;
+    const data = await classLoader({ params: { periodId: "actual" } });
+    for (const student of Object.values(data.studentsById)) {
+      if (cached) expect(student).not.toHaveProperty("_locked");
+      else expect(student._locked).toBe(true);
+    }
+  });
+
+  it("edits an assigned guardian through the API without changing their ID", async () => {
+    const user = userEvent.setup();
+    cache.class_students = [{ ...students[0], assignedGuardians: [guardian] }];
+    renderClassLoader();
+    await user.click(await screen.findByRole("button", { name: "Editar representantes de Ana Pérez" }));
+    await user.click(screen.getByRole("button", { name: "Editar representante María Rojas" }));
+    expect(screen.getByRole("textbox", { name: "Cédula" })).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "Cédula: tipo" })).toBeDisabled();
+    const name = screen.getByRole("textbox", { name: "Nombres" });
+    await user.clear(name);
+    await user.type(name, "Mariana");
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    expect(await screen.findByText("Mariana Rojas")).toBeInTheDocument();
+    expect(editGuardian).toHaveBeenCalledWith(guardian.id, expect.objectContaining({ firstName: "Mariana" }));
+    expect(createGuardian).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [["Madre", "Padre", "Tutor"], "Tutora", "Solo puede asignar un máximo de tres representantes."],
+    [["Madre", "Madre"], "Madre", "No puede asignar más de dos representantes con el rol de padre o madre."],
+    [["Padre", "Padre"], "Padre", "No puede asignar más de dos representantes con el rol de padre o madre."],
+    [["Padre", "Madre"], "Padre", "No puede asignar más de dos representantes con el rol de padre o madre."],
+  ])("validates guardian limits before creation: %j + %s", async (roles, role, message) => {
+    const user = userEvent.setup();
+    cache.class_students = [{ ...students[0], assignedGuardians: roles.map((legalRole, index) => ({ ...guardian, id: `V-4000000${index}`, legalRole })) }];
+    renderClassLoader();
+    await user.click(await screen.findByRole("button", { name: "Editar representantes de Ana Pérez" }));
+    await user.click(screen.getByRole("button", { name: "Agregar representante" }));
+    await user.type(screen.getByRole("textbox", { name: "Cédula" }), "30000000");
+    await user.type(screen.getByRole("textbox", { name: "Nombres" }), "Nueva");
+    await user.type(screen.getByRole("textbox", { name: "Apellidos" }), "Persona");
+    await user.type(screen.getByLabelText("Fecha de Nacimiento"), "1980-01-01");
+    await user.type(screen.getByRole("textbox", { name: "Rol Legal" }), role);
+    await user.type(screen.getByRole("textbox", { name: "Teléfono" }), "1234567");
+    await user.type(screen.getByRole("textbox", { name: "Dirección" }), "Caracas");
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(createGuardian).not.toHaveBeenCalled();
+    expect(getStudentById).not.toHaveBeenCalled();
   });
 
   it("adds a student through the modal and saves the completed record", async () => {
