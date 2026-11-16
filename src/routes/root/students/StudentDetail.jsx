@@ -90,8 +90,8 @@ export default function StudentDetail() {
         .filter((field) => field !== "id" && Object.hasOwn(draft, field))
         .map((field) => [field, draft[field]])
     );
-    changes.assignedGuardians = draft.assignedGuardians.map(({ id }) => ({
-      id,
+    changes.assignedGuardians = draft.assignedGuardians.map(({ id, legalRole }) => ({
+      id, legalRole,
     }));
     await editStudent(originalId, changes);
     await revalidate();
@@ -140,6 +140,7 @@ export default function StudentDetail() {
             <RelationshipLinks
               records={student.assignedGuardians}
               entity="representantes"
+              expanded
             />
           </div>
         </div>

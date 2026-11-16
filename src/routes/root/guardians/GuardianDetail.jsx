@@ -12,6 +12,7 @@ import EditorDialog from "../../../components/EditorDialog";
 import { EditButton } from "../../../components/Button";
 import { GuardianForm } from "../load/class/GuardianEditor";
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
+import { getGuardianLegalRoles } from "./guardiansUtils";
 
 const DISABLED_FIELDS = new Set(["id"]);
 
@@ -27,7 +28,8 @@ export default function GuardianDetail() {
   const { emitError } = useErrorDialog();
   const [editorGuardian, setEditorGuardian] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const attributes = Object.keys(fields).filter((field) => field !== "assignedStudents");
+  const editableFields = Object.fromEntries(Object.entries(fields).filter(([field]) => !["assignedStudents", "legalRole"].includes(field)));
+  const attributes = Object.keys(editableFields);
 
   async function commitGuardian({ guardian: draft }) {
     setIsSubmitting(true);
@@ -60,10 +62,10 @@ export default function GuardianDetail() {
           actions={<EditButton aria-label="Editar representante" onClick={() => setEditorGuardian({ ...guardian })} />}
         />
         <div className="space-y-5">
-          <DetailFields record={guardian} fields={fields} />
+          <DetailFields record={{ ...guardian, legalRole: getGuardianLegalRoles(guardian) }} fields={fields} />
           <div className="space-y-2">
             <h2 className="text-lg font-medium text-gray-700">Estudiantes representados</h2>
-            <RelationshipLinks records={guardian.assignedStudents} entity="estudiantes" />
+            <RelationshipLinks records={guardian.assignedStudents} entity="estudiantes" expanded />
           </div>
         </div>
       </Card>
@@ -71,7 +73,7 @@ export default function GuardianDetail() {
         <EditorDialog label="Editar representante" busy={isSubmitting} onClose={closeEditor}>
           <GuardianForm
             guardian={editorGuardian}
-            guardianSchema={{ template: editorGuardian, fields, attributes }}
+            guardianSchema={{ template: editorGuardian, fields: editableFields, attributes }}
             disabledFields={DISABLED_FIELDS}
             onBack={closeEditor}
             onCommit={commitGuardian}

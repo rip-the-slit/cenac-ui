@@ -205,6 +205,7 @@ describe("Students page", () => {
     const firstNameFilter = screen.getByLabelText(studentFieldLabels.firstName);
     const lastNameFilter = screen.getByLabelText(studentFieldLabels.lastName);
     const birthDateFilter = screen.getByLabelText(studentFieldLabels.birthDate);
+    expect(birthDateFilter).toHaveAttribute("type", "date");
     const birthPlaceFilter = screen.getByLabelText(
       studentFieldLabels.birthPlace
     );

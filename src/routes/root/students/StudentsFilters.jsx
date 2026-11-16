@@ -70,6 +70,7 @@ export default function StudentsFilters({
       <Filter label={fields.birthDate?.label}>
         <input
           name="birthDate"
+          type="date"
           className={CONTROL_CLASS_NAME}
           placeholder={fields.birthDate?.label}
           size="1"

@@ -32,7 +32,8 @@ const guardian = {
   phone: "04120000000",
   address: "Caracas",
   assignedStudents: [
-    { id: "V-1001", firstName: "Ana", lastName: "Pérez" },
+    { id: "V-1001", firstName: "Ana", lastName: "Pérez", legalRole: "Madre" },
+    { id: "V-1002", firstName: "Luis", lastName: "Sol", legalRole: "Tutora" },
   ],
 };
 const response = {
@@ -93,7 +94,8 @@ describe("Representantes page", () => {
       "href",
       "/periodo/2025/representantes/V-9001"
     );
-    expect(within(table).getByRole("link", { name: "Ana Pérez" })).toHaveAttribute(
+    expect(within(table).getByRole("link", { name: "Madre, Tutora" })).toBeInTheDocument();
+    expect(within(table).getByRole("link", { name: /Ana Pérez/ })).toHaveAttribute(
       "href",
       "/periodo/2025/estudiantes/V-1001"
     );
@@ -133,12 +135,28 @@ describe("Representantes page", () => {
 
     expect(await screen.findByRole("heading", { name: "Detalle del Representante" })).toBeInTheDocument();
     expect(screen.getByText("V-9001")).toBeInTheDocument();
+    expect(screen.getByText("Madre, Tutora")).toBeInTheDocument();
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Ana Pérez" })).toHaveAttribute("href", "/periodo/2025/estudiantes/V-1001");
+    expect(screen.getByRole("link", { name: /Ana Pérez/ })).toHaveAttribute("href", "/periodo/2025/estudiantes/V-1001");
     expect(screen.queryByRole("button", { name: /guardar/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("link", { name: "Volver a la lista de representantes" }));
     expect(await screen.findByRole("table")).toBeInTheDocument();
+  });
+
+  it("uses date and legal-role select filters and submits their values", async () => {
+    getGuardians.mockResolvedValue({ ...response, fields: {
+      ...response.fields,
+      legalRole: { label: "Rol Legal", options: [{ value: "Madre", label: "Madre" }, { value: "Padre", label: "Padre" }] },
+    } });
+    const { loader } = renderGuardians();
+    const birthDate = await screen.findByLabelText("Fecha de Nacimiento");
+    expect(birthDate).toHaveAttribute("type", "date");
+    const role = screen.getByRole("combobox", { name: "Rol Legal" });
+    fireEvent.change(birthDate, { target: { value: "1980-01-01" } });
+    fireEvent.change(role, { target: { value: "Madre" } });
+    await waitFor(() => expect(latestLoaderUrl(loader).searchParams.get("legalRole")).toBe("Madre"));
+    expect(getGuardians).toHaveBeenLastCalledWith(expect.objectContaining({ birthDate: "1980-01-01", legalRole: "Madre" }));
   });
 
   it("edits guardian fields with the cédula disabled and refreshes the displayed text", async () => {
@@ -151,7 +169,8 @@ describe("Representantes page", () => {
     });
     renderGuardians("/periodo/2025/representantes/V-9001");
     await user.click(await screen.findByRole("button", { name: "Editar representante" }));
-    const editor = within(screen.getByRole("dialog", { name: "Editar representante" }));
+    const editor = within(await screen.findByRole("dialog", { name: "Editar representante" }));
+    expect(editor.queryByLabelText("Rol Legal")).not.toBeInTheDocument();
     expect(editor.getByRole("textbox", { name: "Cédula" })).toBeDisabled();
     expect(editor.getByRole("combobox", { name: "Cédula: tipo" })).toBeDisabled();
     const phone = editor.getByRole("textbox", { name: "Teléfono" });
@@ -163,10 +182,10 @@ describe("Representantes page", () => {
     expect(await screen.findByText("04269999999")).toBeInTheDocument();
     expect(editGuardian).toHaveBeenCalledWith(guardian.id, {
       firstName: guardian.firstName, lastName: guardian.lastName,
-      birthDate: guardian.birthDate, legalRole: guardian.legalRole,
+      birthDate: guardian.birthDate,
       phone: "04269999999", address: guardian.address,
     });
-    expect(screen.getByRole("link", { name: "Ana Pérez" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Ana Pérez/ })).toBeInTheDocument();
   });
 
   it("preserves guardian changes on failure and cancels without updating the detail", async () => {
@@ -174,7 +193,7 @@ describe("Representantes page", () => {
     editGuardian.mockRejectedValue(new Error("No se pudo guardar el representante"));
     renderGuardians("/periodo/2025/representantes/V-9001");
     await user.click(await screen.findByRole("button", { name: "Editar representante" }));
-    const editor = within(screen.getByRole("dialog", { name: "Editar representante" }));
+    const editor = within(await screen.findByRole("dialog", { name: "Editar representante" }));
     const address = editor.getByRole("textbox", { name: "Dirección" });
     await user.clear(address);
     await user.type(address, "Maracay");

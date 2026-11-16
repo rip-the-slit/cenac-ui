@@ -1,7 +1,7 @@
 import RelationshipLinks from "../components/RelationshipLinks";
 import { Link } from "react-router";
 import { BodyCell, BodyRow } from "../load/TablePrimitives";
-import { GUARDIAN_FIELDS } from "./guardiansUtils";
+import { GUARDIAN_FIELDS, getGuardianLegalRoles } from "./guardiansUtils";
 
 export default function GuardiansTableRow({ guardian, selected, onSelect }) {
   const name = `${guardian.firstName || ""} ${guardian.lastName || ""}`.trim();
@@ -21,7 +21,7 @@ export default function GuardiansTableRow({ guardian, selected, onSelect }) {
       {GUARDIAN_FIELDS.map((field) => (
         <BodyCell key={field}>
           <Link className="block" to={String(guardian.id)}>
-            {guardian[field] || "—"}
+            {(field === "legalRole" ? getGuardianLegalRoles(guardian) : guardian[field]) || "—"}
           </Link>
         </BodyCell>
       ))}

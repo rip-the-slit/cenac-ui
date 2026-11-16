@@ -14,7 +14,7 @@ export default function GuardiansFilters({
   return (
     <FilterForm
       method="get"
-      className="grid max-w-[60rem] gap-3 md:grid-cols-4"
+      className="grid gap-3 md:grid-cols-4 max-w-[45rem]"
       onChange={(event) => {
         const formData = new FormData(event.currentTarget);
         for (const [name, value] of [...formData.entries()]) {
@@ -26,14 +26,22 @@ export default function GuardiansFilters({
     >
       {GUARDIAN_FIELDS.map((field) => (
         <Filter key={field} label={fields[field]?.label || field}>
-          <input
+          {field === "legalRole" ? (
+            <select name={field} className={CONTROL_CLASS_NAME} defaultValue={filters[field] || ""}>
+              <option value="">Todos los roles legales</option>
+              {(fields[field]?.options || []).map((option) => (
+                <option key={option.value} value={option.value}>{option.label || option.name}</option>
+              ))}
+            </select>
+          ) : <input
+            type={field === "birthDate" ? "date" : "text"}
             name={field}
             className={CONTROL_CLASS_NAME}
             placeholder={fields[field]?.label || field}
             size="1"
             defaultValue={filters[field]}
             onChange={() => {}}
-          />
+          />}
         </Filter>
       ))}
       <Filter label="Estudiante representado">

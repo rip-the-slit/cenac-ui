@@ -8,6 +8,10 @@ export const GUARDIAN_FIELDS = [
   "address",
 ];
 
+export function getGuardianLegalRoles(guardian) {
+  return (guardian.assignedStudents || []).map((student) => student.legalRole).filter(Boolean).join(", ");
+}
+
 export function getViewFilters(filters, pendingFormData) {
   const pendingValue = (name) => {
     const value = pendingFormData?.get(name);

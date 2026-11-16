@@ -5,8 +5,8 @@ export default function FieldInput({
   validationMessages = definition.validationMessages || {},
   className = "",
   replaceClassName = false,
-  errorClassName = "text-sm text-red-600",
-  invalidClassName = "border-red-500",
+  errorClassName = "w-[20ch] p-1 text-sm text-red-600 bg-white border border-red-600 rounded-md shadow-md text-left",
+  invalidClassName = "",
   validationKey,
   onBlur,
   onChange,
@@ -57,7 +57,7 @@ export default function FieldInput({
           <option key={option.value} value={option.value}>{option.label}</option>
         ))}
       </select> : <input type={type} {...inputProps} />}
-      {error && <span id={errorId} role="alert" className={errorClassName}>{error}</span>}
+      {error && <div id={errorId} role="alert" className={"absolute -right-2 bottom-0 translate-y-2/4 " + errorClassName}>{error}</div>}
     </>
   );
 }
