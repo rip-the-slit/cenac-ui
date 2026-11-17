@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Outlet, useFetcher, useLoaderData, useParams } from "react-router";
 import { RefreshCw } from "lucide-react";
-import { getGuardians } from "../../../db";
+import { getGuardians, getPeriodList } from "../../../db";
 import { PageLayout } from "../../../components/Layout";
 import TableControl from "../components/TableControl";
 import GuardiansFilters from "./GuardiansFilters";
@@ -14,10 +14,14 @@ const BULK_ACTION_OPTIONS = [
   { value: "none", label: "Sin acciones disponibles", disabled: true },
 ];
 
-export async function guardiansLoader({ request }) {
+export async function guardiansLoader({ request, params }) {
+  const periodList = await getPeriodList();
+  const periodId =
+    params.periodId === "actual" ? periodList[0].id : params.periodId;
   const url = new URL(request.url);
   const requestedPage = Number.parseInt(url.searchParams.get("page"), 10);
-  const page = Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const page =
+    Number.isInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const limit = MAX_TABLE_ROWS;
   const filters = {
     id: url.searchParams.get("id") || "",
@@ -29,7 +33,7 @@ export async function guardiansLoader({ request }) {
     address: url.searchParams.get("address") || "",
     studentQ: url.searchParams.get("studentQ") || "",
   };
-  const data = await getGuardians({ ...filters, page, limit });
+  const data = await getGuardians(periodId, { ...filters, page, limit });
   const recordsAmount = data.recordsAmount;
   const pageCount = Math.max(1, Math.ceil(recordsAmount / limit));
   const currentPage = Math.min(page, pageCount);
@@ -52,7 +56,8 @@ export default function Guardians() {
   const viewFilters = getViewFilters(filters, fetcher.formData);
   const page = Number(viewFilters.page);
   const pageCount = Math.max(1, Math.ceil(recordsAmount / MAX_TABLE_ROWS));
-  const submitFilters = (formData) => fetcher.submit(formData, { method: "get" });
+  const submitFilters = (formData) =>
+    fetcher.submit(formData, { method: "get" });
 
   return (
     <PageLayout title="Representantes">
@@ -76,21 +81,30 @@ export default function Guardians() {
           bulkActionId="guardians-bulk-action"
           bulkActionOptions={BULK_ACTION_OPTIONS}
           onPageChange={(nextPage) =>
-            submitFilters(createFilterSearchParams({ ...viewFilters, page: String(nextPage) }))
+            submitFilters(
+              createFilterSearchParams({
+                ...viewFilters,
+                page: String(nextPage),
+              })
+            )
           }
         >
           <GuardiansTable
             rows={rows}
             fields={fields}
             selectedIds={selectedIds}
-            className={`max-h-[55vh] overflow-auto ${fetcher.state !== "idle" ? "opacity-60" : ""}`}
+            className={`max-h-[55vh] overflow-auto ${
+              fetcher.state !== "idle" ? "opacity-60" : ""
+            }`}
             onSelectAll={(selected) =>
               setSelectedIds(selected ? { all: true } : { all: false })
             }
             onSelectRow={(id) =>
               setSelectedIds((current) => ({
                 ...current,
-                [id]: current.all ? current[id] === false : current[id] !== true,
+                [id]: current.all
+                  ? current[id] === false
+                  : current[id] !== true,
               }))
             }
           />

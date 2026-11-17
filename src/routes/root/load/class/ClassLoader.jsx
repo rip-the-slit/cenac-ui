@@ -36,7 +36,7 @@ export async function guardianSuggestionsLoader({ request }) {
       ? Math.min(requestedLimit, MAX_GUARDIAN_SUGGESTIONS)
       : MAX_GUARDIAN_SUGGESTIONS;
 
-  return getGuardians({
+  return getGuardians("all", {
     id: url.searchParams.get("id") || "",
     page: 1,
     limit,

@@ -174,8 +174,9 @@ export function clearCache(key) {
   }
 }
 
-export async function getGuardians(filters = {}) {
+export async function getGuardians(periodId = "all", filters = {}) {
   const params = new URLSearchParams();
+  params.set("periodId", periodId);
   for (const field of [
     "id",
     "firstName",
@@ -201,8 +202,11 @@ export async function createGuardian(guardian) {
   });
 }
 
-export async function getGuardianById(guardianId) {
-  return request(`/guardians/${guardianId}`);
+export async function getGuardianById(periodId = "all", guardianId) {
+  const params = new URLSearchParams();
+  params.set("periodId", periodId);
+  const qs = params.toString();
+  return request(`/guardians/${guardianId}${qs ? `?${qs}` : ""}`);
 }
 
 export async function editGuardian(guardianId, changes) {

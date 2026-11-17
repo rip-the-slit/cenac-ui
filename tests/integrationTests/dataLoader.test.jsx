@@ -224,7 +224,7 @@ describe("Data loading pages", () => {
       guardianClass,
     });
     getSubjectSuggestions.mockResolvedValue({ subjectsByYear });
-    getGuardians.mockImplementation(({ id }) =>
+    getGuardians.mockImplementation((_periodId, { id }) =>
       Promise.resolve({
         filters: { id },
         rows: [],
@@ -1125,7 +1125,7 @@ describe("Data loading pages", () => {
   it("uses an exact guardian match without registering a duplicate record", async () => {
     const user = userEvent.setup();
     cache.class_students = null;
-    getGuardians.mockImplementation(({ id }) =>
+    getGuardians.mockImplementation((_periodId, { id }) =>
       Promise.resolve({
         filters: { id },
         rows:
