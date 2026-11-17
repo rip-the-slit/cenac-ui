@@ -25,7 +25,7 @@ const CLASS_CARD_BACKGROUNDS = [
   "bg-blue-400",
   "bg-indigo-400",
   "bg-pink-400",
-  "bg-gray-400"
+  "bg-gray-400",
 ];
 
 export async function periodOverviewLoader({ params }) {
@@ -46,6 +46,7 @@ export async function periodOverviewAction({ params, request }) {
     const action = formData.get("action");
 
     if (action === "archive") {
+      if (!window.confirm("¿Está seguro de que desea cerrar este período?")) return null;
       const newPeriod = await archivePeriod(periodId, true);
       return redirect(`/periodo/${newPeriod.id}`);
     }
@@ -182,8 +183,10 @@ export default function PeriodOverview() {
       </section>
 
       {!isAllPeriods && (
-        <Card className="space-y-4">
-          <h2 className="text-base font-semibold">Secciones por Año</h2>
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold text-gray-800">
+            Secciones por Año
+          </h2>
           {years.map((year, i) => {
             const classes = classesByYear[year.id] || [];
             return (
@@ -199,53 +202,54 @@ export default function PeriodOverview() {
                     </p>
                   ) : (
                     classes.map((schoolClass, index) => (
-                      <Link
-                        key={schoolClass.id}
-                        to={`notas?year=${year.id}&class=${schoolClass.name}`}
-                        aria-label={`${formatClassName(
-                          schoolClass.name
-                        )}, estudiantes: ${schoolClass.studentCount}`}
-                        className={`flex flex-col items-start gap-3 rounded-xl p-4 shadow-sm transition-shadow hover:shadow-md ${
-                          CLASS_CARD_BACKGROUNDS[
-                            schoolClass.id % CLASS_CARD_BACKGROUNDS.length
-                          ]
-                        }`}
-                      >
-                        <span className="text-md font-bold text-white">
-                          {formatClassName(schoolClass.name)}{" "}
-                          <span
-                            aria-label={`${schoolClass.studentCount} estudiantes en la sección ${schoolClass.name}`}
-                            className={`inline-flex origin-left items-center gap-1 ml-2 rounded-md text-sm font-semibold text-white`}
-                          >
-                            <User aria-hidden="true" className="h-3.5 w-3.5" />
-                            <span aria-hidden="true">
-                              {schoolClass.studentCount}
+                      <Card className="rounded-xl transition-shadow hover:shadow-md">
+                        <Link
+                          key={schoolClass.id}
+                          to={`/periodo/${periodId}/notas?year=${year.id}&class=${schoolClass.name}`}
+                          aria-label={`${formatClassName(
+                            schoolClass.name
+                          )}, estudiantes: ${schoolClass.studentCount}`}
+                          className={`flex flex-col items-start gap-3`}
+                        >
+                          <span className="lg:text-sm font-bold text-gray-500">
+                            {formatClassName(schoolClass.name)}{" "}
+                            <span
+                              aria-label={`${schoolClass.studentCount} estudiantes en la sección ${schoolClass.name}`}
+                              className={`inline-flex origin-left items-center gap-1 ml-2 rounded-md text-sm font-semibold`}
+                            >
+                              <User
+                                aria-hidden="true"
+                                className="h-3.5 w-3.5"
+                              />
+                              <span aria-hidden="true">
+                                {schoolClass.studentCount}
+                              </span>
                             </span>
                           </span>
-                        </span>
-                        <div
-                          className="grid grid-cols-10 gap-2 w-full"
-                          aria-hidden="true"
-                        >
-                          {Array.from({ length: 30 }, (_, dotIndex) => (
-                            <span
-                              key={dotIndex}
-                              className={`h-2.5 w-2.5 rounded-full ${
-                                dotIndex < schoolClass.studentCount
-                                  ? "bg-white"
-                                  : "border border-white"
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </Link>
+                          <div
+                            className="grid grid-cols-10 gap-2 w-full"
+                            aria-hidden="true"
+                          >
+                            {Array.from({ length: 30 }, (_, dotIndex) => (
+                              <span
+                                key={dotIndex}
+                                className={`h-2.5 w-2.5 rounded-full ${
+                                  dotIndex < schoolClass.studentCount
+                                    ? "bg-emerald-500"
+                                    : "border border-emerald-500"
+                                }`}
+                              />
+                            ))}
+                          </div>
+                        </Link>
+                      </Card>
                     ))
                   )}
                 </div>
               </CollapsibleSection>
             );
           })}
-        </Card>
+        </section>
       )}
     </PageLayout>
   );

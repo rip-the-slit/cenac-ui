@@ -5,11 +5,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import PeriodOverview, {
   periodOverviewLoader,
+  periodOverviewAction,
 } from "../../src/routes/root/PeriodOverview";
-import { getClassesByYear, getPeriodList, getYears } from "../../src/db";
+import { archivePeriod, getClassesByYear, getPeriodList, getYears } from "../../src/db";
 import { ErrorDialogProvider } from "../../src/context/ErrorDialogContext";
 
 vi.mock("../../src/db", () => ({
+  archivePeriod: vi.fn(),
   getClassesByYear: vi.fn(),
   getPeriodList: vi.fn(),
   getYears: vi.fn(),
@@ -85,6 +87,24 @@ describe("PeriodOverview", () => {
     getPeriodList.mockResolvedValue(periods);
     getYears.mockResolvedValue(years);
     getClassesByYear.mockResolvedValue(classesByYear);
+  });
+
+  it.each([true, false])("confirms period archiving (accepted: %s)", async (accepted) => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(accepted);
+    archivePeriod.mockResolvedValue({ id: "2026" });
+    const result = await periodOverviewAction({
+      params: { periodId: "2025" },
+      request: new Request("http://localhost/periodo/2025", { method: "POST", body: new URLSearchParams({ action: "archive" }) }),
+    });
+    expect(confirm).toHaveBeenCalledOnce();
+    if (accepted) {
+      expect(archivePeriod).toHaveBeenCalledWith("2025", true);
+      expect(result.headers.get("Location")).toBe("/periodo/2026");
+    } else {
+      expect(archivePeriod).not.toHaveBeenCalled();
+      expect(result).toBeNull();
+    }
+    confirm.mockRestore();
   });
 
   it("loads data for an explicit period", async () => {
