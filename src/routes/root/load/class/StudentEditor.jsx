@@ -113,6 +113,10 @@ export function StudentEditorModal({
         student.pendingSubjects = suggestion.pendingSubjects;
       const nextStudent = {
         ...draft,
+        _class: {
+          ...draft._class,
+          originalYear: suggestion?._class?.originalYear ?? student._class?.originalYear,
+        },
         pendingSubjects: Array.isArray(student.pendingSubjects)
           ? student.pendingSubjects.map(String)
           : [],

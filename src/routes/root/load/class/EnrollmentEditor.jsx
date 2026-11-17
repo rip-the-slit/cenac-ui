@@ -40,6 +40,11 @@ export default function EnrollmentEditor({
   const pendingSubjectNames = availableSubjects
     .filter((subject) => pendingSubjects.includes(String(subject.id)))
     .map((subject) => subject.name);
+  const originalYear = enrollment.years.find(
+    (year) => String(year.id) === String(studentClass.originalYear)
+  );
+  const finalYearFloating = studentClass.id === "z" &&
+    String(studentClass.year) === String(enrollment.years.at(-1)?.id);
 
   function handleClassChange(event) {
     const [year, id] = event.target.value.split(":");
@@ -53,7 +58,7 @@ export default function EnrollmentEditor({
       nextSubjects.map((subject) => String(subject.id))
     );
 
-    setStudentClass({ year: yearId, id });
+    setStudentClass((current) => ({ ...current, year: yearId, id }));
     setPendingSubjects((current) =>
       current.filter((subjectId) => nextIds.has(String(subjectId)))
     );
@@ -89,6 +94,12 @@ export default function EnrollmentEditor({
         onBack={onBack}
         backLabel="Volver a los datos del estudiante"
       />
+
+      {originalYear && !finalYearFloating && (
+        <p className="text-sm text-gray-600">
+          {`Este estudiante ${String(studentClass.year) === String(originalYear.id) ? "repitió" : "pasó de"} ${originalYear.name}.`}
+        </p>
+      )}
 
       <FormField label="Sección">
         <select
