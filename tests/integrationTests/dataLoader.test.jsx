@@ -1,7 +1,7 @@
 import { fieldDefinitions } from "../fieldFixtures";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createMemoryRouter, RouterProvider } from "react-router";
+import { createMemoryRouter, Link, RouterProvider } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ErrorDialogProvider } from "../../src/context/ErrorDialogContext";
@@ -147,9 +147,17 @@ function renderSubjectLoader() {
   const router = createMemoryRouter(
     [
       {
-        path: "/periodo/:periodId/cargar/materias",
-        loader: subjectLoader,
-        element: <SubjectLoader />,
+        path: "/periodo/:periodId/cargar",
+        children: [
+          { index: true, element: <p>Carga de datos</p> },
+          {
+            path: "materias",
+            loader: subjectLoader,
+            action: subjectAction,
+            element: <><Link to="/periodo/actual/cargar">Salir de la carga</Link><SubjectLoader /></>,
+          },
+          { path: "secciones", element: <p>Materias guardadas</p> },
+        ],
       },
     ],
     { initialEntries: ["/periodo/actual/cargar/materias"] }
@@ -174,6 +182,7 @@ function renderClassLoader() {
         },
         element: (
           <ErrorDialogProvider>
+            <Link to="/periodo/actual/cargar">Salir de la carga</Link>
             <ClassLoader />
           </ErrorDialogProvider>
         ),
@@ -241,6 +250,69 @@ describe("Data loading pages", () => {
     });
     getActiveUser.mockReturnValue({ userLevel: "Administrador" });
     loadPeriodData.mockResolvedValue(undefined);
+  });
+
+  it.each([["subjects", renderSubjectLoader], ["classes", renderClassLoader]])("prompts before leaving the %s loader", async (_name, renderPage) => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const router = renderPage();
+    await screen.findByRole("button", { name: "Continuar" });
+    const originalPath = router.state.location.pathname;
+    await userEvent.click(screen.getByRole("link", { name: "Salir de la carga" }));
+    await waitFor(() => expect(confirm).toHaveBeenCalledOnce());
+    expect(router.state.location.pathname).toBe(originalPath);
+    confirm.mockRestore();
+  });
+
+  it("allows the subject save button to navigate without a prompt", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderSubjectLoader();
+    await userEvent.click(await screen.findByRole("button", { name: "Continuar" }));
+    expect(await screen.findByText("Materias guardadas")).toBeInTheDocument();
+    expect(confirm).not.toHaveBeenCalled();
+    expect(saveCache).toHaveBeenCalledWith("subjects", expect.any(Object));
+    confirm.mockRestore();
+  });
+
+  it.each([
+    ["Padre", "Madre", false], ["Madre", "Padre", false],
+    ["Padre", "Padre", true], ["Madre", "Representante Legal", true],
+  ])("keeps a guardian's historical role consistent: %s to %s", async (previousRole, role, accepted) => {
+    const user = userEvent.setup();
+    getGuardians.mockImplementation((_periodId, { id }) => Promise.resolve({
+      filters: { id }, rows: id === guardian.id ? [{ ...guardian, assignedStudents: [{ id: "V-40000000", legalRole: previousRole }] }] : [],
+      recordsAmount: id === guardian.id ? 1 : 0,
+    }));
+    renderClassLoader();
+    await user.click(await screen.findByRole("button", { name: "Editar representantes de Ana Pérez" }));
+    await user.click(screen.getByRole("button", { name: "Agregar representante" }));
+    await user.type(screen.getByRole("textbox", { name: "Cédula" }), guardian.id.slice(2));
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Nombres" })).toHaveValue("María"));
+    const roleInput = screen.getByRole("textbox", { name: "Rol Legal" });
+    await user.clear(roleInput);
+    await user.type(roleInput, role);
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    if (accepted) expect(await screen.findByText("María Rojas")).toBeInTheDocument();
+    else expect(await screen.findByText(`El representante ha sido registrado como ${previousRole.toLowerCase()} anteriormente.`)).toBeInTheDocument();
+    expect(createGuardian).not.toHaveBeenCalled();
+  });
+
+  it("rejects creating a guardian with the current student draft's ID", async () => {
+    const user = userEvent.setup();
+    renderClassLoader();
+    await user.click(await screen.findByRole("button", { name: "Añadir Estudiante" }));
+    await user.click(screen.getByRole("button", { name: /^Representantes/ }));
+    await user.click(screen.getByRole("button", { name: "Agregar representante" }));
+    await user.type(screen.getByRole("textbox", { name: "Cédula" }), "30000000");
+    await user.type(screen.getByRole("textbox", { name: "Nombres" }), "Nueva");
+    await user.type(screen.getByRole("textbox", { name: "Apellidos" }), "Persona");
+    await user.type(screen.getByLabelText("Fecha de Nacimiento"), "1980-01-01");
+    await user.type(screen.getByRole("textbox", { name: "Rol Legal" }), "Madre");
+    await user.type(screen.getByRole("textbox", { name: "Teléfono" }), "1234567");
+    await user.type(screen.getByRole("textbox", { name: "Dirección" }), "Caracas");
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    expect(await screen.findByText("El representante no puede tener la misma cédula que el estudiante.")).toBeInTheDocument();
+    expect(createGuardian).not.toHaveBeenCalled();
+    expect(getStudentById).not.toHaveBeenCalled();
   });
 
   it("renders completed data steps and submits the cached payload", async () => {

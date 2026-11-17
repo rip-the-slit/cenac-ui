@@ -196,6 +196,7 @@ export function GuardianForm({
 }
 
 export default function GuardianEditor({
+  studentId,
   emitError,
   guardianSchema,
   guardians: initialGuardians,
@@ -223,6 +224,10 @@ export default function GuardianEditor({
 
   async function handleGuardianCommit({ guardian, matched }) {
     const guardianId = normalizeId(guardian.id);
+    if (studentId && guardianId === normalizeId(studentId)) {
+      emitError("El representante no puede tener la misma cédula que el estudiante.");
+      return false;
+    }
     const otherGuardians = guardians.filter(
       (candidate) => normalizeId(candidate.id) !== editingGuardian?.id
     );
@@ -232,6 +237,13 @@ export default function GuardianEditor({
       return false;
     }
     const role = legalRoleName(guardian.legalRole);
+    const previousRole = (guardian.assignedStudents || [])
+      .map((student) => legalRoleName(student.legalRole))
+      .find((previous) => ["padre", "madre"].includes(previous) && previous !== role);
+    if (previousRole && role !== "representante legal") {
+      emitError(`El representante ha sido registrado como ${previousRole} anteriormente.`);
+      return false;
+    }
     if (
       ["padre", "madre"].includes(role) &&
       otherGuardians.filter((candidate) =>

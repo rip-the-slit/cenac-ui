@@ -228,6 +228,7 @@ export function StudentEditorModal({
   } else if (page === "guardians") {
     content = (
       <GuardianEditor
+        studentId={draft.id}
         emitError={emitError}
         guardianSchema={guardianSchema}
         guardians={draft.assignedGuardians}
