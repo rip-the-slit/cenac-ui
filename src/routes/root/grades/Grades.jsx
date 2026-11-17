@@ -21,6 +21,7 @@ import { useErrorDialog } from "../../../context/ErrorDialogContext";
 import RouteAccess from "../components/RouteAccess";
 import { PageLayout } from "../../../components/Layout";
 import { Button, PrimaryButton } from "../../../components/Button";
+import useSaveNavigationPrompt from "../load/useSaveNavigationPrompt";
 
 const MAX_TABLE_ROWS = 20;
 const BULK_ACTION_OPTIONS = [{ value: "grades", label: "Generar boletín" }];
@@ -85,6 +86,7 @@ export default function Grades() {
   const actionData = useActionData();
   const { emitError } = useErrorDialog();
   const [isEditing, setIsEditing] = useState(false);
+  const allowSaveNavigation = useSaveNavigationPrompt(isEditing);
   const EditSaveButton = isEditing ? PrimaryButton : Button;
   const [selectedIds, setSelectedIds] = useState({ all: false });
   const navigation = useNavigation();
@@ -213,6 +215,7 @@ export default function Grades() {
         method="post"
         className="relative"
         ref={gradesFormRef}
+        onSubmit={allowSaveNavigation}
       >
         <input
           type="hidden"

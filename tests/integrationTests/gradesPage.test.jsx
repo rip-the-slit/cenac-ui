@@ -1,5 +1,6 @@
 import { fieldDefinitions } from "../fieldFixtures";
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -291,6 +292,17 @@ describe("Grades page", () => {
     expect(
       screen.queryByRole("button", { name: "Editar" })
     ).not.toBeInTheDocument();
+  });
+
+  it("prompts before navigating away while editing", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const { router } = renderGrades();
+    await expandSubject(gradesResponse.subjects[0].id);
+    await userEvent.click(screen.getByRole("button", { name: "Editar" }));
+    await act(() => router.navigate("/periodo/2025/reportes"));
+    await waitFor(() => expect(confirm).toHaveBeenCalledOnce());
+    expect(router.state.location.pathname).toBe("/periodo/2025/notas");
+    confirm.mockRestore();
   });
 
   it("cycles expanded subjects by index within the first and last bounds", async () => {

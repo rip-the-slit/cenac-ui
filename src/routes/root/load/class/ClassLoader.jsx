@@ -25,6 +25,7 @@ import {
 import StudentEditorProvider from "./StudentEditor";
 import { getEnrollmentSubjects, normalizeId } from "./classLoaderUtils";
 import { getActiveUser } from "../../../../auth";
+import useSaveNavigationPrompt from "../useSaveNavigationPrompt";
 
 const MAX_GUARDIAN_SUGGESTIONS = 5;
 
@@ -275,6 +276,7 @@ async function validateStudentChange({
 }
 
 export default function ClassLoader() {
+  const allowSaveNavigation = useSaveNavigationPrompt();
   const loaderData = useLoaderData();
   const actionData = useActionData();
   const { emitError } = useErrorDialog();
@@ -345,6 +347,7 @@ export default function ClassLoader() {
     payloadRef.current.value = JSON.stringify(
       serializeStudents(studentsRef.current)
     );
+    allowSaveNavigation();
   }
 
   const contextValue = {

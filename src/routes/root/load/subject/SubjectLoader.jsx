@@ -14,6 +14,7 @@ import {
 import CollapsibleSection from "../CollapsibleSection";
 import SubjectSelector from "./SubjectSelector";
 import { getActiveUser } from "../../../../auth";
+import useSaveNavigationPrompt from "../useSaveNavigationPrompt";
 
 export async function subjectAction({ request }) {
   try {
@@ -89,6 +90,7 @@ export async function subjectLoader({params}) {
 }
 
 export default function SubjectLoader() {
+  const allowSaveNavigation = useSaveNavigationPrompt();
   const loaderData = useLoaderData();
   const actionData = useActionData();
   const { emitError } = useErrorDialog();
@@ -123,7 +125,7 @@ export default function SubjectLoader() {
         Seleccione las materias correspondientes a cada año.
       </p>
 
-      <Form method="post">
+      <Form method="post" onSubmit={allowSaveNavigation}>
         <input
           type="hidden"
           name="subjects_payload"
