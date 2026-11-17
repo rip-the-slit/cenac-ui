@@ -28,8 +28,8 @@ vi.mock("../../src/auth", () => ({
 }));
 
 const users = [
-  { id: "admin-1", name: "Ana", userLevel: "Administrador" },
-  { id: "teacher-1", name: "Luis", userLevel: "Profesor" },
+  { id: "admin-1", name: "Ana", userLevel: "Administrador", phone: "04121234567" },
+  { id: "teacher-1", name: "Luis", userLevel: "Profesor", phone: "04249876543" },
 ];
 
 function renderConfiguration({
@@ -146,6 +146,8 @@ describe("configuration page", () => {
       "Coordinador"
     );
     await user.type(screen.getByLabelText("Contraseña"), "104Pj.245");
+    await user.type(screen.getByRole("textbox", { name: "Teléfono" }), "7654321");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Teléfono: prefijo" }), "0426");
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
     await user.click(
@@ -163,11 +165,13 @@ describe("configuration page", () => {
         id: "admin-1",
         name: "Ana Editada",
         userLevel: "Administrador",
+        phone: "04121234567",
       });
       expect(register).toHaveBeenCalledWith({
         name: "Marta",
         password: "104Pj.245",
         userLevel: "Coordinador",
+        phone: "04267654321",
       });
       expect(deleteUser).toHaveBeenCalledWith("teacher-1");
     });
@@ -192,8 +196,38 @@ describe("configuration page", () => {
         name: "Luis",
         password: "aB.1947",
         userLevel: "Profesor",
+        phone: "04249876543",
       });
     });
+  });
+
+  it("displays phone numbers and saves a phone-only edit", async () => {
+    const user = userEvent.setup();
+    renderConfiguration({ initialEntry: "/periodo/2025/configuracion/usuarios" });
+    expect(await screen.findByText(users[1].phone)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Editar usuario Luis" }));
+    const phone = screen.getByRole("textbox", { name: "Teléfono" });
+    expect(phone).toHaveValue("9876543");
+    expect(screen.getByRole("combobox", { name: "Teléfono: prefijo" })).toHaveValue("0424");
+    await user.clear(phone);
+    await user.type(phone, "1234567");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Teléfono: prefijo" }), "0212");
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    expect(screen.getByText("02121234567")).toBeInTheDocument();
+    expect(editUser).not.toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
+    await vi.waitFor(() => expect(editUser).toHaveBeenCalledWith({ id: users[1].id, name: users[1].name, userLevel: users[1].userLevel, phone: "02121234567" }));
+  });
+
+  it("clears a phone without saving the prefix as a partial number", async () => {
+    const user = userEvent.setup();
+    renderConfiguration({ initialEntry: "/periodo/2025/configuracion/usuarios" });
+    await user.click(await screen.findByRole("button", { name: "Editar usuario Luis" }));
+    await user.clear(screen.getByRole("textbox", { name: "Teléfono" }));
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    expect(screen.queryByText(users[1].phone)).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Guardar" }));
+    await vi.waitFor(() => expect(editUser).toHaveBeenCalledWith(expect.objectContaining({ id: users[1].id, phone: "" })));
   });
 
   it("validate password creation", async () => {

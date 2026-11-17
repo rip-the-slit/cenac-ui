@@ -34,19 +34,19 @@ export async function logout() {
   return res;
 }
 
-export async function register({name, password, userLevel}) {
+export async function register({name, password, userLevel, phone}) {
   const res = await request("/users/register", {
     method: "POST",
-    body: JSON.stringify({name, password, userLevel}),
+    body: JSON.stringify({name, password, userLevel, phone}),
   });
 
   return res
 }
 
-export async function editUser({id, name, password, userLevel}) {
+export async function editUser({id, name, password, userLevel, phone}) {
   const res = await request(`/users/${id}/edit`, {
     method: "POST",
-    body: JSON.stringify({name, password, userLevel}),
+    body: JSON.stringify({name, password, userLevel, phone}),
   });
 
   return res

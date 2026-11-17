@@ -19,6 +19,7 @@ import { useErrorDialog } from "../../../context/ErrorDialogContext";
 import { UserOption } from "../../login/UserSelector";
 import { CardHeader, FormField } from "../../../components/Layout";
 import FieldInput from "../../../components/FieldInput";
+import PhoneInput from "../load/class/PhoneInput";
 import {
   DeleteButton,
   EditButton,
@@ -30,6 +31,7 @@ const userLevels = ["Administrador", "Coordinador", "Profesor"];
 function normalizeUser(user) {
   return {
     ...user,
+    phone: String(user.phone ?? ""),
     userLevel: user.userLevel ?? user.userlevel ?? user.type ?? "",
     clientKey: `user-${user.id}`,
     password: "",
@@ -44,10 +46,11 @@ function serializeChanges(draftUsers, baselineUsers, deletedIds) {
 
   const created = draftUsers
     .filter((user) => user.isNew)
-    .map(({ name, password, userLevel }) => ({
+    .map(({ name, password, userLevel, phone }) => ({
       name: name.trim(),
       password,
       userLevel,
+      phone: phone.trim(),
     }));
 
   const updated = draftUsers
@@ -58,6 +61,7 @@ function serializeChanges(draftUsers, baselineUsers, deletedIds) {
         !original ||
         user.name.trim() !== original.name ||
         user.userLevel !== original.userLevel ||
+        user.phone !== original.phone ||
         Boolean(user.password)
       );
     })
@@ -66,6 +70,7 @@ function serializeChanges(draftUsers, baselineUsers, deletedIds) {
         id: user.id,
         name: user.name.trim(),
         userLevel: user.userLevel,
+        phone: user.phone.trim(),
       };
       if (user.password) update.password = user.password;
       return update;
@@ -134,7 +139,7 @@ function UserForm({ editor, disableUserLevelSelect, onCancel, onConfirm }) {
           event.currentTarget.querySelector(":invalid")?.focus();
           return;
         }
-        onConfirm(user);
+        onConfirm({ ...user, phone: user.phone.length > 4 ? user.phone : "" });
       }}
     >
       <CardHeader
@@ -167,6 +172,15 @@ function UserForm({ editor, disableUserLevelSelect, onCancel, onConfirm }) {
             onChange={(event) => update("userLevel", event.target.value)}
             required
             className="rounded-lg border border-gray-300 bg-white px-3 py-2 font-normal h-full"
+          />
+        </FormField>
+
+        <FormField label="Teléfono" className="sm:col-span-2">
+          <PhoneInput
+            definition={{ label: "Teléfono" }}
+            value={user.phone}
+            onChange={(value) => update("phone", value)}
+            validationMessages={{ patternMismatch: "Número de suscriptor debe contener siete dígitos y no empezar en 0." }}
           />
         </FormField>
 
@@ -266,6 +280,7 @@ export default function Users() {
         clientKey,
         name: "",
         password: "",
+        phone: "",
         userLevel: "Profesor",
         isNew: true,
       },
@@ -317,7 +332,10 @@ export default function Users() {
             key={user.clientKey}
             className="flex items-center justify-between gap-4 py-3"
           >
-            <UserOption name={user.name} type={user.userLevel} />
+            <UserOption
+              name={<span className="flex flex-wrap items-baseline gap-x-3"><span>{user.name}</span>{user.phone && <span className="text-sm font-normal text-gray-500">{user.phone}</span>}</span>}
+              type={user.userLevel}
+            />
             <div className="flex items-center gap-1">
               <EditButton
                 onClick={() => setEditor({ mode: "edit", user: { ...user } })}
