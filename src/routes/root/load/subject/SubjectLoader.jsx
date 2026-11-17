@@ -11,10 +11,11 @@ import {
   getYears,
   saveCache,
 } from "../../../../db";
-import CollapsibleSection from "../CollapsibleSection";
-import SubjectSelector from "./SubjectSelector";
+import { BodyCell, BodyRow, EmptyTableMessage, HeadCell, TableBody, TableContainer, TableHead } from "../TablePrimitives";
 import { getActiveUser } from "../../../../auth";
 import useSaveNavigationPrompt from "../useSaveNavigationPrompt";
+
+const MIN_SUBJECTS = 3;
 
 export async function subjectAction({ request }) {
   try {
@@ -105,46 +106,68 @@ export default function SubjectLoader() {
   }, [actionData, emitError]);
 
   function handleToggle(yearId, subjectId) {
-    setSubjectsPerYear((current) => {
-      const yearSelection = { ...(current[yearId] || {}) };
-      const key = String(subjectId);
+    const yearSelection = { ...(subjectsPerYear[yearId] || {}) };
+    const key = String(subjectId);
+    if (yearSelection[key] && Object.values(yearSelection).filter(Boolean).length <= MIN_SUBJECTS) {
+      emitError(`Debe seleccionar al menos ${MIN_SUBJECTS} materias por año.`);
+      return;
+    }
+    if (yearSelection[key]) delete yearSelection[key];
+    else yearSelection[key] = true;
+    setSubjectsPerYear((current) => ({ ...current, [yearId]: yearSelection }));
+  }
 
-      if (yearSelection[key]) {
-        delete yearSelection[key];
-      } else {
-        yearSelection[key] = true;
-      }
-
-      return { ...current, [yearId]: yearSelection };
-    });
+  function handleSubmit(event) {
+    if (loaderData.years.some((year) => Object.values(subjectsPerYear[year.id] || {}).filter(Boolean).length < MIN_SUBJECTS)) {
+      event.preventDefault();
+      emitError(`Debe seleccionar al menos ${MIN_SUBJECTS} materias por año.`);
+      return;
+    }
+    allowSaveNavigation();
   }
 
   return (
     <PageLayout title="Carga de Materias">
       <p className="mb-6 text-gray-600">
-        Seleccione las materias correspondientes a cada año.
+        Seleccione al menos {MIN_SUBJECTS} materias correspondientes a cada año.
       </p>
 
-      <Form method="post" onSubmit={allowSaveNavigation}>
+      <Form method="post" onSubmit={handleSubmit} className="space-y-4">
         <input
           type="hidden"
           name="subjects_payload"
           value={JSON.stringify(subjectsPerYear)}
         />
-        {loaderData.years.map((year, index) => (
-          <CollapsibleSection
-            open={index === 0}
-            key={year.id}
-            title={year.name}
-          >
-            <SubjectSelector
-              yearId={year.id}
-              options={loaderData.subjects}
-              checkedItems={subjectsPerYear[year.id] || {}}
-              onToggle={handleToggle}
-            />
-          </CollapsibleSection>
-        ))}
+        <TableContainer className="max-w-2xl">
+          <table className="w-full border-collapse text-sm">
+            <TableHead>
+              <tr>
+                <HeadCell scope="col">Materia</HeadCell>
+                {loaderData.years.map((year) => <HeadCell key={year.id} scope="col" className="text-center">{year.name}</HeadCell>)}
+              </tr>
+            </TableHead>
+            <TableBody>
+              {loaderData.subjects.length === 0 && <EmptyTableMessage colSpan={loaderData.years.length + 1} />}
+              {loaderData.subjects.map((subject) => (
+                <BodyRow key={subject.id}>
+                  <HeadCell className="text-left max-w-[15ch] truncate" scope="row" title={subject.name}>{subject.name}</HeadCell>
+                  {loaderData.years.map((year) => (
+                    <BodyCell key={year.id} className="text-center">
+                      <input
+                        type="checkbox"
+                        aria-label={`${subject.name} — ${year.name}`}
+                        name={`year${year.id}`}
+                        value={subject.id}
+                        checked={Boolean(subjectsPerYear[year.id]?.[subject.id])}
+                        onChange={() => handleToggle(year.id, subject.id)}
+                      />
+                    </BodyCell>
+                  ))}
+                </BodyRow>
+              ))}
+            </TableBody>
+          </table>
+        </TableContainer>
         <PrimaryButton type="submit">Continuar</PrimaryButton>
       </Form>
     </PageLayout>

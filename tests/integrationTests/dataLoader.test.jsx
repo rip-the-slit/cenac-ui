@@ -265,6 +265,7 @@ describe("Data loading pages", () => {
 
   it("allows the subject save button to navigate without a prompt", async () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    cache.subjects = { 1: subjects.map((subject) => subject.id) };
     renderSubjectLoader();
     await userEvent.click(await screen.findByRole("button", { name: "Continuar" }));
     expect(await screen.findByText("Materias guardadas")).toBeInTheDocument();
@@ -378,12 +379,13 @@ describe("Data loading pages", () => {
     renderSubjectLoader();
 
     expect(
-      await screen.findByRole("checkbox", { name: "Matemática" })
+      await screen.findByRole("checkbox", { name: "Matemática — Primer año" })
     ).toBeChecked();
-    const language = screen.getByRole("checkbox", { name: "Lengua" });
+    const language = screen.getByRole("checkbox", { name: "Lengua — Primer año" });
     expect(language).not.toBeChecked();
 
     await user.click(language);
+    await user.click(screen.getByRole("checkbox", { name: "Ciencias — Primer año" }));
     const form = screen
       .getByRole("button", { name: "Continuar" })
       .closest("form");
@@ -394,7 +396,7 @@ describe("Data loading pages", () => {
     const response = await subjectAction({ request });
 
     expect(saveCache).toHaveBeenCalledWith("subjects", {
-      1: ["math", "language"],
+      1: ["math", "language", "science"],
     });
     expect(response.headers.get("Location")).toBe("../secciones");
   });
@@ -405,9 +407,36 @@ describe("Data loading pages", () => {
 
     for (const subject of subjects) {
       expect(
-        await screen.findByRole("checkbox", { name: subject.name })
+        await screen.findByRole("checkbox", { name: `${subject.name} — Primer año` })
       ).toBeChecked();
     }
+  });
+
+  it("lays out subjects as rows and years as columns, preventing fewer than three per year", async () => {
+    const user = userEvent.setup();
+    const options = [...subjects, { id: "history", name: "Historia" }];
+    getSubjects.mockResolvedValue(options);
+    getYears.mockResolvedValue([...years, { id: 2, name: "Segundo año" }]);
+    cache.subjects = { 1: options.map((subject) => subject.id), 2: options.map((subject) => subject.id) };
+    renderSubjectLoader();
+    const table = await screen.findByRole("table");
+    expect(within(table).getByRole("columnheader", { name: "Primer año" })).toBeInTheDocument();
+    expect(within(table).getByRole("columnheader", { name: "Segundo año" })).toBeInTheDocument();
+    expect(within(table).getAllByRole("rowheader")).toHaveLength(options.length);
+    await user.click(screen.getByRole("checkbox", { name: "Historia — Primer año" }));
+    expect(screen.getByRole("checkbox", { name: "Historia — Primer año" })).not.toBeChecked();
+    await user.click(screen.getByRole("checkbox", { name: "Matemática — Primer año" }));
+    expect(screen.getByText("Debe seleccionar al menos 3 materias por año.")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Matemática — Primer año" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Historia — Segundo año" })).toBeChecked();
+  });
+
+  it("does not save or navigate when a year starts with fewer than three subjects", async () => {
+    renderSubjectLoader();
+    await userEvent.click(await screen.findByRole("button", { name: "Continuar" }));
+    expect(screen.getByText("Debe seleccionar al menos 3 materias por año.")).toBeInTheDocument();
+    expect(saveCache).not.toHaveBeenCalled();
+    expect(screen.queryByText("Materias guardadas")).not.toBeInTheDocument();
   });
 
   it("renders static student rows and switches class tabs", async () => {
@@ -696,7 +725,7 @@ describe("Data loading pages", () => {
           id: "V-10000777",
           firstName: "Sara",
           lastName: "Sol",
-          _class: { year: 2, id: "Z" },
+          _class: { year: 2, id: "Z", originalYear: 1 },
           pendingSubjects: ["math"],
         },
       ],
@@ -746,6 +775,7 @@ describe("Data loading pages", () => {
 
     await user.click(screen.getByRole("button", { name: /^Inscripción/ }));
     expect(screen.getByText(/Matemática/i)).toBeInTheDocument();
+    expect(screen.getByText("Este estudiante pasó de Primer año.")).toBeInTheDocument();
     await user.selectOptions(
       screen.getByRole("combobox", { name: "Sección de inscripción" }),
       "2:B"
@@ -784,7 +814,7 @@ describe("Data loading pages", () => {
             id: "V-10000778",
             firstName: "Sara",
             lastName: "Sol",
-            _class: { year: 2, id: "B" },
+            _class: { year: 2, id: "B", originalYear: 1 },
           }),
         ])
       )
