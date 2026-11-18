@@ -123,8 +123,9 @@ export async function getSubjects() {
   return request("/subjects");
 }
 
-export async function getReportOptionData() {
-  return request("/reports/");
+export async function getReportOptionData(periodId) {
+  const params = new URLSearchParams({ periodId });
+  return request(`/reports/?${params}`);
 }
 
 export function getReportUrl(periodId, reportType, filters = {}) {

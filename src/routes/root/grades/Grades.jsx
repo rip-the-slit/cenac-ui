@@ -124,11 +124,11 @@ export default function Grades() {
   const submitFilters = (formData) =>
     filterFetcher.submit(formData, { method: "get" });
   const handleBulkAction = (action, studentIds, allSelected) => {
-    if (action !== "grades" || (!allSelected && studentIds.length === 0)) {
+    if (activeData.periodId === "all" || action !== "grades" || (!allSelected && studentIds.length === 0)) {
       return;
     }
 
-    const params = new URLSearchParams({ type: action });
+    const params = new URLSearchParams({ type: action, hideFilter: "true" });
     const applied = activeData.filters;
     for (const [name, value] of Object.entries({
       q: !allSelected ? studentIds.join(",") : "",
@@ -235,7 +235,7 @@ export default function Grades() {
           selectedIds={selectedIds}
           disabled={isEditing}
           bulkActionId="grades-bulk-action"
-          bulkActionOptions={BULK_ACTION_OPTIONS}
+          bulkActionOptions={activeData.periodId === "all" ? [{ label: "Acciones masivas" }] : BULK_ACTION_OPTIONS}
           onBulkAction={handleBulkAction}
           onPageChange={(nextPage) =>
             submitFilters(

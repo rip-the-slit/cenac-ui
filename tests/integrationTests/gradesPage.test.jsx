@@ -263,6 +263,8 @@ describe("Grades page", () => {
     renderGrades("/periodo/all/notas");
 
     const table = await screen.findByRole("table");
+    expect(screen.queryByRole("combobox", { name: "Acciones masivas" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Generar boletín" })).not.toBeInTheDocument();
     expect(
       within(table).getByRole("columnheader", { name: studentGradesFieldLabels.period })
     ).toBeInTheDocument();
@@ -654,6 +656,7 @@ describe("Grades page", () => {
       Object.fromEntries(new URLSearchParams(router.state.location.search))
     ).toEqual({
       type: "grades",
+      hideFilter: "true",
       q: "V-1001,V-1002",
     });
   });
@@ -669,7 +672,7 @@ describe("Grades page", () => {
     await user.click(screen.getByRole("button", { name: "Aplicar" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/periodo/2025/reportes"));
     expect(Object.fromEntries(new URLSearchParams(router.state.location.search))).toEqual({
-      type: "grades", year: "1", class: "1-A", status: "pending",
+      type: "grades", hideFilter: "true", year: "1", class: "1-A", status: "pending",
       ...(!allSelected ? { q: "V-1001" } : {}),
     });
   });
@@ -697,6 +700,7 @@ describe("Grades page", () => {
       Object.fromEntries(new URLSearchParams(router.state.location.search))
     ).toEqual({
       type: "grades",
+      hideFilter: "true",
       q: gradesResponse.rows.slice(1).map(({ id }) => id).join(","),
     });
   });
