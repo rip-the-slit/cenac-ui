@@ -16,14 +16,15 @@ import { PrimaryButton } from "../../../components/Button";
 export async function reportsLoader({ params, request }) {
   const url = new URL(request.url);
   const periodList = await getPeriodList();
-  const reportOptionData = await getReportOptionData();
   const periodId = params.periodId === "actual" ? periodList[0].id : params.periodId;
+  const reportOptionData = await getReportOptionData(periodId);
   const reportTypes = reportOptionData.reportTypes;
   const requestedReportType = url.searchParams.get("type");
   const activeReport = reportTypes.find(
     (report) => report.value === requestedReportType
   ) || reportTypes[0];
   const reportType = activeReport?.value || "";
+  const hideFilters = url.searchParams.get("hideFilter") === "true";
   const q = url.searchParams.get("q") || "";
   const firstName = url.searchParams.get("firstName") || "";
   const lastName = url.searchParams.get("lastName") || "";
@@ -62,6 +63,7 @@ export async function reportsLoader({ params, request }) {
     reportFile,
     downloadUrl: reportType ? getReportUrl(periodId, reportType, reportFilters) : "",
     periodId,
+    hideFilters,
     filters,
   };
 }
@@ -75,6 +77,7 @@ export default function Reports() {
     reportFile,
     downloadUrl = "",
     filters = {},
+    hideFilters = false,
   } = activeData || {};
   const pendingFilters = filterFetcher.formData
     ? Object.fromEntries(filterFetcher.formData)
@@ -134,6 +137,7 @@ export default function Reports() {
           years={years}
           classesByYear={classesByYear}
           statuses={statuses}
+          hideFilters={hideFilters}
           onSubmit={submitFilters}
         />
         <div className="flex items-center gap-5">
@@ -170,7 +174,7 @@ export default function Reports() {
         >
           <div className="loading-logo h-40 w-40" />
         </div>
-        <div id="docx-preview" className="h-[75vh] overflow-auto" ref={docxPreviewRef}></div>
+        <div id="docx-preview" className={"overflow-auto " + (hideFilters ? "h-[85vh] " : "h-[75vh] ")} ref={docxPreviewRef}></div>
       </div>
     </PageLayout>
   );

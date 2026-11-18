@@ -55,13 +55,27 @@ beforeEach(() => {
   generateReport.mockResolvedValue(new Blob());
 });
 describe("Reports page", () => {
+  it("hides only student controls and keeps the student query when a report option changes", async () => {
+    const user = userEvent.setup();
+    const { loader } = renderReports("?hideFilter=true&q=V-123&year=1&class=A");
+    const terms = await screen.findByLabelText("Lapsos");
+    expect(screen.queryByRole("group", { name: "Filtros del estudiante" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Buscar estudiante")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Tipo de reporte")).toBeInTheDocument();
+    await user.selectOptions(terms, "2");
+    await waitFor(() => expect(query(loader).get("terms")).toBe("2"));
+    expect(query(loader).get("hideFilter")).toBe("true");
+    expect(generateReport).toHaveBeenLastCalledWith("2025", "grades", {
+      q: "V-123", year: "1", class: "A", terms: "2", preview: "true",
+    });
+  });
   it("declares report options locally and renders every common student filter", async () => {
     renderReports();
     const type = await screen.findByLabelText("Tipo de reporte");
     const studentFilters = screen.getByRole("group", { name: "Filtros del estudiante" });
     expect(studentFilters).toContainElement(screen.getByLabelText("Nombres"));
     expect(studentFilters).not.toContainElement(type);
-    expect(getReportOptionData).toHaveBeenCalled();
+    expect(getReportOptionData).toHaveBeenCalledWith("2025");
     expect(within(type).getByRole("option", { name: "Matrícula" })).toHaveValue("enrollment");
     expect(screen.getByLabelText("Lapsos")).toHaveValue("all");
     for (const label of Object.values(response.fields).map((field) => field.label)) {
