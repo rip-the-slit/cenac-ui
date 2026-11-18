@@ -32,6 +32,7 @@ export default function ReportsFilters({
       guardianLabel={fields.guardians?.label}
       searchField="q"
       paginate={false}
+      fieldsetName="Filtros del estudiante"
       onSubmit={submit}
     >
       <Filter label="Tipo de reporte">

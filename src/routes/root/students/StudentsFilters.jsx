@@ -17,26 +17,11 @@ export default function StudentsFilters({
   searchField = "id",
   children,
   paginate = true,
+  fieldsetName,
 }) {
   const FilterForm = FormComponent;
-
-  return (
-    <FilterForm
-      className="grid gap-3 md:grid-cols-4 max-w-[45rem]"
-      method="get"
-      onChange={(event) => {
-        const formData = new FormData(event.currentTarget);
-        const year = String(formData.get("year") || "");
-        const classId = String(formData.get("class") || "");
-        if (!year || !pickClasses(classesByYear, year).includes(classId)) {
-          formData.delete("class");
-        }
-        if (!formData.get("guardianQ")) formData.delete("guardianQ");
-        if (paginate) formData.set("page", "1");
-        onSubmit(formData);
-      }}
-    >
-      {children}
+  const studentFilters = (
+    <>
       <Filter label={fields[searchField]?.label || "Buscar estudiante"}>
         <input
           name={searchField}
@@ -146,6 +131,32 @@ export default function StudentsFilters({
           ))}
         </select>
       </Filter>
+    </>
+  );
+
+  return (
+    <FilterForm
+      className="grid gap-3 md:grid-cols-4 max-w-[45rem]"
+      method="get"
+      onChange={(event) => {
+        const formData = new FormData(event.currentTarget);
+        const year = String(formData.get("year") || "");
+        const classId = String(formData.get("class") || "");
+        if (!year || !pickClasses(classesByYear, year).includes(classId)) {
+          formData.delete("class");
+        }
+        if (!formData.get("guardianQ")) formData.delete("guardianQ");
+        if (paginate) formData.set("page", "1");
+        onSubmit(formData);
+      }}
+    >
+      {children}
+      {fieldsetName ? (
+        <fieldset className="col-span-full grid min-w-0 gap-3 rounded-lg border border-gray-200 p-3 md:grid-cols-4">
+          <legend className="px-1 text-sm font-medium text-gray-700">{fieldsetName}</legend>
+          {studentFilters}
+        </fieldset>
+      ) : studentFilters}
     </FilterForm>
   );
 }

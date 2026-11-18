@@ -58,6 +58,9 @@ describe("Reports page", () => {
   it("declares report options locally and renders every common student filter", async () => {
     renderReports();
     const type = await screen.findByLabelText("Tipo de reporte");
+    const studentFilters = screen.getByRole("group", { name: "Filtros del estudiante" });
+    expect(studentFilters).toContainElement(screen.getByLabelText("Nombres"));
+    expect(studentFilters).not.toContainElement(type);
     expect(getReportOptionData).toHaveBeenCalled();
     expect(within(type).getByRole("option", { name: "Matrícula" })).toHaveValue("enrollment");
     expect(screen.getByLabelText("Lapsos")).toHaveValue("all");

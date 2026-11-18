@@ -125,7 +125,7 @@ export default function Reports() {
   const downloadDisabled = !downloadUrl || filterFetcher.state !== "idle";
   return (
     <PageLayout title="Reportes">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-end justify-between gap-8">
         <ReportsFilters
           FormComponent={filterFetcher.Form}
           filters={viewFilters}
