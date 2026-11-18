@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router";
 import { Archive, CalendarDays, CircleCheck } from "lucide-react";
 import FloatingOverlay from "./components/FloatingOverlay";
+import SelectorBatches from "./components/SelectorBatches";
 
 function PeriodOption({ icon, id, isSelected, label, onClick }) {
   return (
@@ -36,6 +37,8 @@ export function PeriodSelector({ currentId, list }) {
         />
       )}
       <button
+        type="button"
+        aria-expanded={isOpen}
         onClick={() => setIsOpen(!isOpen)}
         className="relative z-10 flex items-center space-x-2 px-3 py-1.5 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-lg text-gray-600"
       >
@@ -44,18 +47,12 @@ export function PeriodSelector({ currentId, list }) {
       </button>
       {isOpen && (
         <FloatingOverlay className="mt-2 right-0 w-48 overflow-hidden">
-          <div>
-            <PeriodOption
-              icon={<CalendarDays className="h-4 w-4" aria-hidden="true" />}
-              id="all"
-              isSelected={String(currentId) === "all"}
-              label="Todos los períodos"
-              onClick={() => setIsOpen(false)}
-            />
-            {list.map((period) => {
-              const label = `${period.startYear} - ${period.endYear}`;
+          <SelectorBatches items={[{ id: "all" }, ...list]} size={5}>
+            {(periods) => periods.map((period) => {
+              const isAll = period.id === "all";
+              const label = isAll ? "Todos los períodos" : `${period.startYear} - ${period.endYear}`;
               const StatusIcon =
-                period.status === "archived" ? Archive : CircleCheck;
+                isAll ? CalendarDays : period.status === "archived" ? Archive : CircleCheck;
 
               return (
                 <PeriodOption
@@ -68,7 +65,7 @@ export function PeriodSelector({ currentId, list }) {
                 />
               );
             })}
-          </div>
+          </SelectorBatches>
         </FloatingOverlay>
       )}
     </div>
