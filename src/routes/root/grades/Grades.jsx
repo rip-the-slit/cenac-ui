@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { togglePageSelection } from "../components/tableSelection";
 import {
   Form,
   useActionData,
@@ -269,12 +270,7 @@ export default function Grades() {
               setSelectedIds(selected ? { all: true } : { all: false })
             }
             onSelectRow={(id) =>
-              setSelectedIds((current) => ({
-                ...current,
-                [id]: current.all
-                  ? current[id] === false
-                  : current[id] !== true,
-              }))
+              setSelectedIds((current) => togglePageSelection(current, id, rows))
             }
           />
         </TableControl>

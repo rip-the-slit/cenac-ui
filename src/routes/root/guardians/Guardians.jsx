@@ -7,6 +7,7 @@ import TableControl from "../components/TableControl";
 import GuardiansFilters from "./GuardiansFilters";
 import GuardiansTable from "./GuardiansTable";
 import { createFilterSearchParams, getViewFilters } from "./guardiansUtils";
+import { togglePageSelection } from "../components/tableSelection";
 
 const MAX_TABLE_ROWS = 20;
 const BULK_ACTION_OPTIONS = [
@@ -100,12 +101,7 @@ export default function Guardians() {
               setSelectedIds(selected ? { all: true } : { all: false })
             }
             onSelectRow={(id) =>
-              setSelectedIds((current) => ({
-                ...current,
-                [id]: current.all
-                  ? current[id] === false
-                  : current[id] !== true,
-              }))
+              setSelectedIds((current) => togglePageSelection(current, id, rows))
             }
           />
         </TableControl>

@@ -3,6 +3,7 @@ import { Plus } from "lucide-react";
 
 import { Button } from "../../../../components/Button";
 import TableControl from "../../components/TableControl";
+import { togglePageSelection } from "../../components/tableSelection";
 import {
   DataTable,
   EmptyTableMessage,
@@ -39,6 +40,12 @@ export default function StudentTable({ yearId, classId, students }) {
     (currentPage - 1) * MAX_TABLE_ROWS,
     currentPage * MAX_TABLE_ROWS
   );
+  const nameColumns = ["lastName", "firstName"];
+  const columnFields = studentSchema.attributes.flatMap((attribute) =>
+    attribute === "firstName"
+      ? nameColumns.filter((field) => studentSchema.attributes.includes(field))
+      : attribute === "lastName" && studentSchema.attributes.includes("firstName") ? [] : [attribute]
+  );
   const allSelected =
     selectedIds.all &&
     !Object.values(selectedIds).some((selected) => selected === false);
@@ -58,12 +65,9 @@ export default function StudentTable({ yearId, classId, students }) {
   }
 
   function toggleSelection(studentId) {
-    setSelectedIds((current) => ({
-      ...current,
-      [studentId]: current.all
-        ? current[studentId] === false
-        : current[studentId] !== true,
-    }));
+    setSelectedIds((current) => togglePageSelection(
+      current, studentId, visibleStudents, (student) => normalizeId(student.id)
+    ));
   }
 
   function handleSelectAll(event) {
@@ -187,7 +191,7 @@ export default function StudentTable({ yearId, classId, students }) {
                     onChange={handleSelectAll}
                   />
                 </HeadCell>
-                {studentSchema.attributes.map((attribute) => (
+                {columnFields.map((attribute) => (
                   <HeadCell key={attribute}>
                     {studentSchema.fields[attribute]?.label || attribute}
                   </HeadCell>
@@ -208,6 +212,7 @@ export default function StudentTable({ yearId, classId, students }) {
                 return (
                   <StudentRow
                     key={studentId}
+                    columnFields={columnFields}
                     student={student}
                     selected={isSelected(studentId)}
                     actions={getStudentActions(student)}

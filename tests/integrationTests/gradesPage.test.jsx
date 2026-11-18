@@ -674,7 +674,7 @@ describe("Grades page", () => {
     });
   });
 
-  it("routes Select all without q and ignores exclusions", async () => {
+  it("routes only the remaining page students after deselecting from Select all", async () => {
     const user = userEvent.setup();
     const { router } = renderGrades();
     const selectAll = await screen.findByRole("checkbox", {
@@ -697,6 +697,7 @@ describe("Grades page", () => {
       Object.fromEntries(new URLSearchParams(router.state.location.search))
     ).toEqual({
       type: "grades",
+      q: gradesResponse.rows.slice(1).map(({ id }) => id).join(","),
     });
   });
   it("selects and deselects records", async () => {
