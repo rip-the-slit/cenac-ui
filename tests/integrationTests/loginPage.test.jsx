@@ -106,6 +106,19 @@ describe("login flow", () => {
     });
   });
 
+  it("disables the login button while the submission is pending", async () => {
+    const user = userEvent.setup();
+    let finishLogin;
+    login.mockReturnValue(new Promise((resolve) => { finishLogin = resolve; }));
+    render(<RouterProvider router={createAuthRouter("/ingresar")} />);
+
+    await user.type(await screen.findByPlaceholderText("Ingrese su contraseña"), "secret");
+    await user.click(screen.getByRole("button", { name: "Ingresar" }));
+    expect(await screen.findByRole("button", { name: "Ingresando…" })).toBeDisabled();
+    await act(async () => finishLogin({}));
+    expect(await screen.findByRole("button", { name: "Ingresar" })).toBeEnabled();
+  });
+
   it("shows a loading indicator while navigating and keeps the current page visible", async () => {
     const user = userEvent.setup();
     let finishLoading;
