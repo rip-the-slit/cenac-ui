@@ -143,9 +143,11 @@ function renderDataLoader() {
     [
       {
         path: "/periodo/:periodId/cargar",
-        loader: dataLoader,
-        element: <DataLoader />,
-        action: dataAction,
+        children: [
+          { index: true, loader: dataLoader, element: <DataLoader />, action: dataAction },
+          { path: "materias", loader: subjectLoader, element: <SubjectLoader />, action: subjectAction },
+          { path: "secciones", element: <p>Secciones</p> },
+        ],
       },
     ],
     { initialEntries: ["/periodo/actual/cargar"] }
@@ -343,6 +345,8 @@ describe("Data loading pages", () => {
     );
 
     expect(screen.getByRole("button", { name: /Confirmar/ })).toBeEnabled();
+    expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
+    expect(within(screen.getByRole("list")).getAllByRole("listitem")).toHaveLength(2);
 
     const response = await dataAction({ params: { periodId: "actual" } });
 
@@ -355,17 +359,48 @@ describe("Data loading pages", () => {
     expect(clearCache).toHaveBeenCalledWith("class_students");
   });
 
-  it("disable steps for users without a permitted role", async () => {
+  it("hides subject loading from coordinators and caches the suggestions", async () => {
+    getActiveUser.mockReturnValue({ userLevel: "Coordinador" });
+    const suggested = { 1: ["math", "language", "science"] };
+    getSubjectSuggestions.mockResolvedValue({ subjectsByYear: suggested });
+    renderDataLoader();
+
+    expect(await screen.findByRole("link", { name: /Secciones/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Materias/ })).not.toBeInTheDocument();
+    expect(saveCache).toHaveBeenCalledWith("subjects", suggested);
+    expect(screen.getByRole("button", { name: /Confirmar/ })).toBeEnabled();
+  });
+
+  it("blocks coordinators from opening or submitting the subject loader", async () => {
+    getActiveUser.mockReturnValue({ userLevel: "Coordinador" });
+    const params = { periodId: "2025" };
+    const request = new Request("http://localhost/periodo/2025/cargar/materias", {
+      method: "POST", body: new URLSearchParams({ year1: "math" }),
+    });
+
+    for (const result of [await subjectLoader({ params }), await subjectAction({ params, request })]) {
+      expect(result.headers.get("Location")).toBe("/periodo/2025/cargar");
+    }
+    expect(saveCache).not.toHaveBeenCalled();
+  });
+
+  it("loads suggested subjects when a coordinator opens sections with no subject cache", async () => {
+    getActiveUser.mockReturnValue({ userLevel: "Coordinador" });
+    cache.subjects = null;
+    const data = await classLoader({ params: { periodId: "2025" } });
+    expect(data.subjectsByYear[1]).toEqual(subjects);
+    expect(saveCache).toHaveBeenCalledWith("subjects", subjectsByYear);
+  });
+
+  it("disables loading for users without a permitted role", async () => {
     getActiveUser.mockReturnValue({ userLevel: "Docente" });
     renderDataLoader();
 
-    expect(
-      await screen.findByRole("link", { name: /Materias/ })
-    ).toHaveAttribute("aria-disabled", "true");
-    expect(screen.getByRole("link", { name: /Secciones/ })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: /Secciones/ })).toHaveAttribute(
       "aria-disabled",
       "true"
     );
+    expect(screen.queryByRole("link", { name: /Materias/ })).not.toBeInTheDocument();
 
     expect(screen.getByRole("button", { name: /Confirmar/ })).toBeDisabled();
     expect(
@@ -426,7 +461,7 @@ describe("Data loading pages", () => {
       ).toBeChecked();
     }
   });
-
+  
   it("lays out subjects as rows and years as columns, preventing fewer than three per year", async () => {
     const user = userEvent.setup();
     const options = [...subjects, { id: "history", name: "Historia" }];

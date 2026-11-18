@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Form, redirect, useActionData, useLoaderData } from "react-router";
 
-import { PageLayout } from "../../../../components/Layout";
 import { PrimaryButton } from "../../../../components/Button";
+import { PageLayout } from "../../../../components/Layout";
 import { useErrorDialog } from "../../../../context/ErrorDialogContext";
 import {
   getCache,
@@ -17,7 +17,10 @@ import useSaveNavigationPrompt from "../useSaveNavigationPrompt";
 
 const MIN_SUBJECTS = 3;
 
-export async function subjectAction({ request }) {
+export async function subjectAction({ request, params }) {
+  if (getActiveUser()?.userLevel !== "Administrador") {
+    return redirect(`/periodo/${encodeURIComponent(params.periodId)}/cargar`);
+  }
   try {
     const formData = await request.formData();
     const subjectsPayload = formData.get("subjects_payload");
@@ -55,7 +58,7 @@ export async function subjectAction({ request }) {
 export async function subjectLoader({params}) {
   const activeUser = getActiveUser();
   
-  if (!["Administrador", "Coordinador"].includes(activeUser?.userLevel)) {
+  if (activeUser?.userLevel !== "Administrador") {
     return redirect(`/periodo/${encodeURIComponent(params.periodId)}/cargar`);
   }
 
@@ -65,29 +68,17 @@ export async function subjectLoader({params}) {
     getSubjects(),
     getSubjectSuggestions(),
   ]);
-  const { subjectsByYear: suggestedSubjects } = suggestions;
+  const toSelection = (byYear) => Object.fromEntries(
+    years.map(({ id }) => [id, Object.fromEntries(
+      (byYear?.[id] || []).map((subjectId) => [subjectId, true])
+    )])
+  );
+  const suggestedSubjects = toSelection(suggestions.subjectsByYear);
+  const subjectsPerYear = cachedSubjects && Object.keys(cachedSubjects).length
+    ? toSelection(cachedSubjects)
+    : suggestedSubjects;
 
-  const subjectsPerYear =
-    Object.prototype.toString.call(cachedSubjects) === "[object Object]" &&
-    Object.entries(cachedSubjects).length
-      ? cachedSubjects
-      : suggestedSubjects ||
-        years.reduce((acc, year) => {
-          acc[year.id] = [];
-          return acc;
-        }, {});
-
-  years.forEach((year) => {
-    subjectsPerYear[year.id] = (subjectsPerYear[year.id] || []).reduce(
-      (acc, s) => {
-        acc[s] = true;
-        return acc;
-      },
-      {}
-    );
-  });
-
-  return { years, subjects, subjectsPerYear };
+  return { years, subjects, subjectsPerYear, suggestedSubjects };
 }
 
 export default function SubjectLoader() {
@@ -128,8 +119,12 @@ export default function SubjectLoader() {
 
   return (
     <PageLayout title="Carga de Materias">
-      <p className="mb-6 text-gray-600">
-        Seleccione al menos {MIN_SUBJECTS} materias correspondientes a cada año.
+      <p className="mb-1 text-gray-600 w-[50ch]">
+        Seleccione las materias correspondientes a cada año de acuerdo al plan de estudio establecido por el MPPE para este periodo académico.
+      </p>
+      <p className="mb-2 text-sm text-gray-600">
+        <span aria-hidden="true" className="mr-2 inline-block h-3 w-3 rounded bg-emerald-100" />
+        Materia cambiada
       </p>
 
       <Form method="post" onSubmit={handleSubmit} className="space-y-4">
@@ -151,18 +146,23 @@ export default function SubjectLoader() {
               {loaderData.subjects.map((subject) => (
                 <BodyRow key={subject.id}>
                   <HeadCell className="text-left max-w-[15ch] truncate" scope="row" title={subject.name}>{subject.name}</HeadCell>
-                  {loaderData.years.map((year) => (
-                    <BodyCell key={year.id} className="text-center">
-                      <input
-                        type="checkbox"
-                        aria-label={`${subject.name} — ${year.name}`}
-                        name={`year${year.id}`}
-                        value={subject.id}
-                        checked={Boolean(subjectsPerYear[year.id]?.[subject.id])}
-                        onChange={() => handleToggle(year.id, subject.id)}
-                      />
-                    </BodyCell>
-                  ))}
+                  {loaderData.years.map((year) => {
+                    const checked = Boolean(subjectsPerYear[year.id]?.[subject.id]);
+                    const suggested = loaderData.suggestedSubjects[year.id]?.[subject.id];
+                    return (
+                      <BodyCell key={year.id} className={`text-center ${(suggested && !checked) || (!suggested && checked) ? "bg-emerald-50" : ""}`}>
+                        <input
+                          type="checkbox"
+                          aria-label={`${subject.name} — ${year.name}`}
+                          name={`year${year.id}`}
+                          value={subject.id}
+                          checked={checked}
+                          title={suggested ? "Materia sugerida" : undefined}
+                          onChange={() => handleToggle(year.id, subject.id)}
+                        />
+                      </BodyCell>
+                    );
+                  })}
                 </BodyRow>
               ))}
             </TableBody>

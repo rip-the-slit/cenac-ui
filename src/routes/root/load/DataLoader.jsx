@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Check } from "lucide-react";
+import { BookOpen, Check, Users } from "lucide-react";
 import {
   Form,
   Link,
@@ -16,6 +16,17 @@ import {
 import { useErrorDialog } from "../../../context/ErrorDialogContext";
 import { getActiveUser } from "../../../auth";
 import { PageLayout } from "../../../components/Layout";
+import cacheSuggestedSubjects from "./cacheSuggestedSubjects";
+import { PrimaryButton } from "../../../components/Button";
+
+const steps = [
+  { to: "materias", title: "Materias", description: "Asigne las materias correspondientes a cada año.", Icon: BookOpen },
+  { to: "secciones", title: "Secciones", description: "Asigne las secciones y sus respectivos estudiantes.", Icon: Users },
+];
+
+function visibleSteps(userLevel) {
+  return userLevel === "Administrador" ? steps : steps.slice(1);
+}
 
 function hasData(data) {
   if (Array.isArray(data)) {
@@ -27,10 +38,12 @@ function hasData(data) {
   return false;
 }
 
-export async function dataLoader({ request }) {
+export async function dataLoader() {
   const activeUser = getActiveUser();
 
-  const subjects = getCache("subjects");
+  const subjects = activeUser?.userLevel === "Coordinador"
+    ? await cacheSuggestedSubjects()
+    : getCache("subjects");
   const classStudents = getCache("class_students");
   const subjectsLoaded = hasData(subjects);
   const classesLoaded = Array.isArray(classStudents);
@@ -74,64 +87,49 @@ export default function DataLoader() {
     } else if (disableLoading) {
       emitError("No tiene permisos para cargar datos del período.")
     }
-  }, [actionData, emitError]);
+  }, [actionData, disableLoading, emitError]);
 
   return (
     <PageLayout title="Carga de datos">
-      <p className="text-gray-600 mb-8">
+    <div className="mx-auto w-full max-w-[600px]">
+      <p className="mb-4 text-gray-600">
         Empiece por cargar los datos de este período escolar
       </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 mb-8 gap-8">
-        <Link
-          to="materias"
-          aria-disabled={disableLoading}
-          className={
-            "relative block p-6 bg-white border rounded-lg shadow-sm hover:bg-gray-100 transition-colors " +
-            (subjectsLoaded ? "border-emerald-500 " : "border-gray-200 ") + (disableLoading ? "cursor-not-allowed pointer-events-none grayscale opacity-50" : "")
-          }
-        >
-          {subjectsLoaded && (
-            <Check className="absolute right-4 top-4 w-5 h-5 text-emerald-600" />
-          )}
-          <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-            Materias
-          </h2>
-          <p className="text-gray-600">
-            Asigne las materias correspondientes a cada año.
-          </p>
-        </Link>
-        <Link
-          to="secciones"
-          aria-disabled={disableLoading}
-          className={
-            "relative block p-6 bg-white border rounded-lg shadow-sm hover:bg-gray-100 transition-colors " +
-            (classesLoaded ? "border-emerald-500 " : "border-gray-200 ") + (disableLoading ? "cursor-not-allowed pointer-events-none grayscale opacity-50" : "")
-          }
-        >
-          {classesLoaded && (
-            <Check className="absolute right-4 top-4 w-5 h-5 text-emerald-600" />
-          )}
-          <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-            Secciones
-          </h2>
-          <p className="text-gray-600">
-            Asigne las secciones y sus respectivos estudiantes.
-          </p>
-        </Link>
-      </div>
+      <ul className="mb-8 space-y-3">
+        {visibleSteps(activeUser?.userLevel).map(({ to, title, description, Icon }) => {
+          const complete = to === "materias" ? subjectsLoaded : classesLoaded;
+          return (
+            <li key={to}>
+              <Link
+                to={to}
+                aria-disabled={disableLoading}
+                onClick={disableLoading ? (event) => event.preventDefault() : undefined}
+                className={`flex items-center justify-between gap-4 rounded-lg border p-4 shadow-sm transition-colors hover:bg-gray-50 ${
+                  complete ? "border-emerald-500" : "border-gray-200"
+                } ${disableLoading ? "pointer-events-none grayscale opacity-50" : ""}`}
+              >
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+                  <p className="mt-1 text-gray-600">{description}</p>
+                </div>
+                {complete
+                  ? <Check aria-label="Completado" className="h-6 w-6 shrink-0 text-emerald-600" />
+                  : <Icon aria-hidden="true" className="h-10 w-10 shrink-0 text-gray-500" />}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
       <Form method="post">
-        <button
-          className={`flex items-center mx-auto gap-2 font-bold p-3 shadow-sm rounded-lg border text-white ${
-            canConfirm
-              ? "bg-gradient-to-b from-emerald-500 to-emerald-600 border-emerald-500"
-              : "bg-gray-300 border-gray-300 cursor-not-allowed"
-          }`}
+        <PrimaryButton
+        className="m-auto"
           type="submit"
           disabled={disableLoading || !canConfirm}
         >
           Confirmar <Check className="w-5 h-5" />
-        </button>
+        </PrimaryButton>
       </Form>
+    </div>
     </PageLayout>
   );
 }

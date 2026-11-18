@@ -26,6 +26,7 @@ import StudentEditorProvider from "./StudentEditor";
 import { getEnrollmentSubjects, normalizeId } from "./classLoaderUtils";
 import { getActiveUser } from "../../../../auth";
 import useSaveNavigationPrompt from "../useSaveNavigationPrompt";
+import cacheSuggestedSubjects from "../cacheSuggestedSubjects";
 
 const MAX_GUARDIAN_SUGGESTIONS = 5;
 
@@ -103,11 +104,14 @@ export async function classLoader({ params }) {
   }
 
   const cachedStudents = getCache("class_students");
-  const cachedSubjectIds = getCache("subjects");
-  const [years, subjects, suggestions] = await Promise.all([
+  const cachedSubjects = getCache("subjects");
+  const [years, subjects, suggestions, cachedSubjectIds] = await Promise.all([
     getYears(),
     getSubjects(),
     getClassSuggestions(),
+    activeUser.userLevel === "Coordinador" && !cachedSubjects
+      ? cacheSuggestedSubjects()
+      : cachedSubjects,
   ]);
   const {
     students: suggestedStudents,
