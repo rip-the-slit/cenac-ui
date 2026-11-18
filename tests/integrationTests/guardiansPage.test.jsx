@@ -5,12 +5,13 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import Guardians, { guardiansLoader } from "../../src/routes/root/guardians/Guardians";
 import GuardianDetail, { guardianDetailLoader } from "../../src/routes/root/guardians/GuardianDetail";
-import { editGuardian, getGuardianById, getGuardians } from "../../src/db";
+import { editGuardian, getGuardianById, getGuardians, getPeriodList } from "../../src/db";
 import { ErrorDialogProvider } from "../../src/context/ErrorDialogContext";
 
 vi.mock("../../src/db", () => ({
   getGuardianById: vi.fn(),
   getGuardians: vi.fn(),
+  getPeriodList: vi.fn(),
   editGuardian: vi.fn(),
 }));
 
@@ -76,6 +77,7 @@ function latestLoaderUrl(loader) {
 describe("Representantes page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getPeriodList.mockResolvedValue([{ id: "2025" }]);
     getGuardians.mockResolvedValue(response);
     getGuardianById.mockResolvedValue({ guardian, fields: fieldDefinitions(guardianFieldLabels) });
   });
@@ -83,6 +85,8 @@ describe("Representantes page", () => {
   it("renders guardian records and links represented students", async () => {
     renderGuardians();
     const table = await screen.findByRole("table");
+    const headers = within(table).getAllByRole("columnheader").map((header) => header.textContent);
+    expect(headers.indexOf(guardianFieldLabels.lastName)).toBeLessThan(headers.indexOf(guardianFieldLabels.firstName));
     for (const header of [
       "Seleccionar todos",
       ...Object.values(guardianFieldLabels),
@@ -124,6 +128,7 @@ describe("Representantes page", () => {
       });
     });
     expect(getGuardians).toHaveBeenLastCalledWith(
+      "2025",
       expect.objectContaining({ firstName: "María", studentQ: "Ana", limit: 20 })
     );
   });
@@ -156,7 +161,7 @@ describe("Representantes page", () => {
     fireEvent.change(birthDate, { target: { value: "1980-01-01" } });
     fireEvent.change(role, { target: { value: "Madre" } });
     await waitFor(() => expect(latestLoaderUrl(loader).searchParams.get("legalRole")).toBe("Madre"));
-    expect(getGuardians).toHaveBeenLastCalledWith(expect.objectContaining({ birthDate: "1980-01-01", legalRole: "Madre" }));
+    expect(getGuardians).toHaveBeenLastCalledWith("2025", expect.objectContaining({ birthDate: "1980-01-01", legalRole: "Madre" }));
   });
 
   it("edits guardian fields with the cédula disabled and refreshes the displayed text", async () => {

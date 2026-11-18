@@ -36,8 +36,8 @@ export default function StudentsTable({
               />
             </HeadCell>
             <HeadCell>{fields.id?.label}</HeadCell>
-            <HeadCell>{fields.firstName?.label}</HeadCell>
             <HeadCell>{fields.lastName?.label}</HeadCell>
+            <HeadCell>{fields.firstName?.label}</HeadCell>
             <HeadCell>{fields.birthDate?.label}</HeadCell>
             <HeadCell>{fields.birthPlace?.label}</HeadCell>
             <HeadCell>{fields.class?.label}</HeadCell>

@@ -161,6 +161,8 @@ describe("Students page", () => {
   it("renders student headers, records, class names, and detail links", async () => {
     renderStudents();
     const table = await screen.findByRole("table");
+    const headers = within(table).getAllByRole("columnheader").map((header) => header.textContent);
+    expect(headers.indexOf(studentFieldLabels.lastName)).toBeLessThan(headers.indexOf(studentFieldLabels.firstName));
 
     for (const header of [
       "Seleccionar todos",

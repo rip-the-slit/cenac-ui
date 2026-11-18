@@ -1,7 +1,7 @@
 export const GUARDIAN_FIELDS = [
   "id",
-  "firstName",
   "lastName",
+  "firstName",
   "birthDate",
   "legalRole",
   "phone",

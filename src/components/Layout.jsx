@@ -95,7 +95,7 @@ export function CardHeader({
 export function FormField({ label, children, className = "" }) {
   return (
     <label
-      className={`flex flex-col gap-2 text-sm font-medium text-gray-700 ${className}`}
+      className={`flex flex-col gap-2 relative text-sm font-medium text-gray-700 ${className}`}
     >
       {label}
       {children}

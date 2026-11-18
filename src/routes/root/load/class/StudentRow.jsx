@@ -7,10 +7,9 @@ import { getEnrollmentSubjects, normalizeId } from "./classLoaderUtils";
 import { useStudentEditor } from "./StudentEditor";
 import { DeleteButton, EditButton } from "../../../../components/Button";
 
-export default function StudentRow({ student, selected, actions }) {
+export default function StudentRow({ student, selected, actions, columnFields }) {
   const {
     classesByYear,
-    studentSchema,
     subjectsById,
     subjectsByYear,
     years,
@@ -50,7 +49,7 @@ export default function StudentRow({ student, selected, actions }) {
           onChange={actions.select}
         />
       </BodyCell>
-      {studentSchema.attributes.map((attribute) => (
+      {columnFields.map((attribute) => (
         <BodyCell key={attribute}>
           {attribute === "id" ? (
             <button

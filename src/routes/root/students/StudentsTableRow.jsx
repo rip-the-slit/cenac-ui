@@ -39,12 +39,12 @@ export default function StudentsTableRow({
       </BodyCell>
       <BodyCell>
         <Link className="block" to={to}>
-          {student.firstName}
+          {student.lastName}
         </Link>
       </BodyCell>
       <BodyCell>
         <Link className="block" to={to}>
-          {student.lastName}
+          {student.firstName}
         </Link>
       </BodyCell>
       <BodyCell>
