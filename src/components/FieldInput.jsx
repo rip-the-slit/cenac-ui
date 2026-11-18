@@ -56,7 +56,7 @@ export default function FieldInput({
         {options.map((option) => (
           <option key={option.value} value={option.value}>{option.label}</option>
         ))}
-      </select> : <input type={type} {...inputProps} />}
+      </select> : <input type={type} {...inputProps} spellCheck={false} />}
       {error && <div id={errorId} role="alert" className={"absolute -right-2 bottom-0 translate-y-2/4 " + errorClassName}>{error}</div>}
     </>
   );
