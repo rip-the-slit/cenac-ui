@@ -62,11 +62,10 @@ const SidebarItem = ({ icon, label, path, end = true }) => {
 
 const SidebarSection = ({ title, children }) => (
   <div className="mb-6">
-    <div className="flex items-center justify-between px-4 mb-2">
+    <div className="flex items-center px-4 mb-2">
       <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
         {title}
       </h3>
-      <MoreHorizontal className="w-4 h-4 text-gray-500 cursor-pointer" />
     </div>
     <div className="space-y-1">{children}</div>
   </div>

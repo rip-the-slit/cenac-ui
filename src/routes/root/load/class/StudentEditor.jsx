@@ -100,7 +100,7 @@ export function StudentEditorModal({
 
   function handleIdChange(value) {
     if (disabledFields.has("id")) return;
-    if (lockedIdentity) {
+    if (locked && normalizeId(value) !== normalizeId(lockedIdentity.id)) {
       setLockedIdentity(null);
     }
     updateField("id", value);
@@ -168,6 +168,10 @@ export function StudentEditorModal({
 
   async function commitStudent(source) {
     if (isSubmitting) return;
+    if (!source.assignedGuardians?.length) {
+      emitError("Debe asignar al menos un representante al estudiante.");
+      return;
+    }
     setIsSubmitting(true);
     try {
       const committed = await onCommit({
@@ -348,8 +352,8 @@ export function StudentEditorModal({
         {locked && (
           <p className="text-sm text-gray-600">
             Los datos de un estudiante preexistente no se pueden modificar;
-            únicamente puede cambiar su inscripción, sus representantes o
-            cambiar la cédula para desbloquearlos.
+            únicamente puede cambiar su inscripción o sus representantes.
+            {!disabledFields.has("id") && " Cambie la cédula para desbloquear los datos personales."}
           </p>
         )}
 

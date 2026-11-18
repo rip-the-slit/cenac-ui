@@ -12,9 +12,8 @@ import { CardHeader, FormField } from "../../../../components/Layout";
 import IdInput from "./IdInput";
 import PhoneInput from "./PhoneInput";
 import { normalizeId } from "./classLoaderUtils";
-import { editGuardian, getStudentById } from "../../../../db";
+import { getStudentById } from "../../../../db";
 const NO_DISABLED_FIELDS = new Set();
-const EDIT_DISABLED_FIELDS = new Set(["id"]);
 
 function guardianName(guardian) {
   return (
@@ -228,14 +227,9 @@ export default function GuardianEditor({
       emitError("El representante no puede tener la misma cédula que el estudiante.");
       return false;
     }
-    const otherGuardians = guardians.filter(
-      (candidate) => normalizeId(candidate.id) !== editingGuardian?.id
-    );
+    const editingId = editingGuardian ? normalizeId(editingGuardian.id) : null;
+    const otherGuardians = guardians.filter((candidate) => normalizeId(candidate.id) !== editingId);
 
-    if (!editingGuardian && guardians.length >= 3) {
-      emitError("Solo puede asignar un máximo de tres representantes.");
-      return false;
-    }
     const role = legalRoleName(guardian.legalRole);
     const previousRole = (guardian.assignedStudents || [])
       .map((student) => legalRoleName(student.legalRole))
@@ -245,18 +239,6 @@ export default function GuardianEditor({
       return false;
     }
     if (
-      ["padre", "madre"].includes(role) &&
-      otherGuardians.filter((candidate) =>
-        ["padre", "madre"].includes(legalRoleName(candidate.legalRole))
-      ).length >= 2
-    ) {
-      emitError(
-        `No puede asignar más de dos representantes con el rol de padre o madre.`
-      );
-      return false;
-    }
-
-    if (
       otherGuardians.some(
         (candidate) => normalizeId(candidate.id) === guardianId
       )
@@ -264,19 +246,17 @@ export default function GuardianEditor({
       emitError("Este representante ya está asignado al estudiante.");
       return false;
     }
+    if (otherGuardians.some((candidate) => legalRoleName(candidate.legalRole) === role)) {
+      emitError("Solo puede asignar un representante por rol.");
+      return false;
+    }
 
     try {
       if (editingGuardian) {
-        const changes = Object.fromEntries(
-          guardianSchema.attributes
-            .filter((field) => !["id", "assignedStudents"].includes(field))
-            .map((field) => [field, guardian[field]])
-        );
-        await editGuardian(guardianId, changes);
         setGuardians((current) =>
           current.map((candidate) =>
             normalizeId(candidate.id) === guardianId
-              ? { ...candidate, ...guardian, _locked: true }
+              ? { ...candidate, legalRole: guardian.legalRole }
               : candidate
           )
         );
@@ -319,7 +299,11 @@ export default function GuardianEditor({
         guardianSchema={guardianSchema}
         disabledFields={
           editingGuardian
-            ? new Set([...disabledFields, ...EDIT_DISABLED_FIELDS])
+            ? new Set([
+                ...disabledFields,
+                "id",
+                ...guardianSchema.attributes.filter((field) => field !== "legalRole"),
+              ])
             : disabledFields
         }
         onBack={() => {

@@ -123,6 +123,21 @@ const students = [
 
 let cache;
 
+async function assignGuardian(user) {
+  getGuardians.mockImplementation(async (_periodId, { id }) => ({
+    filters: { id },
+    rows: id === guardian.id ? [guardian] : [],
+    recordsAmount: id === guardian.id ? 1 : 0,
+  }));
+  await user.click(screen.getByRole("button", { name: /^Representantes/ }));
+  await user.click(screen.getByRole("button", { name: "Agregar representante" }));
+  await user.type(screen.getByRole("textbox", { name: "Cédula" }), guardian.id.slice(2));
+  await waitFor(() => expect(screen.getByRole("textbox", { name: "Nombres" })).toBeDisabled());
+  await user.click(screen.getByRole("button", { name: "Aceptar" }));
+  await screen.findByText("María Rojas");
+  await user.click(screen.getByRole("button", { name: "Aceptar" }));
+}
+
 function renderDataLoader() {
   const router = createMemoryRouter(
     [
@@ -471,7 +486,7 @@ describe("Data loading pages", () => {
     }
   });
 
-  it("edits an assigned guardian through the API without changing their ID", async () => {
+  it("only edits an assigned guardian's role from the student editor", async () => {
     const user = userEvent.setup();
     cache.class_students = [{ ...students[0], assignedGuardians: [guardian] }];
     renderClassLoader();
@@ -479,23 +494,31 @@ describe("Data loading pages", () => {
     await user.click(screen.getByRole("button", { name: "Editar representante María Rojas" }));
     expect(screen.getByRole("textbox", { name: "Cédula" })).toBeDisabled();
     expect(screen.getByRole("combobox", { name: "Cédula: tipo" })).toBeDisabled();
-    const name = screen.getByRole("textbox", { name: "Nombres" });
-    await user.clear(name);
-    await user.type(name, "Mariana");
+    expect(screen.getByRole("textbox", { name: "Nombres" })).toBeDisabled();
+    expect(screen.getByRole("textbox", { name: "Teléfono" })).toBeDisabled();
+    const role = screen.getByRole("textbox", { name: "Rol Legal" });
+    await user.clear(role);
+    await user.type(role, "Tutor");
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
-    expect(await screen.findByText("Mariana Rojas")).toBeInTheDocument();
-    expect(editGuardian).toHaveBeenCalledWith(guardian.id, expect.objectContaining({ firstName: "Mariana" }));
+    expect(await screen.findByText("Tutor")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    await user.click(screen.getByRole("button", { name: "Continuar" }));
+    await waitFor(() => expect(saveCache).toHaveBeenCalledWith(
+      "class_students", expect.arrayContaining([expect.objectContaining({
+        assignedGuardians: [expect.objectContaining({ id: guardian.id, legalRole: "Tutor" })],
+      })])
+    ));
+    expect(editGuardian).not.toHaveBeenCalled();
     expect(createGuardian).not.toHaveBeenCalled();
   });
 
   it.each([
-    [["Madre", "Padre", "Tutor"], "Tutora", "Solo puede asignar un máximo de tres representantes."],
-    [["Madre", "Madre"], "Madre", "No puede asignar más de dos representantes con el rol de padre o madre."],
-    [["Padre", "Padre"], "Padre", "No puede asignar más de dos representantes con el rol de padre o madre."],
-    [["Padre", "Madre"], "Padre", "No puede asignar más de dos representantes con el rol de padre o madre."],
-  ])("validates guardian limits before creation: %j + %s", async (roles, role, message) => {
+    ["Madre", "madre"],
+    ["Padre", "Padre"],
+    ["Representante Legal", "Representante Legal"],
+  ])("rejects a second guardian for the same role before creation: %s", async (existingRole, role) => {
     const user = userEvent.setup();
-    cache.class_students = [{ ...students[0], assignedGuardians: roles.map((legalRole, index) => ({ ...guardian, id: `V-4000000${index}`, legalRole })) }];
+    cache.class_students = [{ ...students[0], assignedGuardians: [{ ...guardian, legalRole: existingRole }] }];
     renderClassLoader();
     await user.click(await screen.findByRole("button", { name: "Editar representantes de Ana Pérez" }));
     await user.click(screen.getByRole("button", { name: "Agregar representante" }));
@@ -507,7 +530,7 @@ describe("Data loading pages", () => {
     await user.type(screen.getByRole("textbox", { name: "Teléfono" }), "1234567");
     await user.type(screen.getByRole("textbox", { name: "Dirección" }), "Caracas");
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
-    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(await screen.findByText("Solo puede asignar un representante por rol.")).toBeInTheDocument();
     expect(createGuardian).not.toHaveBeenCalled();
     expect(getStudentById).not.toHaveBeenCalled();
   });
@@ -539,6 +562,10 @@ describe("Data loading pages", () => {
     });
     await user.selectOptions(enrollmentSelect, "1:B");
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    expect(await screen.findByText("Debe asignar al menos un representante al estudiante.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Cerrar error" }));
+    await assignGuardian(user);
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
     await user.click(screen.getByRole("button", { name: "Continuar" }));
@@ -603,6 +630,7 @@ describe("Data loading pages", () => {
       await user.click(await screen.findByRole("option", { name: place }));
     }
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    await assignGuardian(user);
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
     expect(screen.getByText("Luis")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Continuar" }));
@@ -635,6 +663,7 @@ describe("Data loading pages", () => {
       screen.getByRole("textbox", { name: "Apellido" }),
       "Persona"
     );
+    await assignGuardian(user);
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
     expect(
@@ -653,6 +682,7 @@ describe("Data loading pages", () => {
     await user.click(await screen.findByRole("button", { name: "Añadir Estudiante" }));
     await user.type(screen.getByRole("textbox", { name: "Nombre" }), "Nueva");
     await user.type(screen.getByRole("textbox", { name: "Apellido" }), "Persona");
+    await assignGuardian(user);
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
     expect(await screen.findByText("Esta cédula ya está registrada como representante.")).toBeInTheDocument();
     expect(getGuardianById).toHaveBeenCalledWith("V-30000000");
@@ -700,7 +730,7 @@ describe("Data loading pages", () => {
     ).toBeEnabled();
   });
 
-  it("auto-selects an exact historical match and locks identity data while the ids still match", async () => {
+  it("locks historical personal data but allows correcting the student ID", async () => {
     const user = userEvent.setup();
     const twoYears = [
       { id: 1, name: "Primer año" },
@@ -716,6 +746,7 @@ describe("Data loading pages", () => {
           firstName: "Sara",
           lastName: "Sol",
           _class: { year: 2, id: "Z" },
+          assignedGuardians: [guardian],
         },
       ],
     });
@@ -765,7 +796,8 @@ describe("Data loading pages", () => {
         "Sara"
       )
     );
-    expect(documentInput).not.toBeDisabled();
+    expect(documentInput).toBeEnabled();
+    expect(screen.getByRole("combobox", { name: "Documento: tipo" })).toBeEnabled();
     expect(screen.getByRole("textbox", { name: "Nombre" })).toBeDisabled();
     expect(screen.getByRole("textbox", { name: "Apellido" })).toBeDisabled();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -782,23 +814,10 @@ describe("Data loading pages", () => {
     );
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
-    const unlockedDocumentInput = screen.getByRole("textbox", {
-      name: "Documento",
-    });
-    await user.clear(unlockedDocumentInput);
-
-    expect(screen.getByRole("textbox", { name: "Nombre" })).not.toBeDisabled();
-    expect(
-      screen.getByRole("textbox", { name: "Apellido" })
-    ).not.toBeDisabled();
-
-    await user.type(unlockedDocumentInput, "10000778");
-
-    await user.click(screen.getByRole("button", { name: /^Inscripción/ }));
-    expect(
-      screen.getByText(/Puede inscribir un máximo de 2 materias/)
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    const editableId = screen.getByRole("textbox", { name: "Documento" });
+    await user.clear(editableId);
+    await user.type(editableId, "10000778");
+    expect(screen.getByRole("textbox", { name: "Nombre" })).toBeEnabled();
 
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
     await user.click(screen.getByRole("tab", { name: "Sección B" }));
@@ -879,6 +898,7 @@ describe("Data loading pages", () => {
     await user.click(language);
     expect(science).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    await assignGuardian(user);
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
 
     expect(screen.getByText("MAT, LEN")).toBeInTheDocument();
@@ -952,6 +972,7 @@ describe("Data loading pages", () => {
           ...students[0],
           _class: { year: yearId, id: "z" },
           pendingSubjects: ["math", "language", "science"],
+          assignedGuardians: [guardian],
         },
       ],
       studentClass,
@@ -1007,12 +1028,14 @@ describe("Data loading pages", () => {
           firstName: "Luis",
           lastName: "Sol",
           _class: { year: 9, id: "z" },
+          assignedGuardians: [guardian],
         },
         {
           id: "V-10000104",
           firstName: "Sara",
           lastName: "Sol",
           _class: { year: 2, id: "z" },
+          assignedGuardians: [guardian],
         },
       ],
       studentClass,
@@ -1115,6 +1138,7 @@ describe("Data loading pages", () => {
     ).not.toBeInTheDocument();
     await user.click(screen.getByRole("checkbox", { name: "Lengua" }));
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
+    await assignGuardian(user);
     await user.click(screen.getByRole("button", { name: "Aceptar" }));
     expect(
       screen.getByRole("combobox", { name: "Cambiar sección de Luis Sol" })

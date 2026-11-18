@@ -18,6 +18,7 @@ export default function StudentsFilters({
   children,
   paginate = true,
   fieldsetName,
+  hideStudentFilters = false,
 }) {
   const FilterForm = FormComponent;
   const studentFilters = (
@@ -142,7 +143,7 @@ export default function StudentsFilters({
         const formData = new FormData(event.currentTarget);
         const year = String(formData.get("year") || "");
         const classId = String(formData.get("class") || "");
-        if (!year || !pickClasses(classesByYear, year).includes(classId)) {
+        if (!hideStudentFilters && (!year || !pickClasses(classesByYear, year).includes(classId))) {
           formData.delete("class");
         }
         if (!formData.get("guardianQ")) formData.delete("guardianQ");
@@ -151,12 +152,12 @@ export default function StudentsFilters({
       }}
     >
       {children}
-      {fieldsetName ? (
+      {!hideStudentFilters && (fieldsetName ? (
         <fieldset className="col-span-full grid min-w-0 gap-3 rounded-lg border border-gray-200 p-3 md:grid-cols-4">
           <legend className="px-1 text-sm font-medium text-gray-700">{fieldsetName}</legend>
           {studentFilters}
         </fieldset>
-      ) : studentFilters}
+      ) : studentFilters)}
     </FilterForm>
   );
 }
