@@ -16,6 +16,19 @@ import { getClassSuggestions } from "../../../../db";
 const StudentEditorContext = createContext(null);
 const NO_DISABLED_FIELDS = new Set();
 
+function birthDateForYear(definition, year) {
+  if (!definition) return undefined;
+  const { min, max, validationMessages = {} } = definition;
+  return {
+    ...definition,
+    min: typeof min === "string" ? min : min?.[year],
+    max: typeof max === "string" ? max : max?.[year],
+    validationMessages: validationMessages?.[year] ?? Object.fromEntries(
+      Object.entries(validationMessages ?? {}).filter(([, message]) => typeof message === "string")
+    ),
+  };
+}
+
 export function useStudentEditor() {
   const context = useContext(StudentEditorContext);
   if (!context) {
@@ -77,6 +90,7 @@ export function StudentEditorModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationVersion, setValidationVersion] = useState(0);
   const locked = lockedIdentity !== null;
+  const birthDateDefinition = birthDateForYear(studentSchema.fields.birthDate, draft._class.year);
   const directSection = Boolean(
     editor.initialPage && editor.initialPage !== "details"
   );
@@ -307,8 +321,8 @@ export function StudentEditorModal({
                   />
                 ) : (
                   <FieldInput
-                    validationKey={validationVersion}
-                    definition={studentSchema.fields[field]}
+                    validationKey={field === "birthDate" ? `${validationVersion}:${draft._class.year}` : validationVersion}
+                    definition={field === "birthDate" ? birthDateDefinition : studentSchema.fields[field]}
                     value={draft[field] ?? ""}
                     disabled={locked || disabledFields.has(field)}
                     onChange={(event) => updateField(field, event.target.value)}
