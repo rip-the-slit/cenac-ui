@@ -34,6 +34,7 @@ import Users, {
   usersAction,
   usersLoader,
 } from "./routes/root/configuration/Users";
+import HelpCenter, { HelpCenterIndex, manualRoutes } from "./routes/root/helpCenter/HelpCenter";
 
 async function AuthLoader({ request }) {
   const users = await getUsers();
@@ -128,6 +129,11 @@ export default [
             path: "reportes",
             element: <Reports />,
             loader: reportsLoader,
+          },
+          {
+            path: "ayuda",
+            element: <HelpCenter />,
+            children: [{ index: true, element: <HelpCenterIndex /> }, ...manualRoutes],
           },
           {
             path: "configuracion",

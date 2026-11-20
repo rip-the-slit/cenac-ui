@@ -12,6 +12,7 @@ import UserSelector from "../login/UserSelector";
 import {
   NavLink,
   Link,
+  matchPath,
   Outlet,
   redirect,
   useLoaderData,
@@ -31,7 +32,8 @@ export async function appLoader({ params, request }) {
   const periodData = await getPeriodStats(periodId);
 
   const url = new URL(request.url);
-  if (periodData.stats === null && !url.pathname.includes("cargar")) {
+  const isHelpCenter = matchPath("/periodo/:periodId/ayuda/*", url.pathname);
+  if (periodData.stats === null && !url.pathname.includes("cargar") && !isHelpCenter) {
     return redirect(`/periodo/${periodId}/cargar`);
   } else if (periodData.stats && url.pathname.includes("cargar")) {
     return redirect(`/periodo/${periodId}`);
@@ -149,10 +151,17 @@ export default function App() {
         <div className="w-full h-[1px] bg-gray-300 px-5 bg-clip-content" />
 
         <div className="p-4">
-          <button className="flex items-center w-full px-4 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors">
+          <NavLink
+            to={`${rootUrl}/ayuda`}
+            className={({ isActive }) =>
+              `flex items-center w-full px-4 py-2 text-sm rounded-lg transition-colors ${
+                isActive ? "bg-gray-100 text-gray-900 font-medium" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`
+            }
+          >
             <HelpCircle className="w-5 h-5 mr-3 text-gray-600" />
             Centro de Ayuda
-          </button>
+          </NavLink>
           <NavLink
             to={`${rootUrl}/configuracion`}
             className={({ isActive }) =>
